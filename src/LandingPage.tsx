@@ -4,7 +4,7 @@ import {
   Map, MapPin, ShieldAlert, BookOpen, 
   CloudSun, Activity, QrCode as QrIcon, Scroll, 
   Wind, Navigation, Zap, Bell, Landmark, UserCheck, Camera, X,
-  Apple, PlayCircle
+  Apple, PlayCircle, ArrowRight
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -439,11 +439,9 @@ const SequentialCard = ({ route, index, total, progress }: { route: any, index: 
         rotate,
         zIndex: total - index,
         position: 'absolute',
-        top: '50%',
-        left: '50%',
-        x: '-50%',
-        y: '-50%',
-        marginTop: y, // Using marginTop for the vertical movement to keep the initial 'y' transform free for centering
+        paddingTop: '0', // Reset any padding
+        transform: 'translate(-50%, -50%)', // Use standard transform for static centering
+        marginTop: y, // Using marginTop for the vertical movement animation
       }}
       className="w-full max-w-5xl h-[450px] md:h-[500px] rounded-[3.5rem] overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col justify-end p-8 md:p-16 group border border-white/10 bg-[#1B2616]"
     >
@@ -494,86 +492,167 @@ const SequentialCard = ({ route, index, total, progress }: { route: any, index: 
 };
 
 const BookSection = () => {
-  const ref = useRef(null);
-  
-  // Track scroll inside this specific section to rotate the page
+  const sectionRef = useRef(null);
   const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start center", "end end"]
+    target: sectionRef,
+    offset: ["start end", "end start"]
   });
 
-  // Rotates from 0 to -180 across the scroll
-  const rotateY = useTransform(scrollYProgress, [0, 1], [0, -180]);
+  // Rotate cover from 0 to -160 degrees as we scroll
+  const rotateY = useTransform(scrollYProgress, [0.2, 0.45], [0, -165]);
+  const bookScale = useTransform(scrollYProgress, [0.1, 0.3], [0.8, 1]);
+  const bookOpacity = useTransform(scrollYProgress, [0.1, 0.25], [0, 1]);
+  const bookY = useTransform(scrollYProgress, [0.1, 0.4], [100, 0]);
 
   return (
-    <section ref={ref} className="h-[150vh] flex flex-col items-center relative overflow-visible bg-[#2D3A27]">
-      <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#3A4A33] to-[#2D3A27]" />
+    <section ref={sectionRef} className="h-[200vh] relative z-30 bg-[#FDFCF8] overflow-hidden">
+      <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center py-20 px-4">
         
-        <div className="relative z-10 w-full max-w-5xl px-4 flex flex-col items-center text-center">
-          <h2 className="font-serif text-4xl md:text-6xl text-[#E8E4D9] mb-4">O Legado</h2>
-          <p className="font-sans text-lg md:text-xl text-[#E8E4D9]/80 max-w-2xl mb-16 font-light">
-            Transforme suas memórias em um livro de arte físico.
-          </p>
+        {/* Background Atmosphere */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#E8E4D9_0%,_#FDFCF8_100%)] opacity-50" />
+        
+        <div className="relative z-10 text-center mb-16">
+          <motion.span 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            className="text-[#2D1B14]/40 uppercase tracking-[0.5em] text-xs font-bold mb-4 block"
+          >
+            O Legado Físico
+          </motion.span>
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="font-serif text-5xl md:text-8xl text-[#2D1B14] mb-6 italic"
+          >
+            Sua história em mãos.
+          </motion.h2>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-[#2D1B14]/60 text-lg md:text-2xl max-w-2xl mx-auto font-light leading-relaxed"
+          >
+            Transforme cada passo do seu Caminho em um livro de arte exclusivo, 
+            feito sob medida para a sua jornada.
+          </motion.p>
+        </div>
 
-          {/* Book Wrapper */}
-          <div className="relative w-[320px] h-[450px] md:w-[450px] md:h-[600px] mb-16" style={{ perspective: '2000px' }}>
-            
-            {/* Back cover (Left side) */}
-            <div className="absolute top-0 right-1/2 w-full h-full bg-[#E8E4D9] rounded-l-2xl shadow-2xl border-r border-black/10 origin-right p-6 flex flex-col">
-               <div className="h-[60%] w-full rounded bg-[url('https://images.unsplash.com/photo-1598004141512-421774e142e0?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80')] bg-cover bg-center mix-blend-multiply" />
-               <div className="mt-8 flex gap-4">
-                 <div className="w-16 h-16 rounded-full border-2 border-[#8B4513] flex items-center justify-center flex-shrink-0 opacity-80 mix-blend-multiply">
-                   <span className="text-[12px] font-serif font-bold text-[#8B4513] -rotate-12">STAMP</span>
-                 </div>
-                 <p className="text-sm font-serif text-[#2D3A27] leading-relaxed italic">
-                   "O caminho se faz caminhando. As memórias ficam guardadas para a eternidade."
-                 </p>
-               </div>
-            </div>
-
-            {/* Front cover (Right side) that rotates */}
-            <motion.div 
-              style={{ rotateY, transformStyle: "preserve-3d" }}
-              className="absolute top-0 left-1/2 w-full h-full origin-left"
-            >
-              {/* Front Face (Outside) */}
-              <div 
-                className="absolute inset-0 bg-[#8B4513] rounded-r-2xl shadow-2xl flex items-center justify-center p-8 border-l-8 border-black/30"
-                style={{ backfaceVisibility: "hidden" }}
-              >
-                <div className="border border-[#E8E4D9]/40 w-full h-full p-4 flex flex-col items-center justify-center gap-6 rounded-sm relative">
-                  <BookOpen className="w-16 h-16 text-[#E8E4D9]/90" strokeWidth={1.5} />
-                  <h3 className="font-serif text-3xl text-[#E8E4D9] text-center tracking-wide leading-snug">
-                    Diário do<br/>Peregrino
-                  </h3>
-                  <div className="absolute bottom-10 w-12 h-px bg-[#E8E4D9]/40" />
+        {/* 3D Book Container */}
+        <motion.div 
+          style={{ 
+            scale: bookScale, 
+            opacity: bookOpacity, 
+            y: bookY,
+            perspective: "2500px" 
+          }}
+          className="relative w-full max-w-[340px] md:max-w-5xl h-[450px] md:h-[600px] mx-auto"
+        >
+          {/* Main Book Body (The Pages/Back) */}
+          <div className="absolute inset-x-0 inset-y-0 flex shadow-book rounded-2xl overflow-hidden">
+            {/* Left Page (Hidden behind cover at first) */}
+            <div className="w-1/2 h-full bg-paper border-r border-black/5 p-6 md:p-12 flex flex-col justify-between relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-12 h-full bg-gradient-to-l from-black/10 to-transparent pointer-events-none" />
+              <div className="space-y-6">
+                <div className="flex items-center gap-4 border-b border-[#2D1B14]/10 pb-4">
+                  <div className="w-12 h-12 rounded-full border border-[#2D1B14]/20 flex items-center justify-center opacity-40">
+                     <span className="text-[10px] font-bold">STAMP</span>
+                  </div>
+                  <div>
+                    <h4 className="font-serif text-[#2D1B14] italic">Caminho Francês</h4>
+                    <p className="text-[10px] uppercase font-sans text-[#2D1B14]/40">Etapa 24: Sarria</p>
+                  </div>
+                </div>
+                <p className="font-serif text-[#2D1B14]/70 leading-relaxed italic text-sm md:text-base">
+                  "O sol nasceu entre as colinas de Burgos. O cansaço era visível, mas a alma estava leve. Encontrei um peregrino de Dublin que compartilhava o mesmo silêncio..."
+                </p>
+                <div className="pt-4 grid grid-cols-2 gap-2 opacity-60">
+                   <div className="h-24 bg-black/5 rounded group-hover:bg-black/10 transition-colors" />
+                   <div className="h-24 bg-black/5 rounded" />
                 </div>
               </div>
-              
-              {/* Back Face (Inside page) */}
-              <div 
-                className="absolute inset-0 bg-[#E8E4D9] rounded-l-2xl shadow-xl p-8 flex flex-col items-center justify-center border-l border-white/40" 
-                style={{ backfaceVisibility: "hidden", transform: 'rotateY(180deg)' }}
-              >
-                <p className="font-serif text-[#2D3A27] text-2xl text-center leading-relaxed">
-                  Suas milhas.<br />Sua história.<br />Seu legado.
-                </p>
+              <div className="text-[10px] uppercase tracking-widest text-[#2D1B14]/30 font-bold border-t border-[#2D1B14]/10 pt-4">
+                Página 142
               </div>
-            </motion.div>
-            
-            {/* Book Spine Shadow */}
-            <div className="absolute top-0 left-1/2 w-4 h-full bg-gradient-to-r from-black/40 to-transparent -translate-x-full z-0" />
+            </div>
+
+            {/* Right Page */}
+            <div className="w-1/2 h-full bg-paper p-0 relative overflow-hidden">
+               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1544085311-11a028465b03?auto=format&fit=crop&w=1200&q=80')] bg-cover bg-center">
+                  <div className="absolute inset-0 bg-black/5" />
+               </div>
+               <div className="absolute bottom-0 left-0 w-12 h-full bg-gradient-to-r from-black/10 to-transparent pointer-events-none" />
+               <div className="absolute bottom-8 right-8 text-white/80 font-serif italic text-xs">
+                  Galícia, 2024
+               </div>
+            </div>
           </div>
 
-          <motion.button 
-            whileHover={{ scale: 1.05, backgroundColor: "#A0522D" }}
-            whileTap={{ scale: 0.95 }}
-            className="bg-[#8B4513] text-[#E8E4D9] px-10 py-5 rounded-full text-lg font-medium shadow-[0_10px_40px_rgba(139,69,19,0.4)] hover:shadow-[0_10px_50px_rgba(139,69,19,0.6)] transition-all duration-300"
+          {/* Opening Cover */}
+          <motion.div 
+            style={{ 
+              rotateY, 
+              transformStyle: "preserve-3d",
+              transformOrigin: "left"
+            }}
+            className="absolute top-0 left-0 w-1/2 h-full z-20 cursor-pointer"
           >
-            Garanta seu Livro de Recordações
+            {/* Front Face (Outside Leather) */}
+            <div 
+              className="absolute inset-0 bg-leather rounded-l-md shadow-2xl flex items-center justify-center p-8 border-r-[6px] border-black/40"
+              style={{ backfaceVisibility: "hidden" }}
+            >
+              <div className="border-[0.5px] border-yellow-200/20 w-full h-full p-6 flex flex-col items-center justify-between rounded-sm">
+                <div className="w-px h-16 bg-yellow-200/20" />
+                <div className="text-center">
+                  <h3 className="font-serif text-[#FDFCF8] text-4xl md:text-5xl tracking-widest uppercase mb-2">
+                    Peregrino
+                  </h3>
+                  <p className="font-serif text-yellow-200/40 italic text-sm tracking-[0.3em]">O LIVRO DA SUA VIDA</p>
+                </div>
+                <div className="flex flex-col items-center gap-4">
+                   <div className="w-12 h-12 rounded-full border border-yellow-200/20 flex items-center justify-center opacity-30">
+                      <div className="w-2 h-2 rounded-full bg-yellow-200/40" />
+                   </div>
+                   <div className="w-px h-16 bg-yellow-200/20" />
+                </div>
+              </div>
+            </div>
+
+            {/* Back Face (Inside Page) */}
+            <div 
+              className="absolute inset-0 bg-paper rounded-r-md p-10 flex flex-col items-center justify-center border-r-8 border-black/10"
+              style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+            >
+              <div className="w-24 h-24 rounded-full border border-[#2D1B14]/10 mb-8 flex items-center justify-center opacity-20">
+                <div className="w-12 h-12 rounded-full bg-[#2D1B14]/5" />
+              </div>
+              <p className="font-serif text-[#2D1B14] text-center italic text-xl md:text-3xl leading-snug">
+                "Ninguém volta do <br/>Caminho como foi."
+              </p>
+              <div className="mt-12 h-px w-24 bg-[#2D1B14]/10" />
+            </div>
+          </motion.div>
+
+          {/* Book Spine Shadow Effect */}
+          <div className="absolute top-0 left-1/2 w-8 h-full bg-black/20 -translate-x-full z-10 blur-sm mix-blend-overlay pointer-events-none" />
+        </motion.div>
+
+        {/* CTA Button */}
+        <div className="relative z-40 mt-16 md:mt-24">
+          <motion.button
+            whileHover={{ scale: 1.05, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)" }}
+            whileTap={{ scale: 0.95 }}
+            className="bg-[#2D1B14] text-[#FDFCF8] px-12 py-5 rounded-full text-lg font-bold shadow-2xl transition-all duration-300 flex items-center gap-3 border border-white/5"
+          >
+            Encomendar meu Livro de Recordações
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </motion.button>
+          <p className="text-[#2D1B14]/40 text-center mt-4 text-xs tracking-widest uppercase font-bold">
+            Edição Limitada & Artesanal
+          </p>
         </div>
+
       </div>
     </section>
   );
