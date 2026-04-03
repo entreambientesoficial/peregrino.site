@@ -28,11 +28,11 @@ Criar uma Landing Page de alto impacto (Premium/Editorial) para o aplicativo **P
 
 | Componente | Status | Descrição Técnica |
 | :--- | :--- | :--- |
-| **HeroSection** | ✅ Concluído | Vídeo full-screen com overlay de textura e tipografia serifada. |
-| **FeaturesSection** | ✅ Concluído | Grid bento de cards táteis com gradientes e sombras "físicas". |
-| **JourneySection** | ⚠️ Em Progresso | **Efeito Baralho (Card Deck)**. As rotas devem se empilhar e sair uma a uma no scroll. |
+| **HeroSection** | ✅ Concluído | Vídeo full-screen e botão de conversão funcional. |
+| **DownloadModal** | ✅ Concluído | Modal premium com backdrop-blur, botões de loja e QR Code (Desktop). |
+| **FeaturesSection** | ✅ Concluído | Grid bento de cards táteis. Bug de referência `QrCode` corrigido. |
+| **JourneySection** | ⏸️ Pausado | **Efeito Baralho (Card Deck)**. Problema de sincronia de scroll pendente de resolução definitiva. |
 | **BookSection** | 🕒 Pendente | Seção do "Livro de Café" com animação de páginas ou abertura. |
-| **AppCTA** | 🕒 Pendente | Seção final focada em conversão (App Store / Google Play). |
 
 ---
 
@@ -42,21 +42,17 @@ Criar uma Landing Page de alto impacto (Premium/Editorial) para o aplicativo **P
 **O que foi tentado**:
 - Implementação de um container de `600vh` ou `700vh` usando `sticky top-0`.
 - Uso do `useScroll` do Framer Motion para animar o `y` e `opacity` dos cards baseados em slots de 0 a 1.
+- Remoção de `overflow-x-hidden` do container raiz para destravar o `sticky`.
+- Refatoração da centralização dos cards para `top: 50%` com `marginTop` para o scroll.
 
-**Sintomas do Bug**:
-- O comportamento `sticky` falha em alguns momentos (o container "passa direto").
-- Existe um "vácuo" (tela bege vazia) no final da seção antes da próxima começar.
-- Aviso no console: *"Please ensure that the container has a non-static position..."*.
-
-**Causa Provável**:
-- Conflito entre `overflow: hidden`, a estrutura de herança do CSS e como o Framer Motion calcula os offsets em páginas com múltiplos containers relativos.
+**Status**: O comportamento `sticky` ainda apresenta instabilidade (passando direto em alguns dispositivos/navegadores). Seção pausada temporariamente para focar na conversão e na BookSection.
 
 ---
 
 ## 🚀 Próximos Passos
-1. **Corrigir JourneySection**: Estabilizar o comportamento `sticky` (verificar se há algum `overflow` quebrando o fluxo nos pais).
-2. **Implementar BookSection**: Criar a experiência imersiva do diário físico.
-3. **Refinar Mobile**: Verificar se o efeito baralho não é pesado demais para dispositivos móveis (substituir por fade simples se necessário).
+1. **Implementar BookSection**: Criar a experiência imersiva do diário físico com animações 3D cinematográficas.
+2. **Retomar JourneySection**: Investigar a herança de altura (`height: 100%`) no `html` e `body` ou conflitos de Viewport via Vite.
+3. **Ajuste Fino Mobile**: Otimizar performance do modal e das animações de scroll.
 
 ---
 

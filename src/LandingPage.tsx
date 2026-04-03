@@ -1,23 +1,32 @@
-import React, { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import React, { useRef, useState } from 'react';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { 
   Map, MapPin, ShieldAlert, BookOpen, 
-  CloudSun, Activity, QrCode, Scroll, 
-  Wind, Navigation, Zap, Bell, Landmark, UserCheck, Camera
+  CloudSun, Activity, QrCode as QrIcon, Scroll, 
+  Wind, Navigation, Zap, Bell, Landmark, UserCheck, Camera, X,
+  Apple, PlayCircle
 } from 'lucide-react';
 
 export default function LandingPage() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-[#FDFCF8] font-sans selection:bg-[#2D3A27] selection:text-[#E8E4D9]">
-      <HeroSection />
+      <HeroSection onOpenModal={() => setIsModalOpen(true)} />
       <FeaturesSection />
       <JourneySection />
       <BookSection />
+      
+      <AnimatePresence>
+        {isModalOpen && (
+          <DownloadModal onClose={() => setIsModalOpen(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-const HeroSection = () => {
+const HeroSection = ({ onOpenModal }: { onOpenModal: () => void }) => {
   const { scrollY } = useScroll();
   const y = useTransform(scrollY, [0, 500], [0, 150]);
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
@@ -45,6 +54,7 @@ const HeroSection = () => {
           Sua jornada merece<br />ser eterna.
         </h1>
         <motion.button 
+          onClick={onOpenModal}
           whileHover={{ scale: 1.05, backgroundColor: 'rgba(232,228,217,1)', color: '#2D3A27' }}
           whileTap={{ scale: 0.95 }}
           className="border border-[#E8E4D9] text-[#E8E4D9] px-8 py-4 rounded-full text-lg font-medium tracking-wide transition-colors duration-300 backdrop-blur-sm"
@@ -55,6 +65,90 @@ const HeroSection = () => {
     </section>
   );
 };
+
+const DownloadModal = ({ onClose }: { onClose: () => void }) => {
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6"
+    >
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-[#1B2616]/60 backdrop-blur-xl" 
+        onClick={onClose}
+      />
+      
+      {/* Modal Content */}
+      <motion.div 
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        className="relative bg-[#F4F1EA] w-full max-w-2xl rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] overflow-hidden border border-white/20"
+      >
+        {/* Close Button */}
+        <button 
+          onClick={onClose}
+          className="absolute top-8 right-8 p-2 rounded-full bg-[#2D3A27]/5 text-[#2D3A27] hover:bg-[#2D3A27]/10 transition-colors z-20"
+        >
+          <X className="w-6 h-6" />
+        </button>
+
+        <div className="flex flex-col md:flex-row h-full">
+          {/* Left Side: Buttons */}
+          <div className="flex-1 p-10 md:p-16 flex flex-col justify-center">
+            <span className="text-xs uppercase tracking-[0.3em] text-[#2D3A27]/40 font-sans font-black mb-4 block">
+              Peregrino App
+            </span>
+            <h2 className="font-serif text-4xl md:text-5xl text-[#2D3A27] mb-10 leading-tight italic">
+              Sua jornada começa aqui.
+            </h2>
+            
+            <div className="flex flex-col gap-4">
+              <DownloadButton 
+                store="App Store" 
+                icon={<Apple className="w-6 h-6" />} 
+                sub="Baixe para iOS"
+              />
+              <DownloadButton 
+                store="Google Play" 
+                icon={<PlayCircle className="w-6 h-6" />} 
+                sub="Baixe para Android"
+              />
+            </div>
+          </div>
+
+          {/* Right Side: QR Code (Desktop Only) */}
+          <div className="hidden md:flex w-[240px] bg-[#2D3A27] p-10 flex-col items-center justify-center text-center border-l border-black/5">
+            <div className="p-4 bg-white rounded-3xl shadow-xl mb-6">
+              <QrIcon className="w-32 h-32 text-[#2D3A27]" strokeWidth={1.5} />
+            </div>
+            <p className="text-[#E8E4D9]/80 text-sm font-sans leading-relaxed">
+              Aponte a câmera para baixar direto no seu celular.
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+const DownloadButton = ({ store, icon, sub }: { store: string, icon: React.ReactNode, sub: string }) => (
+  <motion.button
+    whileHover={{ x: 8, scale: 1.02 }}
+    whileTap={{ scale: 0.98 }}
+    className="flex items-center gap-4 bg-[#2D3A27] text-[#E8E4D9] p-5 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 w-full text-left group"
+  >
+    <div className="p-2 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors">
+      {icon}
+    </div>
+    <div className="flex flex-col">
+      <span className="text-[10px] uppercase tracking-widest text-[#E8E4D9]/40 leading-none mb-1">{sub}</span>
+      <span className="text-xl font-medium tracking-tight leading-none">{store}</span>
+    </div>
+  </motion.button>
+);
 
 const FeaturesSection = () => {
   const cards = [
@@ -90,7 +184,7 @@ const FeaturesSection = () => {
       id: 5,
       title: "Selos e Conquistas",
       desc: "Registre sua evolução oficial no Caminho. Escaneie os QR Codes em cada etapa para validar sua passagem e completar sua Credencial Digital.",
-      icon: <QrCode className="w-6 h-6 text-[#E8E4D9]" strokeWidth={1} />,
+      icon: <QrIcon className="w-6 h-6 text-[#E8E4D9]" strokeWidth={1} />,
       className: "bg-gradient-to-br from-[#2D3327] to-[#1B2616] border-[#ffffff10]",
     },
     {
