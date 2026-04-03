@@ -1,10 +1,14 @@
 import React, { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { Map, MapPin, ShieldAlert, BookOpen } from 'lucide-react';
+import { 
+  Map, MapPin, ShieldAlert, BookOpen, 
+  CloudSun, Activity, QrCode, Scroll, 
+  Wind, Navigation, Zap, Bell, Landmark, UserCheck, Camera
+} from 'lucide-react';
 
 export default function LandingPage() {
   return (
-    <div className="bg-[#E8E4D9] text-[#2D3A27] font-sans antialiased overflow-x-hidden selection:bg-[#8B4513] selection:text-[#E8E4D9]">
+    <div className="min-h-screen bg-[#FDFCF8] font-sans selection:bg-[#2D3A27] selection:text-[#E8E4D9]">
       <HeroSection />
       <FeaturesSection />
       <JourneySection />
@@ -53,126 +57,316 @@ const HeroSection = () => {
 };
 
 const FeaturesSection = () => {
-  const features = [
+  const cards = [
     {
-      icon: <Map className="w-8 h-8 text-[#8B4513]" />,
-      title: "Mapa Offline Seguro",
-      desc: "Navegue sem sinal nos trechos mais isolados."
+      id: 1,
+      title: "Segurança em Tempo Real",
+      desc: "Sinta a proteção de uma comunidade conectada. Com o SOS inteligente, você sinaliza sua urgência e mobiliza peregrinos ao seu redor instantaneamente.",
+      icon: <ShieldAlert className="w-8 h-8 text-[#E8E4D9]" strokeWidth={1} />,
+      className: "md:col-span-2 bg-gradient-to-br from-[#2D4F3C] to-[#1E3A2B] border-[#ffffff10]",
     },
     {
-      icon: <MapPin className="w-8 h-8 text-[#8B4513]" />,
-      title: "Scanner de Albergues",
-      desc: "Check-in instantâneo e gestão de camas."
+      id: 2,
+      title: "Clima da Trilha",
+      desc: "Alertas meteorológicos precisos para sua localização exata. Saiba quando se proteger antes da primeira gota cair.",
+      icon: <CloudSun className="w-6 h-6 text-[#E8E4D9]" strokeWidth={1} />,
+      className: "bg-gradient-to-br from-[#3E4A33] to-[#2D3A27] border-[#ffffff10]",
     },
     {
-      icon: <ShieldAlert className="w-8 h-8 text-[#8B4513]" />,
-      title: "Botão SOS Realtime",
-      desc: "Segurança conectada em cada etapa da trilha."
+      id: 3,
+      title: "Domine o Terreno",
+      desc: "Gráficos de elevação e progresso da etapa para você gerenciar sua energia como um veterano.",
+      icon: <Activity className="w-6 h-6 text-[#E8E4D9]" strokeWidth={1} />,
+      className: "bg-gradient-to-br from-[#4A3728] to-[#2D1B12] border-[#ffffff10]",
+    },
+    {
+      id: 4,
+      title: "Sua Jornada Eternizada",
+      desc: "Colecione selos digitais em cada etapa e, ao chegar em Santiago, transforme suas memórias em um álbum físico exclusivo de colecionador.",
+      icon: <Scroll className="w-8 h-8 text-[#E8E4D9]" strokeWidth={1} />,
+      className: "md:col-span-2 bg-gradient-to-br from-[#1E3A2B] to-[#0F1A13] border-[#ffffff10]",
+    },
+    {
+      id: 5,
+      title: "Selos e Conquistas",
+      desc: "Registre sua evolução oficial no Caminho. Escaneie os QR Codes em cada etapa para validar sua passagem e completar sua Credencial Digital.",
+      icon: <QrCode className="w-6 h-6 text-[#E8E4D9]" strokeWidth={1} />,
+      className: "bg-gradient-to-br from-[#2D3327] to-[#1B2616] border-[#ffffff10]",
+    },
+    {
+      id: 6,
+      title: "Guia de Essenciais",
+      desc: "Localize fontes, pontos de descanso e albergues abertos conforme você caminha. O essencial, sempre à mão.",
+      icon: <MapPin className="w-6 h-6 text-[#E8E4D9]" strokeWidth={1} />,
+      className: "bg-gradient-to-br from-[#3E4A33] to-[#2D3A27] border-[#ffffff10]",
+    },
+    {
+      id: 7,
+      title: "Câmera da Trilha",
+      desc: "Capture a essência da jornada. Use a nossa câmera integrada para organizar suas fotos automaticamente por etapa e localização.",
+      icon: <Camera className="w-6 h-6 text-[#E8E4D9]" strokeWidth={1} />,
+      className: "bg-gradient-to-br from-[#4A3728] to-[#2D1B12] border-[#ffffff10]",
     }
   ];
 
   return (
-    <section className="py-24 px-4 md:px-8 max-w-7xl mx-auto z-10 relative">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {features.map((feat, idx) => (
-          <motion.div 
-            key={idx}
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6, delay: idx * 0.2 }}
-            whileHover={{ y: -10 }}
-            className="bg-white/40 backdrop-blur-xl border border-white/20 p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-start gap-4 transition-all duration-300"
+    <section className="py-32 px-4 md:px-8 relative bg-[#1B2616] overflow-hidden">
+      {/* Organic Background Textures */}
+      <div className="absolute inset-0 bg-noise opacity-20 pointer-events-none" />
+      <div className="absolute inset-0 bg-topography opacity-10 pointer-events-none animate-pulse" style={{ animationDuration: '8s' }} />
+      
+      <div className="max-w-7xl mx-auto relative z-10">
+        <div className="text-center mb-24 max-w-2xl mx-auto">
+          <motion.span 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            className="text-xs uppercase tracking-[0.4em] text-[#E8E4D9]/40 font-sans font-bold mb-4 block"
           >
-            <div className="p-4 bg-[#E8E4D9]/80 rounded-2xl shadow-inner">
-              {feat.icon}
-            </div>
-            <h3 className="font-serif text-2xl font-semibold text-[#2D3A27]">{feat.title}</h3>
-            <p className="font-sans text-[#2D3A27]/80 leading-relaxed font-light">
-              {feat.desc}
-            </p>
-          </motion.div>
-        ))}
+            Experiência Completa
+          </motion.span>
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            className="font-serif text-4xl md:text-6xl text-[#E8E4D9] leading-tight text-balance"
+          >
+            Tudo o que você precisa para o seu Caminho.
+          </motion.h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {cards.map((card, idx) => (
+            <motion.div 
+              key={idx}
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.8, delay: idx * 0.1, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ 
+                y: -12, 
+                scale: 1.02,
+                boxShadow: "0 40px 80px -20px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1)",
+                transition: { duration: 0.4, ease: "easeOut" } 
+              }}
+              className={`group relative rounded-[3rem] border border-white/5 shadow-tactile flex flex-col min-h-[340px] transition-all duration-700 overflow-hidden ${card.className}`}
+            >
+              {/* Inner Gradient Glow */}
+              <div className="absolute inset-0 rounded-[3rem] bg-gradient-to-tr from-white/[0.03] to-transparent pointer-events-none" />
+              
+              {/* Header Space (Compact) */}
+              <div className="relative z-10 flex items-center gap-4 px-10 pt-10 mb-2">
+                <div className="p-3 rounded-full bg-black/20 shadow-[inset_0_2px_10px_rgba(0,0,0,0.3)] border border-white/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-700 shrink-0">
+                  {/* Matching the icon size from the previous 'compact' version */}
+                  {React.cloneElement(card.icon as React.ReactElement, { className: 'w-6 h-6 text-[#E8E4D9]' })}
+                </div>
+                <h3 className="font-serif text-2xl font-medium tracking-tight leading-tight text-[#E8E4D9]">
+                  {card.title}
+                </h3>
+              </div>
+              
+              {/* Centralization Space (Visual Symmetry) */}
+              <div className="relative z-10 flex-1 flex flex-col justify-center px-10 pb-4">
+                <p className="font-sans leading-relaxed text-lg md:text-xl font-normal text-[#E8E4D9] group-hover:text-white transition-colors duration-500">
+                  {card.desc}
+                </p>
+              </div>
+
+              {/* Decorative Shine */}
+              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+            </motion.div>
+          ))}
+        </div>
       </div>
+
+      {/* Background Glows */}
+      <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#2D4F3C]/20 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-[#4A3728]/20 blur-[120px] rounded-full pointer-events-none" />
     </section>
   );
 };
 
 const JourneySection = () => {
-  const cards = [
-    { stage: "Pirineus", dist: "24.2km", diff: "Extrema", time: "1 dia" },
-    { stage: "La Rioja", dist: "74km", diff: "Fácil", time: "3 dias" },
-    { stage: "A Meseta", dist: "120km", diff: "Média", time: "5 dias" },
-    { stage: "Galiza", dist: "46km", diff: "Alta", time: "2 dias" },
-    { stage: "Santiago", dist: "Últimos 100km", diff: "O abraço final na Catedral.", time: null },
+  const sectionRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start start", "end end"]
+  });
+
+  const routes = [
+    { 
+      name: "Caminho Francês", 
+      tag: "O Clássico dos Pirineus", 
+      start: "St-Jean-Pied-de-Port", 
+      dist: "~775km", 
+      steps: "31-33",
+      img: "https://images.unsplash.com/photo-1598004141512-421774e142e0?auto=format&fit=crop&w=1200&q=80"
+    },
+    { 
+      name: "Caminho Português (Central)", 
+      tag: "A Rota da Hospitalidade", 
+      start: "Porto", 
+      dist: "~115km a 160km", 
+      steps: "6-8",
+      img: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=1200&q=80"
+    },
+    { 
+      name: "Caminho Português (Costa)", 
+      tag: "A Variante Litoral", 
+      start: "Porto", 
+      dist: "~240km", 
+      steps: "10",
+      img: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=80"
+    },
+    { 
+      name: "Caminho Primitivo", 
+      tag: "O Desafio nas Montanhas", 
+      start: "Oviedo", 
+      dist: "323km", 
+      steps: "14",
+      img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80"
+    },
+    { 
+      name: "Caminho do Norte", 
+      tag: "A Beleza Selvagem do Mar", 
+      start: "Irún", 
+      dist: "820km", 
+      steps: "35",
+      img: "https://images.unsplash.com/photo-1471922694854-ff1b63b20054?auto=format&fit=crop&w=1200&q=80"
+    },
+    { 
+      name: "Caminho Inglês", 
+      tag: "A Rota Marítima", 
+      start: "Ferrol / A Coruña", 
+      dist: "122km", 
+      steps: "5",
+      img: "https://images.unsplash.com/photo-1543739225-011b40a3951f?auto=format&fit=crop&w=1200&q=80"
+    },
   ];
 
+  // CTA appears at the very end (from 85% to 100% of the section scroll)
+  const buttonOpacity = useTransform(scrollYProgress, [0.85, 0.98], [0, 1]);
+  const buttonScale = useTransform(scrollYProgress, [0.85, 0.98], [0.9, 1]);
+
   return (
-    <section className="py-24 relative z-10 w-full bg-[#E8E4D9]">
-      <div className="max-w-5xl mx-auto px-4">
-        <h2 className="font-serif text-4xl md:text-5xl text-center mb-24 text-[#2D3A27]">O Caminho Passo a Passo</h2>
-        <div className="flex flex-col gap-12 pb-32">
-          {cards.map((card, idx) => (
-            <StickyCard key={idx} card={card} index={idx} total={cards.length} />
+    <section ref={sectionRef} className="h-[600vh] relative z-20 bg-[#E8E4D9]">
+      {/* Container Sticky - Sem overflow-hidden para não quebrar o sticky behavior */}
+      <div className="sticky top-0 h-screen w-full flex flex-col items-center">
+        
+        {/* Título Fixo no Topo - Z-30 para ficar SEMPRE por cima */}
+        <div className="relative z-30 pt-16 md:pt-24 text-center px-4 w-full bg-[#E8E4D9]/80 backdrop-blur-sm pb-8">
+          <motion.h2 
+            className="font-serif text-5xl md:text-8xl text-[#2D3A27] tracking-tight italic"
+          >
+            Escolha o seu destino.
+          </motion.h2>
+          <div className="mt-4 h-px w-24 bg-[#2D3A27]/20 mx-auto" />
+        </div>
+
+        {/* Wrapper do Baralho - Relative para o offset do useScroll */}
+        <div className="relative w-full max-w-5xl h-[450px] md:h-[550px] px-4 md:px-0 mt-8 md:mt-12 z-10">
+          {routes.map((route, idx) => (
+            <SequentialCard 
+              key={idx} 
+              route={route} 
+              index={idx} 
+              total={routes.length} 
+              progress={scrollYProgress} 
+            />
           ))}
+
+          {/* Final CTA Button (Surgindo atrás da pilha) */}
+          <motion.div 
+            style={{ opacity: buttonOpacity, scale: buttonScale }}
+            className="absolute inset-0 z-0 flex flex-col items-center justify-center p-4 md:p-0"
+          >
+            <div className="bg-[#1B2616] p-10 md:p-20 rounded-[3rem] shadow-2xl border border-white/5 text-center max-w-2xl">
+              <h3 className="font-serif text-3xl md:text-5xl text-[#E8E4D9] mb-4 italic">Sua jornada começa aqui.</h3>
+              <p className="font-sans text-[#E8E4D9]/60 mb-10 max-w-sm mx-auto">Tudo o que você precisa para o Caminho, em um único aplicativo.</p>
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-[#E8E4D9] text-[#1B2616] px-12 py-5 rounded-full text-lg font-bold shadow-xl hover:shadow-2xl transition-all duration-300"
+              >
+                Conhecer todos os caminhos
+              </motion.button>
+            </div>
+          </motion.div>
         </div>
       </div>
     </section>
   );
 };
 
-const StickyCard = ({ card, index, total }) => {
-  const ref = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start end", "start 20%"]
-  });
+const SequentialCard = ({ route, index, total, progress }: { route: any, index: number, total: number, progress: any }) => {
+  // Ajuste matemático: Distribuir os cards em 85% do scroll total
+  // Card 1: 0.0 -> 0.14
+  // Card 2: 0.14 -> 0.28...
+  const segment = 0.85 / total;
+  const start = index * segment;
+  const end = (index + 1) * segment;
 
-  const scale = useTransform(scrollYProgress, [0, 1], [0.8, 1]);
-  const opacity = useTransform(scrollYProgress, [0, 1], [0.3, 1]);
-
-  // Creates the sticky stacking effect
-  const topPosition = `calc(100px + ${index * 24}px)`;
+  // Animação de Saída (Slide Up e Fade)
+  const y = useTransform(progress, [start, end], [0, -1000]);
+  const opacity = useTransform(progress, [start, end], [1, 0]);
+  const scale = useTransform(progress, [start, end], [1, 0.9]);
+  const rotate = useTransform(progress, [start, end], [0, -10]);
 
   return (
     <motion.div
-      ref={ref}
-      style={{ scale, opacity, top: topPosition }}
-      className="sticky w-full h-auto md:h-[450px] rounded-[2rem] overflow-hidden shadow-2xl flex flex-col md:flex-row bg-[#2D3A27] text-[#E8E4D9] border border-white/10"
+      style={{ 
+        y, 
+        opacity, 
+        scale,
+        rotate,
+        zIndex: total - index,
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        x: '-50%',
+        y: '-50%',
+        marginTop: y, // Using marginTop for the vertical movement to keep the initial 'y' transform free for centering
+      }}
+      className="w-full max-w-5xl h-[450px] md:h-[550px] rounded-[3.5rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] flex flex-col justify-end p-8 md:p-16 group border border-white/10 bg-[#1B2616]"
     >
-      <div className="w-full md:w-[60%] h-[300px] md:h-full bg-gray-800 relative overflow-hidden group">
-        <div className="absolute inset-0 bg-gradient-to-tr from-[#8B4513]/60 to-transparent z-10 mix-blend-multiply opacity-60 group-hover:opacity-40 transition-opacity duration-700" />
+      {/* Nature Image */}
+      <div className="absolute inset-0 z-0">
         <img 
-          src={`https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80`} 
-          alt={card.stage}
-          className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-[2s] ease-out"
+          src={route.img} 
+          alt={route.name}
+          className="w-full h-full object-cover transition-transform duration-[5s] ease-out group-hover:scale-110"
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent z-10" />
       </div>
       
-      <div className="w-full md:w-[40%] p-8 md:p-12 flex flex-col justify-center gap-6 z-20 bg-[#2D3A27]">
-        <div>
-          <span className="text-xs uppercase tracking-[0.2em] text-[#E8E4D9]/50 font-sans font-semibold">Etapa {index + 1}</span>
-          <h3 className="font-serif text-4xl mt-3">{card.stage}</h3>
+      {/* Content */}
+      <div className="relative z-20 flex flex-col md:flex-row md:items-end justify-between gap-8 md:gap-12 text-left">
+        <div className="max-w-2xl">
+          <span className="text-[#E8E4D9]/60 text-xs md:text-sm uppercase tracking-[0.4em] font-sans font-black mb-4 block">
+            {route.tag}
+          </span>
+          <h3 className="font-serif text-4xl md:text-7xl text-[#E8E4D9] mb-8 tracking-tighter leading-none group-hover:text-white transition-colors">
+            {route.name}
+          </h3>
+          <div className="flex flex-wrap gap-8 text-[#E8E4D9]/80 font-sans text-sm md:text-base border-t border-white/10 pt-8">
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase tracking-widest text-white/40 mb-1">Início</span>
+              <span className="font-medium text-[#E8E4D9]">{route.start}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase tracking-widest text-white/40 mb-1">Distância</span>
+              <span className="font-medium font-serif italic text-2xl text-white">{route.dist}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase tracking-widest text-white/40 mb-1">Etapas</span>
+              <span className="font-medium text-[#E8E4D9]">{route.steps}</span>
+            </div>
+          </div>
         </div>
         
-        <div className="h-px w-full bg-gradient-to-r from-[#E8E4D9]/20 to-transparent" />
-        
-        <ul className="space-y-5 font-sans text-sm md:text-base">
-          <li className="flex justify-between items-center group">
-            <span className="text-[#E8E4D9]/60 group-hover:text-[#E8E4D9] transition-colors">Distância</span>
-            <span className="font-semibold text-lg">{card.dist}</span>
-          </li>
-          <li className="flex justify-between items-center group">
-            <span className="text-[#E8E4D9]/60 group-hover:text-[#E8E4D9] transition-colors">Dificuldade</span>
-            <span className="font-semibold px-3 py-1 rounded-full bg-[#8B4513]/20 text-[#8B4513] border border-[#8B4513]/30">{card.diff}</span>
-          </li>
-          {card.time && (
-            <li className="flex justify-between items-center group">
-              <span className="text-[#E8E4D9]/60 group-hover:text-[#E8E4D9] transition-colors">Tempo Estimado</span>
-              <span className="font-medium">{card.time}</span>
-            </li>
-          )}
-        </ul>
+        <div className="hidden md:flex flex-col items-end pb-2">
+           <div className="w-24 h-24 rounded-full border border-white/20 flex items-center justify-center group-hover:bg-white group-hover:text-[#1B2616] transition-all duration-[1s] ease-out shadow-2xl">
+              <Landmark className="w-8 h-8" />
+           </div>
+        </div>
       </div>
     </motion.div>
   );
