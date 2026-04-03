@@ -31,28 +31,27 @@ Criar uma Landing Page de alto impacto (Premium/Editorial) para o aplicativo **P
 | **HeroSection** | ✅ Concluído | Vídeo full-screen e botão de conversão funcional. |
 | **DownloadModal** | ✅ Concluído | Modal premium com backdrop-blur, botões de loja e QR Code (Desktop). |
 | **FeaturesSection** | ✅ Concluído | Grid bento de cards táteis. Bug de referência `QrCode` corrigido. |
-| **JourneySection** | ⏸️ Pausado | **Efeito Baralho (Card Deck)**. Problema de sincronia de scroll pendente de resolução definitiva. |
+| **JourneySection** | ✅ Concluído | **Efeito Baralho (Card Deck)**. 9 rotas reais, fotos oficiais, layout 100% ajustado. |
 | **BookSection** | 🕒 Pendente | Seção do "Livro de Café" com animação de páginas ou abertura. |
 
 ---
 
-## 🚩 Problema Atual (Bloqueio)
-### Seção de Rotas (JourneySection) - Efeito Sticky/Scroll
+## 🚩 Histórico de Ajustes Recentes
+### Seção de Rotas (JourneySection)
 
-**O que foi tentado**:
-- Implementação de um container de `600vh` ou `700vh` usando `sticky top-0`.
-- Uso do `useScroll` do Framer Motion para animar o `y` e `opacity` dos cards baseados em slots de 0 a 1.
-- Remoção de `overflow-x-hidden` do container raiz para destravar o `sticky`.
-- Refatoração da centralização dos cards para `top: 50%` com `marginTop` para o scroll.
-
-**Status**: O comportamento `sticky` ainda apresenta instabilidade (passando direto em alguns dispositivos/navegadores). Seção pausada temporariamente para focar na conversão e na BookSection.
+**O que foi realizado**:
+- **Conteúdo Real**: Implementação das 9 rotas oficiais conforme tabela de distâncias e dias.
+- **Assets Oficiais**: Migração das imagens da pasta `img-apoio` para o site.
+- **Design Editorial**: Adicionado overlay escuro (`bg-black/40`) para legibilidade e removido o emblema circular para um visual mais limpo.
+- **Ajuste de Viewport**: Espaçamento do título e altura dos cards otimizados para caberem sem cortes em telas padrão.
+- **Conectividade**: Botão final de CTA conectado ao **Modal de Download**.
 
 ---
 
 ## 🚀 Próximos Passos
-1. **Implementar BookSection**: Criar a experiência imersiva do diário físico com animações 3D cinematográficas.
-2. **Retomar JourneySection**: Investigar a herança de altura (`height: 100%`) no `html` e `body` ou conflitos de Viewport via Vite.
-3. **Ajuste Fino Mobile**: Otimizar performance do modal e das animações de scroll.
+1. **Implementar BookSection**: Criar a experiência imersiva do diário físico com animações 3D cinematográficas (Capa de couro, virada de página).
+2. **Refinar Animações**: Garantir suavidade total no scroll-driven behavior entre as seções.
+3. **Deploy Final**: Otimização de assets para publicação no Cloudflare Pages.
 
 ---
 

@@ -14,7 +14,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[#FDFCF8] font-sans selection:bg-[#2D3A27] selection:text-[#E8E4D9]">
       <HeroSection onOpenModal={() => setIsModalOpen(true)} />
       <FeaturesSection />
-      <JourneySection />
+      <JourneySection onOpenModal={() => setIsModalOpen(true)} />
       <BookSection />
       
       <AnimatePresence>
@@ -278,7 +278,7 @@ const FeaturesSection = () => {
   );
 };
 
-const JourneySection = () => {
+const JourneySection = ({ onOpenModal }: { onOpenModal: () => void }) => {
   const sectionRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -289,87 +289,85 @@ const JourneySection = () => {
     { 
       name: "Caminho Francês", 
       tag: "O Clássico dos Pirineus", 
-      start: "St-Jean-Pied-de-Port", 
-      dist: "~775km", 
-      steps: "31-33",
-      img: "https://images.unsplash.com/photo-1598004141512-421774e142e0?auto=format&fit=crop&w=1200&q=80"
+      start: "St-Jean-Pied-de-Port / Somport", 
+      dist: "780km", 
+      steps: "31 a 39 dias",
+      img: "/img-apoio/card1-St-Jean-Pied-de-Port.jpg"
     },
     { 
       name: "Caminho Português (Central)", 
-      tag: "A Rota da Hospitalidade", 
+      tag: "A Herança de Santiago", 
       start: "Porto", 
-      dist: "~115km a 160km", 
-      steps: "6-8",
-      img: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=1200&q=80"
+      dist: "240km", 
+      steps: "10 a 12 dias",
+      img: "/img-apoio/card2-porto.png"
     },
     { 
       name: "Caminho Português (Costa)", 
-      tag: "A Variante Litoral", 
-      start: "Porto", 
-      dist: "~240km", 
-      steps: "10",
-      img: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=80"
+      tag: "O Som do Atlântico", 
+      start: "Porto (variante litoral)", 
+      dist: "260km", 
+      steps: "11 a 13 dias",
+      img: "/img-apoio/card3-Porto-litoral.png"
     },
     { 
       name: "Caminho Primitivo", 
-      tag: "O Desafio nas Montanhas", 
+      tag: "A Primeira Rota", 
       start: "Oviedo", 
-      dist: "323km", 
-      steps: "14",
-      img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80"
+      dist: "320km", 
+      steps: "13 a 16 dias",
+      img: "/img-apoio/card4-oviedo.webp"
     },
     { 
       name: "Caminho do Norte", 
-      tag: "A Beleza Selvagem do Mar", 
+      tag: "O Caminho do Mar", 
       start: "Irún", 
-      dist: "820km", 
-      steps: "35",
-      img: "https://images.unsplash.com/photo-1471922694854-ff1b63b20054?auto=format&fit=crop&w=1200&q=80"
+      dist: "825km", 
+      steps: "33 a 41 dias",
+      img: "/img-apoio/card5-norte.png"
     },
     { 
       name: "Caminho Inglês", 
       tag: "A Rota Marítima", 
       start: "Ferrol / A Coruña", 
-      dist: "122km", 
-      steps: "5",
-      img: "https://images.unsplash.com/photo-1543739225-011b40a3951f?auto=format&fit=crop&w=1200&q=80"
+      dist: "112km", 
+      steps: "5 a 6 dias",
+      img: "/img-apoio/card6-ferrol.png"
     },
     { 
       name: "Vía de la Plata", 
       tag: "O Gigante do Sul", 
       start: "Sevilha", 
-      dist: "~1.000km", 
-      steps: "40+",
-      img: "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?auto=format&fit=crop&w=1200&q=80"
+      dist: "1.000km", 
+      steps: "40 a 50 dias",
+      img: "/img-apoio/card7-via-de-la-plata.png"
     },
     { 
       name: "Caminho Sanabrés", 
       tag: "Conexão Galega", 
       start: "Granja de Moreruela", 
-      dist: "358km", 
-      steps: "13",
-      img: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80"
+      dist: "370km", 
+      steps: "15 a 19 dias",
+      img: "/img-apoio/card8-granja-de-moreruela.png"
     },
     { 
       name: "Português Interior", 
       tag: "A Rota das Aldeias", 
       start: "Viseu", 
       dist: "385km", 
-      steps: "15+",
-      img: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=1200&q=80"
+      steps: "15 a 20 dias",
+      img: "/img-apoio/card9-viseu.png"
     },
   ];
 
-  // CTA appears at the very end (from 85% to 100% of the section scroll)
-  const buttonOpacity = useTransform(scrollYProgress, [0.85, 0.98], [0, 1]);
-  const buttonScale = useTransform(scrollYProgress, [0.85, 0.98], [0.9, 1]);
+  const ctaOpacity = useTransform(scrollYProgress, [0.85, 0.98], [0, 1]);
+  const ctaScale = useTransform(scrollYProgress, [0.85, 0.98], [0.9, 1]);
+  const ctaY = useTransform(scrollYProgress, [0.85, 0.98], [100, 0]);
 
   return (
     <section ref={sectionRef} className="h-[600vh] relative z-20 bg-[#E8E4D9]">
-      {/* Container Sticky - Sem overflow-hidden para não quebrar o sticky behavior */}
       <div className="sticky top-0 h-screen w-full flex flex-col items-center">
         
-        {/* Título Fixo no Topo - Fundo transparente para não cortar a sombra */}
         <div className="relative z-30 pt-8 md:pt-10 text-center px-4 w-full bg-transparent pb-4">
           <motion.h2 
             className="font-serif text-4xl md:text-7xl text-[#2D3A27] tracking-tight italic"
@@ -379,7 +377,6 @@ const JourneySection = () => {
           <div className="mt-2 h-px w-24 bg-[#2D3A27]/20 mx-auto" />
         </div>
 
-        {/* Wrapper do Baralho - Posição de segurança para não cortar nenhum dos lados */}
         <div className="relative w-full max-w-5xl h-[420px] md:h-[500px] px-4 md:px-0 mt-6 md:mt-8 z-10">
           {routes.map((route, idx) => (
             <SequentialCard 
@@ -391,23 +388,29 @@ const JourneySection = () => {
             />
           ))}
 
-          {/* Final CTA Button (Surgindo atrás da pilha) */}
-          <motion.div 
-            style={{ opacity: buttonOpacity, scale: buttonScale }}
-            className="absolute inset-0 z-0 flex flex-col items-center justify-center p-4 md:p-0"
-          >
-            <div className="bg-[#1B2616] p-10 md:p-20 rounded-[3rem] shadow-2xl border border-white/5 text-center max-w-2xl">
-              <h3 className="font-serif text-3xl md:text-5xl text-[#E8E4D9] mb-4 italic">Sua jornada começa aqui.</h3>
-              <p className="font-sans text-[#E8E4D9]/60 mb-10 max-w-sm mx-auto">Tudo o que você precisa para o Caminho, em um único aplicativo.</p>
-              <motion.button 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-[#E8E4D9] text-[#1B2616] px-12 py-5 rounded-full text-lg font-bold shadow-xl hover:shadow-2xl transition-all duration-300"
-              >
-                Conhecer todos os caminhos
-              </motion.button>
-            </div>
-          </motion.div>
+          <div className="absolute inset-0 z-[5] flex items-center justify-center pointer-events-none">
+            <motion.div 
+              style={{ opacity: ctaOpacity, scale: ctaScale, y: ctaY }}
+              className="w-full max-w-4xl bg-[#1B2616] p-12 md:p-24 rounded-[3.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] text-center relative z-50 pointer-events-auto border border-white/10"
+            >
+              <h3 className="font-serif text-5xl md:text-8xl text-[#E8E4D9] mb-8 italic">
+                Sua história começa agora.
+              </h3>
+              <p className="text-[#E8E4D9]/60 text-lg md:text-2xl max-w-2xl mx-auto mb-12 font-sans leading-relaxed">
+                Escolha um dos 9 caminhos, baixe os mapas offline e junte-se à nossa comunidade de peregrinos.
+              </p>
+              <div className="flex justify-center">
+                <motion.button
+                  onClick={onOpenModal}
+                  whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(0,0,0,0.4)" }}
+                  whileTap={{ scale: 0.95 }}
+                  className="bg-[#E8E4D9] text-[#1B2616] px-12 py-5 rounded-full text-lg font-bold shadow-xl hover:shadow-2xl transition-all duration-300"
+                >
+                  Baixar o App Agora
+                </motion.button>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </div>
     </section>
@@ -415,7 +418,6 @@ const JourneySection = () => {
 };
 
 const SequentialCard = ({ route, index, total, progress }: { route: any, index: number, total: number, progress: any }) => {
-  // Ajuste matemático: Distribuir os cards em 85% do scroll total
   // Card 1: 0.0 -> 0.14
   // Card 2: 0.14 -> 0.28...
   const segment = 0.85 / total;
@@ -446,13 +448,16 @@ const SequentialCard = ({ route, index, total, progress }: { route: any, index: 
       className="w-full max-w-5xl h-[450px] md:h-[500px] rounded-[3.5rem] overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col justify-end p-8 md:p-16 group border border-white/10 bg-[#1B2616]"
     >
       {/* Nature Image */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 scale-105 group-hover:scale-110 transition-transform duration-[5s] ease-out">
         <img 
           src={route.img} 
           alt={route.name}
-          className="w-full h-full object-cover transition-transform duration-[5s] ease-out group-hover:scale-110"
+          className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent z-10" />
+        {/* Dark transparency overlay requested by user */}
+        <div className="absolute inset-0 bg-black/40 z-10" />
+        {/* Gradient shadow for text emphasis */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent z-20" />
       </div>
       
       {/* Content */}
@@ -467,23 +472,21 @@ const SequentialCard = ({ route, index, total, progress }: { route: any, index: 
           <div className="flex flex-wrap gap-8 text-[#E8E4D9]/80 font-sans text-sm md:text-base border-t border-white/10 pt-8">
             <div className="flex flex-col">
               <span className="text-[10px] uppercase tracking-widest text-white/40 mb-1">Início</span>
-              <span className="font-medium text-[#E8E4D9]">{route.start}</span>
+              <span className="font-medium font-serif italic text-lg text-[#E8E4D9]">{route.start}</span>
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] uppercase tracking-widest text-white/40 mb-1">Distância</span>
-              <span className="font-medium font-serif italic text-2xl text-white">{route.dist}</span>
+              <span className="font-medium font-serif italic text-lg text-white">{route.dist}</span>
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] uppercase tracking-widest text-white/40 mb-1">Etapas</span>
-              <span className="font-medium text-[#E8E4D9]">{route.steps}</span>
+              <span className="font-medium font-serif italic text-lg text-[#E8E4D9]">{route.steps}</span>
             </div>
           </div>
         </div>
         
+        {/* Removido o emblema ícone conforme solicitado */}
         <div className="hidden md:flex flex-col items-end pb-2">
-           <div className="w-24 h-24 rounded-full border border-white/20 flex items-center justify-center group-hover:bg-white group-hover:text-[#1B2616] transition-all duration-[1s] ease-out shadow-2xl">
-              <Landmark className="w-8 h-8" />
-           </div>
         </div>
       </div>
     </motion.div>
