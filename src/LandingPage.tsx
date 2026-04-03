@@ -334,6 +334,30 @@ const JourneySection = () => {
       steps: "5",
       img: "https://images.unsplash.com/photo-1543739225-011b40a3951f?auto=format&fit=crop&w=1200&q=80"
     },
+    { 
+      name: "Vía de la Plata", 
+      tag: "O Gigante do Sul", 
+      start: "Sevilha", 
+      dist: "~1.000km", 
+      steps: "40+",
+      img: "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?auto=format&fit=crop&w=1200&q=80"
+    },
+    { 
+      name: "Caminho Sanabrés", 
+      tag: "Conexão Galega", 
+      start: "Granja de Moreruela", 
+      dist: "358km", 
+      steps: "13",
+      img: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80"
+    },
+    { 
+      name: "Português Interior", 
+      tag: "A Rota das Aldeias", 
+      start: "Viseu", 
+      dist: "385km", 
+      steps: "15+",
+      img: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=1200&q=80"
+    },
   ];
 
   // CTA appears at the very end (from 85% to 100% of the section scroll)
@@ -345,18 +369,18 @@ const JourneySection = () => {
       {/* Container Sticky - Sem overflow-hidden para não quebrar o sticky behavior */}
       <div className="sticky top-0 h-screen w-full flex flex-col items-center">
         
-        {/* Título Fixo no Topo - Z-30 para ficar SEMPRE por cima */}
-        <div className="relative z-30 pt-16 md:pt-24 text-center px-4 w-full bg-[#E8E4D9]/80 backdrop-blur-sm pb-8">
+        {/* Título Fixo no Topo - Fundo transparente para não cortar a sombra */}
+        <div className="relative z-30 pt-8 md:pt-10 text-center px-4 w-full bg-transparent pb-4">
           <motion.h2 
-            className="font-serif text-5xl md:text-8xl text-[#2D3A27] tracking-tight italic"
+            className="font-serif text-4xl md:text-7xl text-[#2D3A27] tracking-tight italic"
           >
             Escolha o seu destino.
           </motion.h2>
-          <div className="mt-4 h-px w-24 bg-[#2D3A27]/20 mx-auto" />
+          <div className="mt-2 h-px w-24 bg-[#2D3A27]/20 mx-auto" />
         </div>
 
-        {/* Wrapper do Baralho - Relative para o offset do useScroll */}
-        <div className="relative w-full max-w-5xl h-[450px] md:h-[550px] px-4 md:px-0 mt-8 md:mt-12 z-10">
+        {/* Wrapper do Baralho - Posição de segurança para não cortar nenhum dos lados */}
+        <div className="relative w-full max-w-5xl h-[420px] md:h-[500px] px-4 md:px-0 mt-6 md:mt-8 z-10">
           {routes.map((route, idx) => (
             <SequentialCard 
               key={idx} 
@@ -419,7 +443,7 @@ const SequentialCard = ({ route, index, total, progress }: { route: any, index: 
         y: '-50%',
         marginTop: y, // Using marginTop for the vertical movement to keep the initial 'y' transform free for centering
       }}
-      className="w-full max-w-5xl h-[450px] md:h-[550px] rounded-[3.5rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] flex flex-col justify-end p-8 md:p-16 group border border-white/10 bg-[#1B2616]"
+      className="w-full max-w-5xl h-[450px] md:h-[500px] rounded-[3.5rem] overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col justify-end p-8 md:p-16 group border border-white/10 bg-[#1B2616]"
     >
       {/* Nature Image */}
       <div className="absolute inset-0 z-0">
