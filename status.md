@@ -52,7 +52,8 @@ O site tem **dois fluxos de entrada distintos**:
 | **FeaturesSection** | ✅ Concluído | Grid bento de 7 cards táteis. Texto traduzido. |
 | **JourneySection** | ✅ Concluído | Efeito Baralho (Card Deck). 12 rotas reais. Scroll `h-[740vh]`. Indicador de progresso animado. Texto traduzido. |
 | **BookSection** | ✅ Concluído | Vídeo do livro em loop com frases animadas rotativas. Texto traduzido. |
-| **LanguageSwitcher** | ✅ Concluído | Seletor flutuante no canto superior direito. 10 idiomas. |
+| **LanguageSwitcher** | ✅ Concluído | Movido para o Footer. Pills inline com todos os 10 idiomas. |
+| **Footer** | ✅ Concluído | Logo, seletor de idioma inline (10 idiomas), links legais, copyright. |
 
 ---
 
@@ -72,9 +73,27 @@ O site tem **dois fluxos de entrada distintos**:
 - **Novo arquivo**: `src/i18n.ts` — 10 idiomas (pt-BR, pt-PT, es, en, fr, de, it, ja, ko, zh-CN)
 - **Lógica de detecção** (em cascata): `?lang=xx` na URL → `localStorage` (chave `wp_locale`, mesma do app) → `navigator.language` → fallback `pt-BR`
 - **Fonte CJK** carregada sob demanda via Google Fonts (Noto Sans JP/KR/SC) para ja/ko/zh-CN
-- **LanguageSwitcher**: botão flutuante no canto superior direito com dropdown animado
+- **LanguageSwitcher**: movido para o Footer como pills inline (sem dropdown)
 - **Todos os textos traduzidos**: HeroSection, DownloadModal, FeaturesSection, JourneySection (título, labels, tags das 12 rotas), BookSection
 - **Integração com app**: ao fazer deep link para o site, o app deve passar `?lang=xx` na URL — o site abre diretamente no idioma correto
+
+### DownloadModal — reescrito para fluxo PWA
+- Modal redesenhado para instalação do **app Peregrino via PWA** (não App Store / Play Store)
+- Detecção automática de plataforma (iOS / Android / Desktop) via `navigator.userAgent`
+- **iOS**: instruções passo a passo (Safari → Compartilhar → Adicionar à Tela de Início)
+- **Android**: botão nativo `beforeinstallprompt` quando disponível + instruções manuais como fallback
+- **Desktop**: QR Code real e escaneável (`qrcode.react`) apontando para a URL do app
+- URL do app ainda usa placeholder `https://peregrino.app` — substituir quando domínio for definido
+
+### Otimização de mídia — concluída
+- **Imagens** (11 arquivos): PNG/JPG → WebP via `sharp`, max 1600px — 61 MB → 2.8 MB (**-95%**)
+  - Script: `scripts/optimize-images.mjs` | Originais em: `img-apoio/originals/`
+- **Vídeos ativos** recomprimidos via `fluent-ffmpeg` (CRF 28 / H.264):
+  - Hero (`public/video-apoio/2.mp4`): 13.2 MB → 9.4 MB (-28%)
+  - BookSection (`img-apoio/video-site-peregrino.mp4`): 14.7 MB → 2.9 MB (-80%)
+  - Script: `scripts/optimize-videos.mjs` | Originais em: `video-backups/`
+- **Vídeos não usados deletados**: `1.mp4` + `1_original.mp4` (28 MB removidos)
+- **Economia total de mídia**: ~86 MB → site com ~15 MB de mídia total
 
 ---
 
@@ -82,11 +101,13 @@ O site tem **dois fluxos de entrada distintos**:
 
 | # | Item | Detalhe | Prioridade |
 |---|---|---|---|
-| 1 | **Modal de Download → fluxo PWA** | Substituir botões "App Store / Google Play" por guia de instalação PWA (instruções separadas para iOS e Android) | 🔴 Alta |
-| 2 | **Deep link para BookSection** | Definir URL/âncora para o app redirecionar direto na seção do livro ao final da peregrinação (ex: `seusite.com/?lang=pt-BR#livro`) | 🟡 Média |
-| 3 | **Integração de pagamento** | Definir plataforma (Stripe, Hotmart, etc.) para o botão "Encomendar meu Livro" | 🟡 Média |
-| 4 | **Deploy / domínio próprio** | Site ainda sem domínio definitivo. Necessário para configurar deep link do app | 🟡 Média |
-| 5 | **Corte do vídeo na BookSection** | Vídeo ainda corta levemente na parte inferior em algumas telas. Investigar aspect ratio do vídeo ou adicionar `max-h` | 🟢 Baixa |
+| 1 | **Definir domínio — passo que desbloqueia tudo abaixo** | Quando o domínio estiver definido, executar os 3 itens seguintes em sequência | 🔴 Bloqueante |
+| 2 | **↳ URL de download do app no modal** | Substituir placeholder do modal pelos links reais de download do app (iOS e Android). QR code já usa `https://peregrino.app` — trocar pela URL final em `LandingPage.tsx` no comentário `// TODO: trocar URL quando domínio for definido` | 🔴 Depende do domínio |
+| 3 | **↳ Deep link App → Site (BookSection)** | Configurar no app a URL final para redirecionar o usuário ao site ao fim da jornada, com parâmetros `?lang=xx#livro`. A âncora `#livro` ainda precisa ser adicionada à BookSection | 🔴 Depende do domínio |
+| 4 | **↳ Deploy do site** | Publicar o site no domínio definitivo (Vercel, Netlify ou similar) | 🔴 Depende do domínio |
+| 5 | **Integração de pagamento** | Definir plataforma (Stripe, Hotmart, etc.) para o botão "Encomendar meu Livro" | 🟡 Média |
+| 6 | **Páginas legais** | Links Termos de Uso, Privacidade e Contato no Footer apontam para `#` — criar páginas ou redirecionar para políticas externas | 🟢 Baixa |
+| 7 | **Corte do vídeo na BookSection** | Vídeo ainda corta levemente na parte inferior em algumas telas. Investigar aspect ratio do vídeo ou adicionar `max-h` | 🟢 Baixa |
 
 ---
 
@@ -95,16 +116,21 @@ O site tem **dois fluxos de entrada distintos**:
 ```
 APP-PEREGRINO LANDING/
 ├── src/
-│   ├── LandingPage.tsx       ← Componente único com todas as seções
-│   └── i18n.ts               ← Sistema multilíngue (10 idiomas, Context API)
+│   ├── LandingPage.tsx           ← Componente único com todas as seções
+│   └── i18n.ts                   ← Sistema multilíngue (10 idiomas, Context API)
+├── public/
+│   └── video-apoio/
+│       └── 2.mp4                 ← Vídeo do Hero (9.4 MB, otimizado)
 ├── img-apoio/
-│   ├── card1 a card9         ← Fotos das rotas originais
-│   ├── card10-caminho-portugues-lisboa.png
-│   ├── card11-caminho-aragones.png
-│   ├── card12-caminho-de-inverno.png
-│   └── video-site-peregrino.mp4  ← Vídeo do Coffee Table Book (BookSection)
-├── peregrino.md              ← Guia de estética e princípios do projeto
-└── status.md                 ← Este arquivo
+│   ├── card1 a card12 (.webp)    ← Fotos das 12 rotas (WebP, otimizadas)
+│   ├── video-site-peregrino.mp4  ← Vídeo do Coffee Table Book (2.9 MB, otimizado)
+│   └── originals/                ← Backups das imagens originais (PNG/JPG)
+├── video-backups/                ← Backups dos vídeos originais (MP4 não comprimidos)
+├── scripts/
+│   ├── optimize-images.mjs       ← Converte PNG/JPG → WebP via sharp
+│   └── optimize-videos.mjs       ← Recomprime MP4 via fluent-ffmpeg (CRF 28)
+├── peregrino.md                  ← Guia de estética e princípios do projeto
+└── status.md                     ← Este arquivo
 ```
 
 ---
@@ -120,4 +146,4 @@ APP-PEREGRINO LANDING/
 
 ---
 
-*Última atualização: 16/04/2026 — Sessão com Claude Sonnet 4.6*
+*Última atualização: 16/04/2026 (tarde) — Sessão com Claude Sonnet 4.6*

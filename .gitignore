@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Backups de mídia (originais antes da otimização)
+img-apoio/originals/
+video-backups/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

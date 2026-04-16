@@ -1,11 +1,11 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { I18nProvider, useT, AVAILABLE_LANGS } from './i18n';
 import { motion, useScroll, useTransform, AnimatePresence, useMotionValueEvent } from 'framer-motion';
 import {
   MapPin, ShieldAlert,
   CloudSun, Activity, QrCode as QrIcon, Scroll,
-  Camera, X,
-  Apple, PlayCircle, ArrowRight
+  Camera, X, ArrowRight
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -16,45 +16,53 @@ export default function LandingPage() {
   );
 }
 
-const LanguageSwitcher = () => {
+const Footer = () => {
   const { lang, setLang } = useT();
-  const [open, setOpen] = useState(false);
-  const current = AVAILABLE_LANGS.find(l => l.code === lang)!;
 
   return (
-    <div className="fixed top-5 right-5 z-[200]">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 bg-white/90 backdrop-blur-md border border-black/10 shadow-lg rounded-full px-3 py-1.5 text-sm font-sans font-medium text-[#2D3A27] hover:bg-white transition-colors"
-      >
-        <span>{current.flag}</span>
-        <span className="text-xs tracking-wide">{current.label}</span>
-        <span className="text-[#2D3A27]/40 text-xs">{open ? '▲' : '▼'}</span>
-      </button>
+    <footer className="bg-[#1B2616] text-[#E8E4D9]/60 px-6 py-12 md:py-16">
+      <div className="max-w-5xl mx-auto flex flex-col items-center gap-10">
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
-            className="absolute top-10 right-0 bg-white/95 backdrop-blur-md border border-black/10 shadow-2xl rounded-2xl overflow-hidden w-52"
-          >
-            {AVAILABLE_LANGS.map(l => (
-              <button
-                key={l.code}
-                onClick={() => { setLang(l.code); setOpen(false); }}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-sans text-left hover:bg-[#E8E4D9]/60 transition-colors ${l.code === lang ? 'bg-[#E8E4D9]/80 font-semibold' : ''}`}
-              >
-                <span className="text-base">{l.flag}</span>
-                <span className="text-[#2D3A27]">{l.name}</span>
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+        {/* Logo / nome */}
+        <div className="flex flex-col items-center gap-2">
+          <span className="font-serif text-2xl text-[#E8E4D9] italic tracking-tight">Peregrino</span>
+          <span className="text-xs uppercase tracking-[0.3em] text-[#E8E4D9]/30">Ultreia et Suseia</span>
+        </div>
+
+        {/* Seletor de idioma — grade inline, sem dropdown */}
+        <div className="flex flex-wrap justify-center gap-2">
+          {AVAILABLE_LANGS.map(l => (
+            <button
+              key={l.code}
+              onClick={() => setLang(l.code)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-sans transition-colors border ${
+                l.code === lang
+                  ? 'bg-[#E8E4D9]/15 border-[#E8E4D9]/30 text-[#E8E4D9]'
+                  : 'border-transparent text-[#E8E4D9]/40 hover:text-[#E8E4D9]/70 hover:border-[#E8E4D9]/15'
+              }`}
+            >
+              <span>{l.flag}</span>
+              <span>{l.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Links legais */}
+        <div className="flex flex-wrap justify-center gap-6 text-xs uppercase tracking-widest text-[#E8E4D9]/30">
+          <a href="#" className="hover:text-[#E8E4D9]/60 transition-colors">Termos de Uso</a>
+          <span className="text-[#E8E4D9]/15">·</span>
+          <a href="#" className="hover:text-[#E8E4D9]/60 transition-colors">Privacidade</a>
+          <span className="text-[#E8E4D9]/15">·</span>
+          <a href="#" className="hover:text-[#E8E4D9]/60 transition-colors">Contato</a>
+        </div>
+
+        {/* Copyright */}
+        <p className="text-xs text-[#E8E4D9]/20 text-center">
+          © {new Date().getFullYear()} Peregrino. Todos os direitos reservados.
+        </p>
+
+      </div>
+    </footer>
   );
 };
 
@@ -67,11 +75,11 @@ function LandingPageInner() {
       className="min-h-screen bg-[#FDFCF8] font-sans selection:bg-[#2D3A27] selection:text-[#E8E4D9]"
       style={isCJK ? { fontFamily: "'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', sans-serif" } : {}}
     >
-      <LanguageSwitcher />
       <HeroSection onOpenModal={() => setIsModalOpen(true)} />
       <FeaturesSection />
       <JourneySection />
       <BookSection />
+      <Footer />
 
       <AnimatePresence>
         {isModalOpen && (
@@ -118,90 +126,156 @@ const HeroSection = ({ onOpenModal }: { onOpenModal: () => void }) => {
   );
 };
 
+type Platform = 'ios' | 'android' | 'desktop';
+
+function detectPlatform(): Platform {
+  if (typeof navigator === 'undefined') return 'desktop';
+  const ua = navigator.userAgent.toLowerCase();
+  if (/iphone|ipad|ipod/.test(ua)) return 'ios';
+  if (/android/.test(ua)) return 'android';
+  return 'desktop';
+}
+
 const DownloadModal = ({ onClose }: { onClose: () => void }) => {
   const { t } = useT();
+  const platform = detectPlatform();
+  const [tab, setTab] = useState<'ios' | 'android'>(
+    platform === 'android' ? 'android' : 'ios'
+  );
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleNativeInstall = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    setInstallPrompt(null);
+    onClose();
+  };
+
+  const iosSteps  = ['modal.pwa.ios.s1',  'modal.pwa.ios.s2',  'modal.pwa.ios.s3',  'modal.pwa.ios.s4'];
+  const droidSteps = ['modal.pwa.android.s1','modal.pwa.android.s2','modal.pwa.android.s3','modal.pwa.android.s4'];
+
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6"
     >
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-[#1B2616]/60 backdrop-blur-xl" 
-        onClick={onClose}
-      />
-      
-      {/* Modal Content */}
-      <motion.div 
+      <div className="absolute inset-0 bg-[#1B2616]/60 backdrop-blur-xl" onClick={onClose} />
+
+      <motion.div
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
         className="relative bg-[#F4F1EA] w-full max-w-2xl rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] overflow-hidden border border-white/20"
       >
-        {/* Close Button */}
-        <button 
+        <button
           onClick={onClose}
           className="absolute top-8 right-8 p-2 rounded-full bg-[#2D3A27]/5 text-[#2D3A27] hover:bg-[#2D3A27]/10 transition-colors z-20"
         >
           <X className="w-6 h-6" />
         </button>
 
-        <div className="flex flex-col md:flex-row h-full">
-          {/* Left Side: Buttons */}
-          <div className="flex-1 p-10 md:p-16 flex flex-col justify-center">
-            <span className="text-xs uppercase tracking-[0.3em] text-[#2D3A27]/40 font-sans font-black mb-4 block">
+        <div className="flex flex-col md:flex-row">
+
+          {/* Lado esquerdo — passos */}
+          <div className="flex-1 p-10 md:p-14 flex flex-col justify-center">
+            <span className="text-xs uppercase tracking-[0.3em] text-[#2D3A27]/40 font-sans font-black mb-3 block">
               {t('modal.tagline')}
             </span>
-            <h2 className="font-serif text-4xl md:text-5xl text-[#2D3A27] mb-10 leading-tight italic">
-              {t('modal.title')}
+            <h2 className="font-serif text-3xl md:text-4xl text-[#2D3A27] leading-tight italic mb-1">
+              {t('modal.pwa.title')}
             </h2>
+            <p className="text-xs text-[#2D3A27]/40 font-sans mb-7">{t('modal.pwa.free')}</p>
 
-            <div className="flex flex-col gap-4">
-              <DownloadButton
-                store="App Store"
-                icon={<Apple className="w-6 h-6" />}
-                sub={t('modal.ios')}
-              />
-              <DownloadButton
-                store="Google Play"
-                icon={<PlayCircle className="w-6 h-6" />}
-                sub={t('modal.android')}
-              />
+            {/* Tabs iOS / Android — sempre visível */}
+            <div className="flex gap-2 mb-6">
+              {(['ios', 'android'] as const).map(p => (
+                <button
+                  key={p}
+                  onClick={() => setTab(p)}
+                  className={`px-4 py-1.5 rounded-full text-xs font-sans font-semibold transition-colors border ${
+                    tab === p
+                      ? 'bg-[#2D3A27] text-[#E8E4D9] border-[#2D3A27]'
+                      : 'text-[#2D3A27]/50 border-[#2D3A27]/20 hover:border-[#2D3A27]/40'
+                  }`}
+                >
+                  {t(`modal.pwa.${p}.tab`)}
+                </button>
+              ))}
             </div>
+
+            {/* Passos */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={tab}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <p className="text-xs text-[#2D3A27]/50 uppercase tracking-widest mb-4 font-sans">
+                  {t(`modal.pwa.${tab}.hint`)}
+                </p>
+                <ol className="flex flex-col gap-3">
+                  {(tab === 'ios' ? iosSteps : droidSteps).map((key, i) => (
+                    <li key={key} className="flex items-start gap-3">
+                      <span className="shrink-0 w-6 h-6 rounded-full bg-[#2D3A27]/10 text-[#2D3A27] text-xs font-bold flex items-center justify-center mt-0.5">
+                        {i + 1}
+                      </span>
+                      <span className="text-sm text-[#2D3A27]/80 font-sans leading-relaxed">{t(key)}</span>
+                    </li>
+                  ))}
+                </ol>
+
+                {/* Botão nativo Android (Chrome) */}
+                {tab === 'android' && installPrompt && (
+                  <motion.button
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    onClick={handleNativeInstall}
+                    className="mt-6 w-full bg-[#2D3A27] text-[#E8E4D9] py-3.5 rounded-2xl font-sans font-semibold text-sm flex items-center justify-center gap-2 shadow-lg"
+                  >
+                    {t('modal.pwa.android.btn')}
+                    <ArrowRight className="w-4 h-4" />
+                  </motion.button>
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
-          {/* Right Side: QR Code (Desktop Only) */}
-          <div className="hidden md:flex w-[240px] bg-[#2D3A27] p-10 flex-col items-center justify-center text-center border-l border-black/5">
-            <div className="p-4 bg-white rounded-3xl shadow-xl mb-6">
-              <QrIcon className="w-32 h-32 text-[#2D3A27]" strokeWidth={1.5} />
+          {/* Lado direito — QR Code (desktop only) */}
+          <div className="hidden md:flex w-[220px] bg-[#2D3A27] p-10 flex-col items-center justify-center text-center border-l border-black/5 shrink-0">
+            <div className="p-4 bg-white rounded-3xl shadow-xl mb-5">
+              {/* TODO: trocar URL quando domínio for definido */}
+              <QRCodeSVG
+                value="https://peregrino.app"
+                size={112}
+                bgColor="#ffffff"
+                fgColor="#1B2616"
+                level="M"
+              />
             </div>
-            <p className="text-[#E8E4D9]/80 text-sm font-sans leading-relaxed">
-              {t('modal.qr')}
+            <p className="text-[#E8E4D9] text-sm font-serif italic mb-2 leading-snug">
+              {t('modal.pwa.desktop.title')}
+            </p>
+            <p className="text-[#E8E4D9]/50 text-xs font-sans leading-relaxed">
+              {t('modal.pwa.desktop.sub')}
             </p>
           </div>
+
         </div>
       </motion.div>
     </motion.div>
   );
 };
-
-const DownloadButton = ({ store, icon, sub }: { store: string, icon: React.ReactNode, sub: string }) => (
-  <motion.button
-    whileHover={{ x: 8, scale: 1.02 }}
-    whileTap={{ scale: 0.98 }}
-    className="flex items-center gap-4 bg-[#2D3A27] text-[#E8E4D9] p-5 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 w-full text-left group"
-  >
-    <div className="p-2 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors">
-      {icon}
-    </div>
-    <div className="flex flex-col">
-      <span className="text-[10px] uppercase tracking-widest text-[#E8E4D9]/40 leading-none mb-1">{sub}</span>
-      <span className="text-xl font-medium tracking-tight leading-none">{store}</span>
-    </div>
-  </motion.button>
-);
 
 const FeaturesSection = () => {
   const { t } = useT();
@@ -306,18 +380,18 @@ const JourneySection = () => {
   });
 
   const routes = [
-    { name: "Caminho Francês",           tagKey: "journey.tag.frances",           start: "St-Jean-Pied-de-Port / Somport", dist: "765km", steps: 33, img: "/img-apoio/card1-St-Jean-Pied-de-Port.jpg" },
-    { name: "Caminho Português (Central)",tagKey: "journey.tag.portugues.central", start: "Porto",                          dist: "274km", steps: 11, img: "/img-apoio/card2-porto.png" },
-    { name: "Caminho Português (Lisboa)", tagKey: "journey.tag.portugues.lisboa",  start: "Lisboa",                         dist: "625km", steps: 25, img: "/img-apoio/card10-caminho-portugues-lisboa.png" },
-    { name: "Caminho Português (Costa)",  tagKey: "journey.tag.portugues.costa",   start: "Porto (variante litoral)",        dist: "281km", steps: 13, img: "/img-apoio/card3-Porto-litoral.png" },
-    { name: "Português Interior",         tagKey: "journey.tag.interior",          start: "Viseu",                          dist: "426km", steps: 17, img: "/img-apoio/card9-viseu.png" },
+    { name: "Caminho Francês",           tagKey: "journey.tag.frances",           start: "St-Jean-Pied-de-Port / Somport", dist: "765km", steps: 33, img: "/img-apoio/card1-St-Jean-Pied-de-Port.webp" },
+    { name: "Caminho Português (Central)",tagKey: "journey.tag.portugues.central", start: "Porto",                          dist: "274km", steps: 11, img: "/img-apoio/card2-porto.webp" },
+    { name: "Caminho Português (Lisboa)", tagKey: "journey.tag.portugues.lisboa",  start: "Lisboa",                         dist: "625km", steps: 25, img: "/img-apoio/card10-caminho-portugues-lisboa.webp" },
+    { name: "Caminho Português (Costa)",  tagKey: "journey.tag.portugues.costa",   start: "Porto (variante litoral)",        dist: "281km", steps: 13, img: "/img-apoio/card3-Porto-litoral.webp" },
+    { name: "Português Interior",         tagKey: "journey.tag.interior",          start: "Viseu",                          dist: "426km", steps: 17, img: "/img-apoio/card9-viseu.webp" },
     { name: "Caminho Primitivo",          tagKey: "journey.tag.primitivo",         start: "Oviedo",                         dist: "321km", steps: 14, img: "/img-apoio/card4-oviedo.webp" },
-    { name: "Caminho do Norte",           tagKey: "journey.tag.norte",             start: "Irún",                           dist: "817km", steps: 35, img: "/img-apoio/card5-norte.png" },
-    { name: "Caminho Inglês",             tagKey: "journey.tag.ingles",            start: "Ferrol / A Coruña",              dist: "126km", steps:  6, img: "/img-apoio/card6-ferrol.png" },
-    { name: "Caminho Aragonês",           tagKey: "journey.tag.aragones",          start: "Somport",                        dist: "166km", steps:  6, img: "/img-apoio/card11-caminho-aragones.png" },
-    { name: "Vía de la Plata",            tagKey: "journey.tag.plata",             start: "Sevilha",                        dist: "990km", steps: 36, img: "/img-apoio/card7-via-de-la-plata.png" },
-    { name: "Caminho Sanabrês",           tagKey: "journey.tag.sanabres",          start: "Granja de Moreruela",            dist: "340km", steps: 11, img: "/img-apoio/card8-granja-de-moreruela.png" },
-    { name: "Caminho de Inverno",         tagKey: "journey.tag.inverno",           start: "Ponferrada",                     dist: "269km", steps: 10, img: "/img-apoio/card12-caminho-de-inverno.png" },
+    { name: "Caminho do Norte",           tagKey: "journey.tag.norte",             start: "Irún",                           dist: "817km", steps: 35, img: "/img-apoio/card5-norte.webp" },
+    { name: "Caminho Inglês",             tagKey: "journey.tag.ingles",            start: "Ferrol / A Coruña",              dist: "126km", steps:  6, img: "/img-apoio/card6-ferrol.webp" },
+    { name: "Caminho Aragonês",           tagKey: "journey.tag.aragones",          start: "Somport",                        dist: "166km", steps:  6, img: "/img-apoio/card11-caminho-aragones.webp" },
+    { name: "Vía de la Plata",            tagKey: "journey.tag.plata",             start: "Sevilha",                        dist: "990km", steps: 36, img: "/img-apoio/card7-via-de-la-plata.webp" },
+    { name: "Caminho Sanabrês",           tagKey: "journey.tag.sanabres",          start: "Granja de Moreruela",            dist: "340km", steps: 11, img: "/img-apoio/card8-granja-de-moreruela.webp" },
+    { name: "Caminho de Inverno",         tagKey: "journey.tag.inverno",           start: "Ponferrada",                     dist: "269km", steps: 10, img: "/img-apoio/card12-caminho-de-inverno.webp" },
   ];
 
 
