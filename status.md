@@ -146,4 +146,19 @@ APP-PEREGRINO LANDING/
 
 ---
 
+---
+
+## 🔧 Problemas Conhecidos & Soluções
+
+### Git pedindo autorização no GitHub a cada push
+**Sintoma**: O Git Credential Manager abre o browser pedindo "Authorize git-ecosystem" em todo push.  
+**Causa**: O Claude Code injeta `--timeout 36000` no `credential.helper`, argumento inválido que impede o GCM de salvar o token.  
+**Fix** (rodar uma vez no terminal):
+```bash
+git config --global credential.helper manager
+```
+Depois disso, autorizar no browser **uma última vez** — o token fica salvo permanentemente.
+
+---
+
 *Última atualização: 16/04/2026 (tarde) — Sessão com Claude Sonnet 4.6*
