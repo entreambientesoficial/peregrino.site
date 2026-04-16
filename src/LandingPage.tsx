@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { motion, useScroll, useTransform, AnimatePresence, useMotionValueEvent } from 'framer-motion';
 import { 
   Map, MapPin, ShieldAlert, BookOpen, 
   CloudSun, Activity, QrCode as QrIcon, Scroll, 
@@ -286,77 +286,101 @@ const JourneySection = ({ onOpenModal }: { onOpenModal: () => void }) => {
   });
 
   const routes = [
-    { 
-      name: "Caminho Francês", 
-      tag: "O Clássico dos Pirineus", 
-      start: "St-Jean-Pied-de-Port / Somport", 
-      dist: "780km", 
-      steps: "31 a 39 dias",
+    {
+      name: "Caminho Francês",
+      tag: "O Clássico dos Pirineus",
+      start: "St-Jean-Pied-de-Port / Somport",
+      dist: "765km",
+      steps: "33 etapas",
       img: "/img-apoio/card1-St-Jean-Pied-de-Port.jpg"
     },
-    { 
-      name: "Caminho Português (Central)", 
-      tag: "A Herança de Santiago", 
-      start: "Porto", 
-      dist: "240km", 
-      steps: "10 a 12 dias",
+    {
+      name: "Caminho Português (Central)",
+      tag: "A Herança de Santiago",
+      start: "Porto",
+      dist: "274km",
+      steps: "11 etapas",
       img: "/img-apoio/card2-porto.png"
     },
-    { 
-      name: "Caminho Português (Costa)", 
-      tag: "O Som do Atlântico", 
-      start: "Porto (variante litoral)", 
-      dist: "260km", 
-      steps: "11 a 13 dias",
+    {
+      name: "Caminho Português (Lisboa)",
+      tag: "A Grande Peregrinação",
+      start: "Lisboa",
+      dist: "625km",
+      steps: "25 etapas",
+      img: "/img-apoio/card10-caminho-portugues-lisboa.png"
+    },
+    {
+      name: "Caminho Português (Costa)",
+      tag: "O Som do Atlântico",
+      start: "Porto (variante litoral)",
+      dist: "281km",
+      steps: "13 etapas",
       img: "/img-apoio/card3-Porto-litoral.png"
     },
-    { 
-      name: "Caminho Primitivo", 
-      tag: "A Primeira Rota", 
-      start: "Oviedo", 
-      dist: "320km", 
-      steps: "13 a 16 dias",
+    {
+      name: "Português Interior",
+      tag: "A Rota das Aldeias",
+      start: "Viseu",
+      dist: "426km",
+      steps: "17 etapas",
+      img: "/img-apoio/card9-viseu.png"
+    },
+    {
+      name: "Caminho Primitivo",
+      tag: "A Primeira Rota",
+      start: "Oviedo",
+      dist: "321km",
+      steps: "14 etapas",
       img: "/img-apoio/card4-oviedo.webp"
     },
-    { 
-      name: "Caminho do Norte", 
-      tag: "O Caminho do Mar", 
-      start: "Irún", 
-      dist: "825km", 
-      steps: "33 a 41 dias",
+    {
+      name: "Caminho do Norte",
+      tag: "O Caminho do Mar",
+      start: "Irún",
+      dist: "817km",
+      steps: "35 etapas",
       img: "/img-apoio/card5-norte.png"
     },
-    { 
-      name: "Caminho Inglês", 
-      tag: "A Rota Marítima", 
-      start: "Ferrol / A Coruña", 
-      dist: "112km", 
-      steps: "5 a 6 dias",
+    {
+      name: "Caminho Inglês",
+      tag: "A Rota Marítima",
+      start: "Ferrol / A Coruña",
+      dist: "126km",
+      steps: "6 etapas",
       img: "/img-apoio/card6-ferrol.png"
     },
-    { 
-      name: "Vía de la Plata", 
-      tag: "O Gigante do Sul", 
-      start: "Sevilha", 
-      dist: "1.000km", 
-      steps: "40 a 50 dias",
+    {
+      name: "Caminho Aragonês",
+      tag: "Pelos Passos de Aragão",
+      start: "Somport",
+      dist: "166km",
+      steps: "6 etapas",
+      img: "/img-apoio/card11-caminho-aragones.png"
+    },
+    {
+      name: "Vía de la Plata",
+      tag: "O Gigante do Sul",
+      start: "Sevilha",
+      dist: "990km",
+      steps: "36 etapas",
       img: "/img-apoio/card7-via-de-la-plata.png"
     },
-    { 
-      name: "Caminho Sanabrés", 
-      tag: "Conexão Galega", 
-      start: "Granja de Moreruela", 
-      dist: "370km", 
-      steps: "15 a 19 dias",
+    {
+      name: "Caminho Sanabrês",
+      tag: "Conexão Galega",
+      start: "Granja de Moreruela",
+      dist: "340km",
+      steps: "11 etapas",
       img: "/img-apoio/card8-granja-de-moreruela.png"
     },
-    { 
-      name: "Português Interior", 
-      tag: "A Rota das Aldeias", 
-      start: "Viseu", 
-      dist: "385km", 
-      steps: "15 a 20 dias",
-      img: "/img-apoio/card9-viseu.png"
+    {
+      name: "Caminho de Inverno",
+      tag: "A Rota do Fogo e Neve",
+      start: "Ponferrada",
+      dist: "269km",
+      steps: "10 etapas",
+      img: "/img-apoio/card12-caminho-de-inverno.png"
     },
   ];
 
@@ -365,7 +389,7 @@ const JourneySection = ({ onOpenModal }: { onOpenModal: () => void }) => {
   const ctaY = useTransform(scrollYProgress, [0.85, 0.98], [100, 0]);
 
   return (
-    <section ref={sectionRef} className="h-[600vh] relative z-20 bg-[#E8E4D9]">
+    <section ref={sectionRef} className="h-[800vh] relative z-20 bg-[#E8E4D9]">
       <div className="sticky top-0 h-screen w-full flex flex-col items-center">
         
         <div className="relative z-30 pt-8 md:pt-10 text-center px-4 w-full bg-transparent pb-4">
@@ -493,165 +517,214 @@ const SequentialCard = ({ route, index, total, progress }: { route: any, index: 
 
 const BookSection = () => {
   const sectionRef = useRef(null);
+  const [activePage, setActivePage] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const prevPage = useRef(0);
+
+  const spreads = [
+    {
+      label: "A Partida",
+      stage: "St-Jean-Pied-de-Port · Etapa 1",
+      date: "Dia 1 de 33",
+      text: '"Mochila nas costas, coração aberto. O primeiro passo é o mais difícil — e o mais sagrado. Os Pirineus ainda fumegavam de névoa quando cruzei a fronteira."',
+      pageNum: "Página 12",
+      photo: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80",
+      caption: "Pirineus, amanhecer",
+    },
+    {
+      label: "Os Dias de Chuva",
+      stage: "Pamplona · Etapa 5",
+      date: "Dia 5 de 33",
+      text: '"A chuva não parou em três dias. Aprendi que ter os pés molhados não é o mesmo que se perder. Cada poça refletia um céu que eu ainda não entendia."',
+      pageNum: "Página 38",
+      photo: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=800&q=80",
+      caption: "Navarra, outono",
+    },
+    {
+      label: "A Meseta",
+      stage: "Burgos · Etapa 14",
+      date: "Dia 14 de 33",
+      text: '"Trezentos quilômetros de planície e silêncio. Aqui o Caminho vira espelho — você se enxerga sem desculpas, sem distrações, apenas você e o horizonte."',
+      pageNum: "Página 89",
+      photo: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=800&q=80",
+      caption: "Castela, meio-dia",
+    },
+    {
+      label: "O Cebreiro",
+      stage: "O Cebreiro · Etapa 28",
+      date: "Dia 28 de 33",
+      text: '"Galícia começa entre nuvens baixas e pedras antigas. O fim já pode ser sentido nas pernas, mas a alma ainda está em marcha."',
+      pageNum: "Página 156",
+      photo: "https://images.unsplash.com/photo-1544085311-11a028465b03?auto=format&fit=crop&w=800&q=80",
+      caption: "Galícia, neblina",
+    },
+    {
+      label: "A Chegada",
+      stage: "Santiago de Compostela · Km 0",
+      date: "Dia 33 de 33",
+      text: '"Na Praza do Obradoiro, com lágrimas e sorriso, entendi: não cheguei ao fim. Cheguei a mim. O Caminho não termina aqui — começa."',
+      pageNum: "Página 198",
+      photo: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80",
+      caption: "Santiago, catedral",
+    },
+  ];
+
   const { scrollYProgress } = useScroll({
     target: sectionRef,
-    offset: ["start end", "end start"]
+    offset: ["start start", "end end"],
   });
 
-  // Rotate cover from 0 to -160 degrees as we scroll
-  const rotateY = useTransform(scrollYProgress, [0.2, 0.45], [0, -165]);
-  const bookScale = useTransform(scrollYProgress, [0.1, 0.3], [0.8, 1]);
-  const bookOpacity = useTransform(scrollYProgress, [0.1, 0.25], [0, 1]);
-  const bookY = useTransform(scrollYProgress, [0.1, 0.4], [100, 0]);
+  useMotionValueEvent(scrollYProgress, "change", (latest) => {
+    const raw = (latest / 0.82) * (spreads.length - 1);
+    const page = Math.max(0, Math.min(spreads.length - 1, Math.round(raw)));
+    if (page !== prevPage.current) {
+      setDirection(page > prevPage.current ? 1 : -1);
+      prevPage.current = page;
+      setActivePage(page);
+    }
+  });
+
+  const bookOpacity = useTransform(scrollYProgress, [0, 0.06], [0, 1]);
+  const bookY = useTransform(scrollYProgress, [0, 0.08], [40, 0]);
+  const ctaOpacity = useTransform(scrollYProgress, [0.84, 0.95], [0, 1]);
+  const ctaY = useTransform(scrollYProgress, [0.84, 0.95], [20, 0]);
+
+  const pageVariants = {
+    enter: (dir: number) => ({ opacity: 0, x: dir > 0 ? 24 : -24 }),
+    center: { opacity: 1, x: 0 },
+    exit: (dir: number) => ({ opacity: 0, x: dir > 0 ? -24 : 24 }),
+  };
 
   return (
-    <section ref={sectionRef} className="h-[200vh] relative z-30 bg-[#FDFCF8] overflow-hidden">
-      <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center py-20 px-4">
-        
-        {/* Background Atmosphere */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#E8E4D9_0%,_#FDFCF8_100%)] opacity-50" />
-        
-        <div className="relative z-10 text-center mb-16">
-          <motion.span 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            className="text-[#2D1B14]/40 uppercase tracking-[0.5em] text-xs font-bold mb-4 block"
-          >
+    <section ref={sectionRef} className="h-[350vh] relative z-30 bg-[#FDFCF8]">
+      <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center py-10 px-4">
+
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_#E8E4D9_0%,_#FDFCF8_70%)]" />
+
+        {/* Header — sem whileInView: dentro de sticky container causa corte na transição */}
+        <div className="relative z-10 text-center mb-8">
+          <span className="text-[#2D1B14]/40 uppercase tracking-[0.5em] text-xs font-bold mb-3 block">
             O Legado Físico
-          </motion.span>
-          <motion.h2 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="font-serif text-5xl md:text-8xl text-[#2D1B14] mb-6 italic"
-          >
+          </span>
+          <h2 className="font-serif text-4xl md:text-6xl text-[#2D1B14] mb-3 italic">
             Sua história em mãos.
-          </motion.h2>
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-[#2D1B14]/60 text-lg md:text-2xl max-w-2xl mx-auto font-light leading-relaxed"
-          >
-            Transforme cada passo do seu Caminho em um livro de arte exclusivo, 
-            feito sob medida para a sua jornada.
-          </motion.p>
-        </div>
-
-        {/* 3D Book Container */}
-        <motion.div 
-          style={{ 
-            scale: bookScale, 
-            opacity: bookOpacity, 
-            y: bookY,
-            perspective: "2500px" 
-          }}
-          className="relative w-full max-w-[340px] md:max-w-5xl h-[450px] md:h-[600px] mx-auto"
-        >
-          {/* Main Book Body (The Pages/Back) */}
-          <div className="absolute inset-x-0 inset-y-0 flex shadow-book rounded-2xl overflow-hidden">
-            {/* Left Page (Hidden behind cover at first) */}
-            <div className="w-1/2 h-full bg-paper border-r border-black/5 p-6 md:p-12 flex flex-col justify-between relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-12 h-full bg-gradient-to-l from-black/10 to-transparent pointer-events-none" />
-              <div className="space-y-6">
-                <div className="flex items-center gap-4 border-b border-[#2D1B14]/10 pb-4">
-                  <div className="w-12 h-12 rounded-full border border-[#2D1B14]/20 flex items-center justify-center opacity-40">
-                     <span className="text-[10px] font-bold">STAMP</span>
-                  </div>
-                  <div>
-                    <h4 className="font-serif text-[#2D1B14] italic">Caminho Francês</h4>
-                    <p className="text-[10px] uppercase font-sans text-[#2D1B14]/40">Etapa 24: Sarria</p>
-                  </div>
-                </div>
-                <p className="font-serif text-[#2D1B14]/70 leading-relaxed italic text-sm md:text-base">
-                  "O sol nasceu entre as colinas de Burgos. O cansaço era visível, mas a alma estava leve. Encontrei um peregrino de Dublin que compartilhava o mesmo silêncio..."
-                </p>
-                <div className="pt-4 grid grid-cols-2 gap-2 opacity-60">
-                   <div className="h-24 bg-black/5 rounded group-hover:bg-black/10 transition-colors" />
-                   <div className="h-24 bg-black/5 rounded" />
-                </div>
-              </div>
-              <div className="text-[10px] uppercase tracking-widest text-[#2D1B14]/30 font-bold border-t border-[#2D1B14]/10 pt-4">
-                Página 142
-              </div>
-            </div>
-
-            {/* Right Page */}
-            <div className="w-1/2 h-full bg-paper p-0 relative overflow-hidden">
-               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1544085311-11a028465b03?auto=format&fit=crop&w=1200&q=80')] bg-cover bg-center">
-                  <div className="absolute inset-0 bg-black/5" />
-               </div>
-               <div className="absolute bottom-0 left-0 w-12 h-full bg-gradient-to-r from-black/10 to-transparent pointer-events-none" />
-               <div className="absolute bottom-8 right-8 text-white/80 font-serif italic text-xs">
-                  Galícia, 2024
-               </div>
-            </div>
-          </div>
-
-          {/* Opening Cover */}
-          <motion.div 
-            style={{ 
-              rotateY, 
-              transformStyle: "preserve-3d",
-              transformOrigin: "left"
-            }}
-            className="absolute top-0 left-0 w-1/2 h-full z-20 cursor-pointer"
-          >
-            {/* Front Face (Outside Leather) */}
-            <div 
-              className="absolute inset-0 bg-leather rounded-l-md shadow-2xl flex items-center justify-center p-8 border-r-[6px] border-black/40"
-              style={{ backfaceVisibility: "hidden" }}
-            >
-              <div className="border-[0.5px] border-yellow-200/20 w-full h-full p-6 flex flex-col items-center justify-between rounded-sm">
-                <div className="w-px h-16 bg-yellow-200/20" />
-                <div className="text-center">
-                  <h3 className="font-serif text-[#FDFCF8] text-4xl md:text-5xl tracking-widest uppercase mb-2">
-                    Peregrino
-                  </h3>
-                  <p className="font-serif text-yellow-200/40 italic text-sm tracking-[0.3em]">O LIVRO DA SUA VIDA</p>
-                </div>
-                <div className="flex flex-col items-center gap-4">
-                   <div className="w-12 h-12 rounded-full border border-yellow-200/20 flex items-center justify-center opacity-30">
-                      <div className="w-2 h-2 rounded-full bg-yellow-200/40" />
-                   </div>
-                   <div className="w-px h-16 bg-yellow-200/20" />
-                </div>
-              </div>
-            </div>
-
-            {/* Back Face (Inside Page) */}
-            <div 
-              className="absolute inset-0 bg-paper rounded-r-md p-10 flex flex-col items-center justify-center border-r-8 border-black/10"
-              style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
-            >
-              <div className="w-24 h-24 rounded-full border border-[#2D1B14]/10 mb-8 flex items-center justify-center opacity-20">
-                <div className="w-12 h-12 rounded-full bg-[#2D1B14]/5" />
-              </div>
-              <p className="font-serif text-[#2D1B14] text-center italic text-xl md:text-3xl leading-snug">
-                "Ninguém volta do <br/>Caminho como foi."
-              </p>
-              <div className="mt-12 h-px w-24 bg-[#2D1B14]/10" />
-            </div>
-          </motion.div>
-
-          {/* Book Spine Shadow Effect */}
-          <div className="absolute top-0 left-1/2 w-8 h-full bg-black/20 -translate-x-full z-10 blur-sm mix-blend-overlay pointer-events-none" />
-        </motion.div>
-
-        {/* CTA Button */}
-        <div className="relative z-40 mt-16 md:mt-24">
-          <motion.button
-            whileHover={{ scale: 1.05, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)" }}
-            whileTap={{ scale: 0.95 }}
-            className="bg-[#2D1B14] text-[#FDFCF8] px-12 py-5 rounded-full text-lg font-bold shadow-2xl transition-all duration-300 flex items-center gap-3 border border-white/5"
-          >
-            Encomendar meu Livro de Recordações
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </motion.button>
-          <p className="text-[#2D1B14]/40 text-center mt-4 text-xs tracking-widest uppercase font-bold">
-            Edição Limitada & Artesanal
+          </h2>
+          <p className="text-[#2D1B14]/55 text-base md:text-lg max-w-lg mx-auto font-light leading-relaxed">
+            Cada foto, cada carimbo, cada dia — reunidos em um livro de arte exclusivo do seu Caminho.
           </p>
         </div>
+
+        {/* Livro */}
+        <motion.div
+          style={{ opacity: bookOpacity, y: bookY }}
+          className="relative z-10 w-full max-w-[320px] md:max-w-[680px]"
+        >
+          {/* Frame do livro */}
+          <div className="relative h-[200px] md:h-[400px] rounded-2xl shadow-[0_30px_80px_-15px_rgba(0,0,0,0.28)] flex overflow-hidden border border-black/[0.06]">
+
+            {/* Página esquerda — conteúdo textual */}
+            <div className="w-1/2 h-full bg-[#F5F0E8] border-r border-black/[0.08] relative overflow-hidden">
+              <AnimatePresence mode="wait" custom={direction}>
+                <motion.div
+                  key={activePage}
+                  custom={direction}
+                  variants={pageVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+                  className="absolute inset-0 p-3 md:p-9 flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center gap-2 mb-2 md:mb-4 pb-2 md:pb-3 border-b border-[#2D1B14]/10">
+                      <div className="w-6 h-6 md:w-9 md:h-9 rounded-full bg-[#2D1B14]/8 border border-[#2D1B14]/15 flex items-center justify-center shrink-0">
+                        <span className="text-[5px] md:text-[8px] font-black text-[#2D1B14]/40 uppercase tracking-tight">QR</span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-serif text-[#2D1B14] italic text-[8px] md:text-[13px] leading-tight truncate">
+                          {spreads[activePage].stage}
+                        </p>
+                        <p className="text-[6px] md:text-[9px] uppercase tracking-widest text-[#2D1B14]/35 font-bold">
+                          {spreads[activePage].date}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="font-serif text-[#2D1B14]/40 uppercase tracking-[0.2em] text-[6px] md:text-[10px] font-bold mb-1 md:mb-2">
+                      {spreads[activePage].label}
+                    </p>
+                    <p className="font-serif text-[#2D1B14]/72 italic leading-relaxed text-[8px] md:text-[13px]">
+                      {spreads[activePage].text}
+                    </p>
+                  </div>
+                  <div className="text-[6px] md:text-[9px] uppercase tracking-widest text-[#2D1B14]/25 font-bold border-t border-[#2D1B14]/8 pt-1.5 md:pt-2">
+                    {spreads[activePage].pageNum}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Página direita — fotografia */}
+            <div className="w-1/2 h-full relative overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activePage}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.45 }}
+                  className="absolute inset-0"
+                >
+                  <div
+                    className="w-full h-full bg-cover bg-center scale-[1.03]"
+                    style={{ backgroundImage: `url('${spreads[activePage].photo}')` }}
+                  />
+                  <div className="absolute inset-0 bg-black/12" />
+                  <div className="absolute bottom-2 right-2 md:bottom-4 md:right-4 text-white/75 font-serif italic text-[6px] md:text-[10px] bg-black/20 backdrop-blur-sm px-1.5 py-0.5 rounded">
+                    {spreads[activePage].caption}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Sombra da lombada */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[6px] md:w-[10px] h-full bg-gradient-to-r from-black/10 via-black/25 to-black/10 blur-[2px] z-10 pointer-events-none" />
+          </div>
+
+          {/* Indicador de páginas */}
+          <div className="flex items-center justify-center gap-1.5 mt-4 md:mt-5">
+            {spreads.map((_, i) => (
+              <div
+                key={i}
+                className={`rounded-full transition-all duration-500 ${
+                  i === activePage
+                    ? 'w-6 md:w-8 h-1.5 bg-[#2D1B14]'
+                    : 'w-1.5 h-1.5 bg-[#2D1B14]/20'
+                }`}
+              />
+            ))}
+            <span className="ml-2 text-[#2D1B14]/30 text-[9px] md:text-[10px] uppercase tracking-widest font-bold">
+              {activePage + 1} / {spreads.length}
+            </span>
+          </div>
+        </motion.div>
+
+        {/* CTA — aparece no final do scroll */}
+        <motion.div
+          style={{ opacity: ctaOpacity, y: ctaY }}
+          className="relative z-10 mt-6 md:mt-10 flex flex-col items-center"
+        >
+          <motion.button
+            whileHover={{ scale: 1.05, boxShadow: "0 25px 50px -12px rgba(0,0,0,0.4)" }}
+            whileTap={{ scale: 0.95 }}
+            className="bg-[#2D1B14] text-[#FDFCF8] px-8 md:px-12 py-4 md:py-5 rounded-full text-base md:text-lg font-bold shadow-2xl flex items-center gap-3 border border-white/5"
+          >
+            Encomendar meu Livro de Recordações
+            <ArrowRight className="w-5 h-5" />
+          </motion.button>
+          <p className="text-[#2D1B14]/40 text-center mt-3 text-xs tracking-widest uppercase font-bold">
+            Edição Limitada & Artesanal
+          </p>
+        </motion.div>
 
       </div>
     </section>
