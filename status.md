@@ -108,6 +108,7 @@ O site tem **dois fluxos de entrada distintos**:
 | 5 | **Integração de pagamento** | Definir plataforma (Stripe, Hotmart, etc.) para o botão "Encomendar meu Livro" | 🟡 Média |
 | 6 | **Páginas legais** | Links Termos de Uso, Privacidade e Contato no Footer apontam para `#` — criar páginas ou redirecionar para políticas externas | 🟢 Baixa |
 | 7 | ~~**Corte do vídeo na BookSection**~~ | ✅ Resolvido — vídeo exibe corretamente após compressão (CRF 28). | ~~🟢 Baixa~~ |
+| 8 | ~~**Páginas legais**~~ | ✅ Resolvido — modais de Termos de Uso, Privacidade (LGPD + GDPR) e Contato implementados. Texto em PT-BR. Tradução adiada para quando houver receita. | ~~🟢 Baixa~~ |
 
 ---
 
@@ -161,4 +162,14 @@ Depois disso, autorizar no browser **uma última vez** — o token fica salvo pe
 
 ---
 
-*Última atualização: 16/04/2026 (tarde) — Sessão com Claude Sonnet 4.6*
+## ▶️ Próxima Sessão
+
+Criar as contas necessárias para o deploy:
+1. **Domínio** — definir e registrar o domínio definitivo
+2. **Stripe** — criar conta em stripe.com (gratuito, sem mensalidade)
+3. **Ko-fi** — criar conta em ko-fi.com para doações no app (gratuito)
+4. Com o domínio em mãos: configurar URLs no modal, deep link do app, deploy e integração Stripe
+
+---
+
+*Última atualização: 16/04/2026 (noite) — Sessão com Claude Sonnet 4.6*
