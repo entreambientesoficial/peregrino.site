@@ -16,7 +16,7 @@ export default function LandingPage() {
   );
 }
 
-const Footer = () => {
+const Footer = ({ onOpenLegal }: { onOpenLegal: (page: LegalPage) => void }) => {
   const { lang, setLang } = useT();
 
   return (
@@ -49,11 +49,11 @@ const Footer = () => {
 
         {/* Links legais */}
         <div className="flex flex-wrap justify-center gap-6 text-xs uppercase tracking-widest text-[#E8E4D9]/30">
-          <a href="#" className="hover:text-[#E8E4D9]/60 transition-colors">Termos de Uso</a>
+          <button onClick={() => onOpenLegal('terms')} className="hover:text-[#E8E4D9]/60 transition-colors">Termos de Uso</button>
           <span className="text-[#E8E4D9]/15">·</span>
-          <a href="#" className="hover:text-[#E8E4D9]/60 transition-colors">Privacidade</a>
+          <button onClick={() => onOpenLegal('privacy')} className="hover:text-[#E8E4D9]/60 transition-colors">Privacidade</button>
           <span className="text-[#E8E4D9]/15">·</span>
-          <a href="#" className="hover:text-[#E8E4D9]/60 transition-colors">Contato</a>
+          <button onClick={() => onOpenLegal('contact')} className="hover:text-[#E8E4D9]/60 transition-colors">Contato</button>
         </div>
 
         {/* Copyright */}
@@ -66,8 +66,11 @@ const Footer = () => {
   );
 };
 
+type LegalPage = 'terms' | 'privacy' | 'contact' | null;
+
 function LandingPageInner() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [legalPage, setLegalPage] = useState<LegalPage>(null);
   const { isCJK } = useT();
 
   return (
@@ -79,16 +82,273 @@ function LandingPageInner() {
       <FeaturesSection />
       <JourneySection />
       <BookSection />
-      <Footer />
+      <Footer onOpenLegal={setLegalPage} />
 
       <AnimatePresence>
         {isModalOpen && (
           <DownloadModal onClose={() => setIsModalOpen(false)} />
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+        {legalPage && (
+          <LegalModal page={legalPage} onClose={() => setLegalPage(null)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// LegalModal — Termos de Uso, Privacidade e Contato
+// ---------------------------------------------------------------------------
+
+const LEGAL_CONTENT: Record<NonNullable<LegalPage>, { title: string; body: React.ReactNode }> = {
+  terms: {
+    title: 'Termos de Uso',
+    body: (
+      <div className="space-y-6 text-sm leading-relaxed text-[#2D3A27]/80">
+        <p className="text-xs text-[#2D3A27]/40 uppercase tracking-widest">Última atualização: abril de 2026</p>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">1. Aceitação dos Termos</h3>
+          <p>Ao acessar ou utilizar o site <strong>peregrino.app</strong> ("Site") e seus serviços, incluindo a compra de produtos físicos como o Coffee Table Book, você declara ter lido, compreendido e concordado com estes Termos de Uso. Caso não concorde, não utilize o Site.</p>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">2. Descrição dos Serviços</h3>
+          <p>O Site oferece:</p>
+          <ul className="list-disc pl-5 mt-2 space-y-1">
+            <li>Informações sobre o aplicativo Peregrino e suas funcionalidades;</li>
+            <li>Venda do <strong>Coffee Table Book</strong> — livro impresso personalizado com registros da jornada do peregrino no Caminho de Santiago;</li>
+            <li>Outros produtos que venham a ser disponibilizados futuramente.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">3. Compra do Coffee Table Book</h3>
+          <p>O livro é um produto personalizado e sob demanda, produzido exclusivamente após a confirmação do pagamento. Por essa razão:</p>
+          <ul className="list-disc pl-5 mt-2 space-y-1">
+            <li>Não é possível cancelar o pedido após a produção ser iniciada;</li>
+            <li>O prazo de entrega pode variar conforme o destino e a gráfica parceira;</li>
+            <li>O conteúdo do livro é baseado nos dados e fotos registrados pelo usuário no aplicativo Peregrino;</li>
+            <li>A qualidade das imagens no livro depende diretamente da qualidade das fotos registradas pelo usuário.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">4. Pagamentos</h3>
+          <p>Os pagamentos são processados de forma segura pela plataforma <strong>Stripe</strong>, sujeita aos seus próprios termos e política de privacidade. O Peregrino não armazena dados de cartão de crédito. Em caso de recusa de pagamento, o pedido não será processado.</p>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">5. Direito de Arrependimento (consumidores na UE e Brasil)</h3>
+          <p>Por se tratar de produto personalizado e produzido sob demanda, o direito de arrependimento previsto no Código de Defesa do Consumidor (Art. 49, CDC) e na Diretiva Europeia 2011/83/UE é inaplicável após o início da produção, conforme as exceções legais vigentes para bens confeccionados segundo especificações do consumidor.</p>
+          <p className="mt-2">Caso o produto chegue com defeito de fabricação ou divergente do pedido, o usuário deve entrar em contato em até <strong>7 dias corridos</strong> após o recebimento para solicitação de reenvio ou reembolso.</p>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">6. Propriedade Intelectual</h3>
+          <p>Todo o conteúdo do Site — textos, imagens, vídeos, marca e design — é de propriedade exclusiva do Peregrino ou de seus licenciantes, protegido pela legislação de direitos autorais. É vedada a reprodução sem autorização prévia e expressa.</p>
+          <p className="mt-2">As fotos inseridas pelo usuário no aplicativo permanecem de sua propriedade. O usuário concede ao Peregrino licença limitada para uso exclusivo na produção do livro personalizado.</p>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">7. Limitação de Responsabilidade</h3>
+          <p>O Peregrino não se responsabiliza por atrasos de entrega causados por transportadoras, alfândega, greves ou eventos de força maior. Na extensão permitida por lei, nossa responsabilidade máxima limita-se ao valor pago pelo produto.</p>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">8. Alterações nos Termos</h3>
+          <p>Estes Termos podem ser atualizados a qualquer momento. A versão vigente é sempre a publicada neste Site. O uso continuado após alterações constitui aceitação dos novos termos.</p>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">9. Lei Aplicável e Foro</h3>
+          <p>Estes Termos são regidos pelas leis da República Federativa do Brasil. Fica eleito o foro da comarca de São Paulo/SP para dirimir quaisquer disputas, sem prejuízo do direito do consumidor de recorrer ao foro de seu domicílio.</p>
+        </section>
+      </div>
+    ),
+  },
+
+  privacy: {
+    title: 'Política de Privacidade',
+    body: (
+      <div className="space-y-6 text-sm leading-relaxed text-[#2D3A27]/80">
+        <p className="text-xs text-[#2D3A27]/40 uppercase tracking-widest">Última atualização: abril de 2026 · LGPD + GDPR</p>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">1. Controlador dos Dados</h3>
+          <p>O Peregrino é o controlador dos dados pessoais coletados neste Site, conforme a Lei Geral de Proteção de Dados (LGPD — Lei 13.709/2018) e o Regulamento Geral de Proteção de Dados da União Europeia (GDPR — Regulamento 2016/679).</p>
+          <p className="mt-2">Contato do encarregado (DPO): <strong>contato@peregrino.app</strong></p>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">2. Dados Coletados</h3>
+          <p>Coletamos apenas os dados estritamente necessários:</p>
+          <ul className="list-disc pl-5 mt-2 space-y-1">
+            <li><strong>Dados de navegação:</strong> endereço IP, tipo de navegador, páginas visitadas e idioma do dispositivo — para análise de desempenho e segurança;</li>
+            <li><strong>Dados de compra:</strong> nome, e-mail e endereço de entrega — fornecidos voluntariamente no checkout para processamento do pedido;</li>
+            <li><strong>Preferência de idioma:</strong> armazenada localmente no seu dispositivo (localStorage), nunca enviada a servidores.</li>
+          </ul>
+          <p className="mt-2"><strong>Não coletamos</strong> dados de cartão de crédito (processados diretamente pelo Stripe) nem dados de saúde ou localização.</p>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">3. Finalidade e Base Legal</h3>
+          <ul className="list-disc pl-5 space-y-2">
+            <li><strong>Execução de contrato (Art. 7°, V — LGPD / Art. 6°, 1b — GDPR):</strong> processar e entregar pedidos;</li>
+            <li><strong>Legítimo interesse:</strong> segurança do site e prevenção a fraudes;</li>
+            <li><strong>Consentimento:</strong> envio de comunicações de marketing, quando solicitado explicitamente.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">4. Compartilhamento de Dados</h3>
+          <p>Seus dados podem ser compartilhados com:</p>
+          <ul className="list-disc pl-5 mt-2 space-y-1">
+            <li><strong>Stripe Inc.</strong> — processamento de pagamentos (EUA, certificado PCI-DSS nível 1);</li>
+            <li><strong>Supabase Inc.</strong> — infraestrutura de banco de dados;</li>
+            <li><strong>Transportadoras parceiras</strong> — exclusivamente nome e endereço de entrega.</li>
+          </ul>
+          <p className="mt-2">Não vendemos nem alugamos dados pessoais a terceiros.</p>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">5. Transferência Internacional</h3>
+          <p>Stripe e Supabase operam em servidores nos Estados Unidos. A transferência é realizada com base em Cláusulas Contratuais Padrão (SCCs) aprovadas pela Comissão Europeia, em conformidade com o GDPR.</p>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">6. Retenção de Dados</h3>
+          <p>Dados de pedidos são mantidos por <strong>5 anos</strong> para fins fiscais e legais. Dados de navegação são anonimizados após <strong>90 dias</strong>. Você pode solicitar a exclusão antecipada conforme o item 7 abaixo.</p>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">7. Seus Direitos</h3>
+          <p>Conforme LGPD e GDPR, você tem direito a:</p>
+          <ul className="list-disc pl-5 mt-2 space-y-1">
+            <li><strong>Acesso</strong> — confirmar se tratamos seus dados e obter cópia;</li>
+            <li><strong>Retificação</strong> — corrigir dados incompletos ou incorretos;</li>
+            <li><strong>Exclusão</strong> — solicitar o apagamento dos seus dados;</li>
+            <li><strong>Portabilidade</strong> — receber seus dados em formato estruturado;</li>
+            <li><strong>Oposição</strong> — opor-se ao tratamento baseado em legítimo interesse;</li>
+            <li><strong>Revogação do consentimento</strong> — a qualquer momento, sem prejuízo da legalidade do tratamento anterior.</li>
+          </ul>
+          <p className="mt-2">Para exercer seus direitos: <strong>contato@peregrino.app</strong>. Respondemos em até 15 dias úteis.</p>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">8. Cookies</h3>
+          <p>Utilizamos apenas cookies estritamente necessários para funcionamento do site (preferência de idioma). Não utilizamos cookies de rastreamento ou publicidade.</p>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">9. Segurança</h3>
+          <p>Adotamos medidas técnicas e organizacionais adequadas para proteger seus dados contra acesso não autorizado, perda ou destruição, incluindo criptografia TLS em todas as transmissões.</p>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-[#2D3A27] mb-2">10. Autoridade de Supervisão</h3>
+          <p>Usuários brasileiros podem recorrer à <strong>ANPD</strong> (Autoridade Nacional de Proteção de Dados — gov.br/anpd). Usuários da União Europeia podem recorrer à autoridade de proteção de dados do seu país de residência.</p>
+        </section>
+      </div>
+    ),
+  },
+
+  contact: {
+    title: 'Contato',
+    body: (
+      <div className="space-y-8 text-sm leading-relaxed text-[#2D3A27]/80">
+        <p>Tem dúvidas, sugestões ou precisa de suporte? Entre em contato pelos canais abaixo. Respondemos em até <strong>2 dias úteis</strong>.</p>
+
+        <div className="space-y-4">
+          <div className="bg-[#F5F2EA] rounded-2xl p-5">
+            <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">E-mail geral</p>
+            <a href="mailto:contato@peregrino.app" className="text-[#2D3A27] font-medium hover:underline">contato@peregrino.app</a>
+          </div>
+
+          <div className="bg-[#F5F2EA] rounded-2xl p-5">
+            <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Suporte a pedidos</p>
+            <a href="mailto:pedidos@peregrino.app" className="text-[#2D3A27] font-medium hover:underline">pedidos@peregrino.app</a>
+            <p className="text-xs text-[#2D3A27]/40 mt-1">Para dúvidas sobre seu Coffee Table Book</p>
+          </div>
+
+          <div className="bg-[#F5F2EA] rounded-2xl p-5">
+            <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Privacidade & LGPD / GDPR</p>
+            <a href="mailto:privacidade@peregrino.app" className="text-[#2D3A27] font-medium hover:underline">privacidade@peregrino.app</a>
+            <p className="text-xs text-[#2D3A27]/40 mt-1">Para solicitações de acesso, exclusão ou portabilidade de dados</p>
+          </div>
+        </div>
+
+        <p className="text-xs text-[#2D3A27]/40">
+          Os endereços de e-mail acima serão ativados assim que o domínio definitivo for configurado.
+          Por enquanto, utilize o canal de suporte disponível no aplicativo Peregrino.
+        </p>
+      </div>
+    ),
+  },
+};
+
+const LegalModal = ({ page, onClose }: { page: NonNullable<LegalPage>; onClose: () => void }) => {
+  const content = LEGAL_CONTENT[page];
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+    >
+      {/* Backdrop */}
+      <motion.div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <motion.div
+        initial={{ y: 60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 60, opacity: 0 }}
+        transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+        className="relative z-10 w-full sm:max-w-2xl bg-[#FDFCF8] rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl flex flex-col max-h-[90vh]"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-7 pt-7 pb-4 border-b border-[#2D3A27]/8 shrink-0">
+          <h2 className="font-serif text-xl text-[#2D3A27] italic">{content.title}</h2>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-full bg-[#2D3A27]/8 flex items-center justify-center hover:bg-[#2D3A27]/15 transition-colors"
+          >
+            <X size={16} className="text-[#2D3A27]" />
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto px-7 py-6 flex-1">
+          {content.body}
+        </div>
+
+        {/* Footer */}
+        <div className="px-7 pb-7 pt-4 border-t border-[#2D3A27]/8 shrink-0">
+          <button
+            onClick={onClose}
+            className="w-full py-3 rounded-2xl bg-[#2D3A27] text-[#E8E4D9] text-sm font-medium hover:bg-[#1B2616] transition-colors"
+          >
+            Fechar
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 const HeroSection = ({ onOpenModal }: { onOpenModal: () => void }) => {
   const { t } = useT();

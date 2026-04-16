@@ -107,7 +107,7 @@ O site tem **dois fluxos de entrada distintos**:
 | 4 | **↳ Deploy do site** | Publicar o site no domínio definitivo (Vercel, Netlify ou similar) | 🔴 Depende do domínio |
 | 5 | **Integração de pagamento** | Definir plataforma (Stripe, Hotmart, etc.) para o botão "Encomendar meu Livro" | 🟡 Média |
 | 6 | **Páginas legais** | Links Termos de Uso, Privacidade e Contato no Footer apontam para `#` — criar páginas ou redirecionar para políticas externas | 🟢 Baixa |
-| 7 | **Corte do vídeo na BookSection** | Vídeo ainda corta levemente na parte inferior em algumas telas. Investigar aspect ratio do vídeo ou adicionar `max-h` | 🟢 Baixa |
+| 7 | ~~**Corte do vídeo na BookSection**~~ | ✅ Resolvido — vídeo exibe corretamente após compressão (CRF 28). | ~~🟢 Baixa~~ |
 
 ---
 
