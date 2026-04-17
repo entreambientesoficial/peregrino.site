@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import HTMLFlipBook from 'react-pageflip';
 import {
@@ -6,6 +7,7 @@ import {
   CreditCard, Check, ChevronLeft, ChevronRight,
   Shield, Globe, Package, BookOpen, Type, Image,
 } from 'lucide-react';
+import { useT } from './i18n';
 
 // ---------------------------------------------------------------------------
 // Demo data — substituir pelos dados reais do Supabase após login SSO
@@ -45,85 +47,111 @@ const CAMINO_QUOTES = [
 
 interface BookData {
   title: string;
+  route: string;
   coverPhoto: string;
   openingPhrase: string;
   reflectionText: string;
   selectedPhotos: string[];
+  caption1: string;
+  caption2: string;
+  caption3: string;
 }
 
 const DEFAULT_BOOK_DATA: BookData = {
   title: `${DEMO_USER.route}, ${new Date().getFullYear()}`,
+  route: DEMO_USER.route,
   coverPhoto: DEMO_USER.allPhotos[0],
   openingPhrase: 'Comecei sem saber o que encontraria. Terminei diferente do que era.',
   reflectionText: 'Cada passo foi uma escolha. Cada noite foi um presente. O Caminho me ensinou que o destino não é Santiago — é quem você se torna ao longo dele.',
   selectedPhotos: DEMO_USER.allPhotos.slice(0, 8),
+  caption1: 'Os primeiros passos foram os mais difíceis — e os mais inesquecíveis.',
+  caption2: 'No meio do caminho, percebi que não estava mais sozinho.',
+  caption3: 'Santiago chegou antes do esperado. Ou talvez eu é que tivesse chegado.',
 };
 
 type Step = 'reveal' | 'customize' | 'order';
 type CustomizeTab = 'cover' | 'texts' | 'photos';
+type ModelId = 'essential' | 'journey' | 'legacy';
+
+const BOOK_MODELS: { id: ModelId; label: string; pages: number; price: string; desc: string; featured?: true }[] = [
+  { id: 'essential', label: 'Essencial', pages: 50,  price: '€49,90', desc: 'As melhores memórias da sua jornada' },
+  { id: 'journey',   label: 'Jornada',   pages: 100, price: '€74,90', desc: 'Uma narrativa completa do Caminho', featured: true },
+  { id: 'legacy',    label: 'Legado',    pages: 150, price: '€99,90', desc: 'O registro definitivo da sua história' },
+];
 
 // ---------------------------------------------------------------------------
-// Estrutura das 48 páginas do livro
+// Estrutura das 54 páginas — 50 layouts fotográficos + prefácio + selos
 // ---------------------------------------------------------------------------
 type PageKind =
-  | 'cover' | 'endpaper-front' | 'half-title' | 'phrase'
-  | 'route-intro' | 'stats'
-  | 'photo-full' | 'photo-editorial' | 'photo-statement' | 'photo-framed'
-  | 'collage-2' | 'collage-2-v' | 'grid-3' | 'grid-3-v' | 'grid-4'
-  | 'quote' | 'milestone' | 'reflection' | 'closing'
-  | 'endpaper-back' | 'back-cover';
+  | 'cover' | 'preface' | 'back-cover' | 'stamps'
+  | 'full-dark' | 'centered-dark' | 'large-white' | 'stacked-2'
+  | 'grid-4-white' | 'stagger-4' | 'trio-h' | 'trio-v'
+  | 'panorama-L' | 'panorama-R';
 
-interface PageDef { kind: PageKind; p?: number | number[]; q?: number }
+interface PageDef { kind: PageKind; p?: number | number[]; ck?: 'c1' | 'c2' | 'c3' }
 
 const PAGE_DEFS: PageDef[] = [
   { kind: 'cover' },                              // 0
-  { kind: 'endpaper-front' },                     // 1
-  { kind: 'half-title' },                         // 2
-  { kind: 'phrase' },                             // 3
-  { kind: 'route-intro' },                        // 4
-  { kind: 'stats' },                              // 5
-  { kind: 'photo-full', p: 0 },                  // 6
-  { kind: 'photo-editorial', p: 1 },             // 7
-  { kind: 'collage-2', p: [2, 3] },             // 8
-  { kind: 'grid-3', p: [4, 5, 6] },             // 9
-  { kind: 'quote', q: 0 },                       // 10
-  { kind: 'photo-statement', p: 7 },             // 11
-  { kind: 'photo-framed', p: 8 },               // 12
-  { kind: 'milestone' },                          // 13
-  { kind: 'grid-4', p: [9, 10, 0, 1] },         // 14
-  { kind: 'collage-2-v', p: [2, 3] },           // 15
-  { kind: 'photo-full', p: 4 },                  // 16
-  { kind: 'quote', q: 1 },                       // 17
-  { kind: 'grid-3-v', p: [5, 6, 7] },           // 18
-  { kind: 'photo-editorial', p: 8 },             // 19
-  { kind: 'photo-statement', p: 9 },             // 20
-  { kind: 'grid-3', p: [10, 0, 1] },            // 21
-  { kind: 'photo-full', p: 2 },                  // 22
-  { kind: 'quote', q: 2 },                       // 23
-  { kind: 'grid-4', p: [3, 4, 5, 6] },          // 24
-  { kind: 'photo-framed', p: 7 },               // 25
-  { kind: 'collage-2', p: [8, 9] },            // 26
-  { kind: 'photo-statement', p: 10 },            // 27
-  { kind: 'photo-full', p: 0 },                  // 28
-  { kind: 'grid-3', p: [1, 2, 3] },             // 29
-  { kind: 'quote', q: 3 },                       // 30
-  { kind: 'photo-full', p: 4 },                  // 31
-  { kind: 'grid-4', p: [5, 6, 7, 8] },          // 32
-  { kind: 'photo-editorial', p: 9 },             // 33
-  { kind: 'collage-2-v', p: [10, 0] },          // 34
-  { kind: 'photo-statement', p: 1 },             // 35
-  { kind: 'photo-full', p: 2 },                  // 36
-  { kind: 'grid-3-v', p: [3, 4, 5] },           // 37
-  { kind: 'quote', q: 4 },                       // 38
-  { kind: 'grid-3', p: [6, 7, 8] },             // 39
-  { kind: 'photo-full', p: 9 },                  // 40
-  { kind: 'photo-framed', p: 10 },              // 41
-  { kind: 'collage-2', p: [0, 1] },            // 42
-  { kind: 'quote', q: 5 },                       // 43
-  { kind: 'reflection' },                         // 44
-  { kind: 'closing' },                            // 45
-  { kind: 'endpaper-back' },                      // 46
-  { kind: 'back-cover' },                         // 47
+  { kind: 'preface' },                            // 1
+  // ── Bloco 1 — spread 1/2 a 7/8
+  { kind: 'stagger-4',    p: [0,1,2,3] },        // 2
+  { kind: 'full-dark',    p: 4 },                // 3
+  { kind: 'centered-dark',p: 5 },                // 4
+  { kind: 'centered-dark',p: 6 },                // 5
+  { kind: 'stacked-2',    p: [7,8] },            // 6
+  { kind: 'large-white',  p: 9,  ck: 'c1' },     // 7  ← legenda 1
+  { kind: 'panorama-L',   p: 10 },               // 8
+  { kind: 'panorama-R',   p: 10 },               // 9
+  // ── Bloco 2 — spread 9/10 a 15/16
+  { kind: 'grid-4-white', p: [0,1,2,3] },        // 10
+  { kind: 'grid-4-white', p: [4,5,6,7] },        // 11
+  { kind: 'large-white',  p: 8 },                // 12
+  { kind: 'stacked-2',    p: [9,10] },           // 13
+  { kind: 'full-dark',    p: 0 },                // 14
+  { kind: 'full-dark',    p: 1 },                // 15
+  { kind: 'full-dark',    p: 2 },                // 16
+  { kind: 'grid-4-white', p: [3,4,5,6] },        // 17
+  // ── Bloco 3 — spread 17/18 a 23/24
+  { kind: 'stagger-4',    p: [7,8,9,10] },       // 18
+  { kind: 'full-dark',    p: 0 },                // 19
+  { kind: 'full-dark',    p: 1 },                // 20
+  { kind: 'full-dark',    p: 2 },                // 21
+  { kind: 'stacked-2',    p: [3,4] },            // 22
+  { kind: 'large-white',  p: 5,  ck: 'c2' },     // 23  ← legenda 2
+  { kind: 'panorama-L',   p: 6 },                // 24
+  { kind: 'panorama-R',   p: 6 },                // 25
+  // ── Bloco 4 — spread 25/26 a 31/32
+  { kind: 'trio-h',       p: [7,8,9] },          // 26
+  { kind: 'trio-v',       p: [10,0,1] },         // 27
+  { kind: 'large-white',  p: 2 },                // 28
+  { kind: 'stacked-2',    p: [3,4] },            // 29
+  { kind: 'full-dark',    p: 5 },                // 30
+  { kind: 'full-dark',    p: 6 },                // 31
+  { kind: 'full-dark',    p: 7 },                // 32
+  { kind: 'grid-4-white', p: [8,9,10,0] },       // 33
+  // ── Bloco 5 — spread 33/34 a 39/40
+  { kind: 'grid-4-white', p: [1,2,3,4] },        // 34
+  { kind: 'full-dark',    p: 5 },                // 35
+  { kind: 'full-dark',    p: 6 },                // 36
+  { kind: 'full-dark',    p: 7 },                // 37
+  { kind: 'stacked-2',    p: [8,9] },            // 38
+  { kind: 'large-white',  p: 10, ck: 'c3' },     // 39  ← legenda 3
+  { kind: 'panorama-L',   p: 0 },                // 40
+  { kind: 'panorama-R',   p: 0 },                // 41
+  // ── Bloco 6 — spread 41/42 a 49/50
+  { kind: 'grid-4-white', p: [1,2,3,4] },        // 42
+  { kind: 'grid-4-white', p: [5,6,7,8] },        // 43
+  { kind: 'large-white',  p: 9 },                // 44
+  { kind: 'stacked-2',    p: [10,0] },           // 45
+  { kind: 'full-dark',    p: 1 },                // 46
+  { kind: 'full-dark',    p: 2 },                // 47
+  { kind: 'full-dark',    p: 3 },                // 48
+  { kind: 'grid-4-white', p: [4,5,6,7] },        // 49
+  { kind: 'grid-4-white', p: [8,9,10,0] },       // 50
+  { kind: 'large-white',  p: 1 },                // 51
+  // ── Fechamento
+  { kind: 'stamps' },                             // 52
+  { kind: 'back-cover' },                         // 53
 ];
 
 // ---------------------------------------------------------------------------
@@ -131,18 +159,19 @@ const PAGE_DEFS: PageDef[] = [
 // ---------------------------------------------------------------------------
 function renderBookPage(
   def: PageDef,
-  idx: number,
+  _idx: number,
   bookData: BookData,
   S: number,
   sp: (n: number) => string,
   fs: (n: number) => string,
 ) {
   const photos = bookData.selectedPhotos;
-  const ph = (n: number) => photos[(n as number) % photos.length];
-  const phArr = (arr: number[]) => arr.map(n => ph(n));
+  const ph = (n: number) => photos[n % photos.length];
+  const arr = def.p as number[];
 
   switch (def.kind) {
 
+    // ── Capa ────────────────────────────────────────────────────────────────
     case 'cover':
       return (
         <div className="w-full h-full relative">
@@ -162,255 +191,191 @@ function renderBookPage(
         </div>
       );
 
-    case 'endpaper-front':
+    // ── Prefácio (pág 1 — verso da capa + dados da jornada) ─────────────────
+    case 'preface':
       return (
-        <div className="w-full h-full bg-[#2D3A27] flex items-center justify-center" style={{ background: 'linear-gradient(145deg, #1B2616 0%, #2D3A27 60%, #1e2d1a 100%)' }}>
-          <div className="opacity-10 absolute inset-0" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(232,228,217,0.15) 20px, rgba(232,228,217,0.15) 21px)' }} />
-          <div className="text-center" style={{ padding: sp(20) }}>
-            <p className="font-serif italic text-[#E8E4D9]/30" style={{ fontSize: fs(1.8) }}>P</p>
+        <div className="w-full h-full bg-[#F5F2EA] flex flex-col justify-between" style={{ padding: sp(20) }}>
+          <div>
+            <p className="text-[#2D3A27]/25 uppercase tracking-[0.28em]" style={{ fontSize: fs(0.44) }}>Peregrino · Coffee Table Book</p>
+            <div style={{ width: sp(22), height: '1px', background: 'rgba(45,58,39,0.15)', margin: `${sp(10)} 0` }} />
+            <p className="font-serif italic text-[#2D3A27] leading-tight" style={{ fontSize: fs(1.25) }}>{bookData.title}</p>
           </div>
-        </div>
-      );
-
-    case 'half-title':
-      return (
-        <div className="w-full h-full bg-[#FDFCF8] flex flex-col justify-center items-center text-center" style={{ padding: sp(24) }}>
-          <div style={{ width: sp(20), height: '1px', background: 'rgba(45,58,39,0.2)', marginBottom: sp(16) }} />
-          <p className="text-[#2D3A27]/25 uppercase tracking-[0.35em]" style={{ fontSize: fs(0.5) }}>Coffee Table Book</p>
-          <p className="font-serif italic text-[#2D3A27] leading-tight" style={{ fontSize: fs(1.15), marginTop: sp(10) }}>{bookData.title}</p>
-          <div style={{ width: sp(20), height: '1px', background: 'rgba(45,58,39,0.2)', margin: `${sp(16)} auto` }} />
-          <p className="text-[#2D3A27]/40" style={{ fontSize: fs(0.6) }}>{DEMO_USER.name}</p>
-          <p className="text-[#2D3A27]/25" style={{ fontSize: fs(0.52), marginTop: sp(4) }}>{DEMO_USER.startDate} — {DEMO_USER.endDate}</p>
-        </div>
-      );
-
-    case 'phrase':
-      return (
-        <div className="w-full h-full bg-[#FDFCF8] flex flex-col justify-center" style={{ padding: sp(22) }}>
-          <p className="text-[#2D3A27]/20 uppercase tracking-[0.3em]" style={{ fontSize: fs(0.48) }}>Abertura</p>
-          <div style={{ width: sp(24), height: '1px', background: 'rgba(45,58,39,0.12)', margin: `${sp(12)} 0` }} />
-          <p className="font-serif italic text-[#2D3A27] leading-relaxed" style={{ fontSize: fs(0.92) }}>
-            "{bookData.openingPhrase}"
-          </p>
-          <div style={{ width: sp(24), height: '1px', background: 'rgba(45,58,39,0.12)', margin: `${sp(14)} 0 ${sp(10)}` }} />
-          <p className="text-[#2D3A27]/35" style={{ fontSize: fs(0.55) }}>— {DEMO_USER.name}</p>
-        </div>
-      );
-
-    case 'route-intro':
-      return (
-        <div className="w-full h-full bg-[#F5F2EA] flex flex-col justify-center" style={{ padding: sp(20) }}>
-          <p className="text-[#2D3A27]/30 uppercase tracking-[0.3em]" style={{ fontSize: fs(0.48) }}>A rota</p>
-          <p className="font-serif italic text-[#2D3A27]" style={{ fontSize: fs(1.3), marginTop: sp(8), lineHeight: 1.1 }}>{DEMO_USER.route}</p>
-          <div style={{ width: '100%', height: '1px', background: 'rgba(45,58,39,0.12)', margin: `${sp(14)} 0` }} />
-          <p className="text-[#2D3A27]/50 leading-relaxed" style={{ fontSize: fs(0.62) }}>
-            Uma das rotas mais antigas do Caminho de Santiago, atravessando os Pireneus desde Saint-Jean-Pied-de-Port até a Catedral de Santiago de Compostela.
-          </p>
-          <div style={{ marginTop: sp(14) }}>
-            <p className="text-[#2D3A27]/35" style={{ fontSize: fs(0.55) }}>{DEMO_USER.startDate}</p>
-            <p className="text-[#2D3A27]/25" style={{ fontSize: fs(0.5) }}>Partida · St-Jean-Pied-de-Port</p>
-          </div>
-        </div>
-      );
-
-    case 'stats':
-      return (
-        <div className="w-full h-full flex flex-col justify-center bg-[#2D3A27]" style={{ padding: sp(20) }}>
-          <p className="text-[#E8E4D9]/30 uppercase tracking-[0.25em] text-center" style={{ fontSize: fs(0.48) }}>Sua jornada em números</p>
-          <div style={{ width: sp(24), height: '1px', background: 'rgba(232,228,217,0.15)', margin: `${sp(12)} auto` }} />
-          <div className="flex flex-col" style={{ gap: sp(8) }}>
-            {[
-              ['Rota',       DEMO_USER.route],
-              ['Distância',  `${DEMO_USER.km} km`],
-              ['Duração',    `${DEMO_USER.days} dias`],
-              ['Início',     DEMO_USER.startDate],
-              ['Chegada',    DEMO_USER.endDate],
-              ['Carimbos',   `${DEMO_USER.stamps}`],
-              ['Fotos',      `${DEMO_USER.photos}`],
-            ].map(([k, v], i) => (
-              <div key={i} className="flex justify-between" style={{ borderBottom: '1px solid rgba(232,228,217,0.1)', paddingBottom: sp(6) }}>
-                <span className="text-[#E8E4D9]/35" style={{ fontSize: fs(0.58) }}>{k}</span>
-                <span className="text-[#E8E4D9]" style={{ fontSize: fs(0.58) }}>{v}</span>
+          <div className="flex flex-col" style={{ gap: sp(6) }}>
+            {([
+              ['Peregrino', DEMO_USER.name],
+              ['Rota',      bookData.route],
+              ['Início',    DEMO_USER.startDate],
+              ['Chegada',   DEMO_USER.endDate],
+              ['Distância', `${DEMO_USER.km} km`],
+              ['Duração',   `${DEMO_USER.days} dias`],
+              ['Carimbos',  `${DEMO_USER.stamps}`],
+              ['Fotos',     `${DEMO_USER.photos}`],
+            ] as [string,string][]).map(([k, v], i) => (
+              <div key={i} className="flex justify-between" style={{ borderBottom: '1px solid rgba(45,58,39,0.08)', paddingBottom: sp(4) }}>
+                <span className="text-[#2D3A27]/35 uppercase tracking-[0.12em]" style={{ fontSize: fs(0.48) }}>{k}</span>
+                <span className="text-[#2D3A27]/70" style={{ fontSize: fs(0.48) }}>{v}</span>
               </div>
             ))}
           </div>
+          <div>
+            <div style={{ width: sp(18), height: '1px', background: 'rgba(45,58,39,0.15)', marginBottom: sp(7) }} />
+            <p className="font-serif italic text-[#2D3A27]/40 leading-relaxed" style={{ fontSize: fs(0.6) }}>
+              "{bookData.openingPhrase}"
+            </p>
+          </div>
         </div>
       );
 
-    case 'photo-full':
+    // ── Full dark — foto sangrada, fundo escuro ──────────────────────────────
+    case 'full-dark':
       return (
         <div className="w-full h-full relative">
           <img src={ph(def.p as number)} className="w-full h-full object-cover" alt="" />
-          <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 35%)' }} />
-          <p className="absolute text-white/40 uppercase tracking-widest" style={{ bottom: sp(10), right: sp(12), fontSize: fs(0.48) }}>
-            {String(idx).padStart(2, '0')}
+          <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.3) 0%, transparent 40%)' }} />
+        </div>
+      );
+
+    // ── Centered dark — 1 foto centralizada em fundo escuro ─────────────────
+    case 'centered-dark':
+      return (
+        <div className="w-full h-full flex flex-col items-center justify-center" style={{ background: '#161c14', padding: sp(14) }}>
+          <div className="w-full overflow-hidden" style={{ height: '65%' }}>
+            <img src={ph(def.p as number)} className="w-full h-full object-cover" alt="" />
+          </div>
+          <p className="text-[#E8E4D9]/30 uppercase tracking-[0.22em] text-center" style={{ fontSize: fs(0.44), marginTop: sp(10) }}>
+            {bookData.route} · {new Date().getFullYear()}
           </p>
         </div>
       );
 
-    case 'photo-editorial':
+    // ── Large white — 1 foto grande com margens, fundo creme ────────────────
+    case 'large-white': {
+      const caption = def.ck === 'c1' ? bookData.caption1 :
+                      def.ck === 'c2' ? bookData.caption2 :
+                      def.ck === 'c3' ? bookData.caption3 : null;
       return (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-[#FDFCF8]" style={{ padding: sp(14) }}>
-          <div className="w-full overflow-hidden" style={{ flex: '0 0 76%', boxShadow: '0 6px 24px rgba(0,0,0,0.18)' }}>
+        <div className="w-full h-full flex flex-col justify-center bg-[#FDFCF8]" style={{ padding: sp(12) }}>
+          <div className="w-full overflow-hidden" style={{ flex: caption ? '0 0 68%' : '0 0 80%', boxShadow: `0 ${sp(3)} ${sp(14)} rgba(0,0,0,0.14)` }}>
             <img src={ph(def.p as number)} className="w-full h-full object-cover" alt="" />
           </div>
-          <div className="w-full flex justify-between items-end" style={{ marginTop: sp(8) }}>
-            <p className="font-serif italic text-[#2D3A27]/55" style={{ fontSize: fs(0.58) }}>{DEMO_USER.route}</p>
-            <p className="text-[#2D3A27]/25" style={{ fontSize: fs(0.5) }}>{String(idx).padStart(2, '0')}</p>
-          </div>
-        </div>
-      );
-
-    case 'photo-statement':
-      return (
-        <div className="w-full h-full flex flex-col bg-white">
-          <div className="relative overflow-hidden" style={{ flex: '0 0 83%' }}>
-            <img src={ph(def.p as number)} className="w-full h-full object-cover" alt="" />
-            <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to bottom, transparent 65%, rgba(0,0,0,0.22) 100%)' }} />
-          </div>
-          <div className="flex items-center justify-between bg-white" style={{ flex: '0 0 17%', padding: `0 ${sp(14)}` }}>
-            <p className="font-serif italic text-[#2D3A27]/60" style={{ fontSize: fs(0.6) }}>{DEMO_USER.route}</p>
-            <p className="text-[#2D3A27]/25" style={{ fontSize: fs(0.5) }}>{String(idx).padStart(2, '0')}</p>
-          </div>
-        </div>
-      );
-
-    case 'photo-framed':
-      return (
-        <div className="w-full h-full flex flex-col justify-center items-center bg-[#FDFCF8]" style={{ padding: sp(14) }}>
-          <div className="w-full h-full overflow-hidden" style={{
-            border: `${sp(8)} solid white`,
-            outline: '1px solid rgba(45,58,39,0.08)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.14), inset 0 0 0 1px rgba(45,58,39,0.06)',
-          }}>
-            <img src={ph(def.p as number)} className="w-full h-full object-cover" alt="" />
-          </div>
-          <p className="text-[#2D3A27]/30 italic text-center" style={{ fontSize: fs(0.52), marginTop: sp(6) }}>
-            {DEMO_USER.route}, {new Date().getFullYear()}
-          </p>
-        </div>
-      );
-
-    case 'collage-2':
-      return (
-        <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateRows: '60% 38%', gap: sp(4), padding: sp(4) }}>
-          {phArr(def.p as number[]).map((src, i) => (
-            <div key={i} className="overflow-hidden rounded-sm">
-              <img src={src} className="w-full h-full object-cover" alt="" />
-            </div>
-          ))}
-        </div>
-      );
-
-    case 'collage-2-v':
-      return (
-        <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateColumns: '55% 43%', gap: sp(4), padding: sp(4) }}>
-          {phArr(def.p as number[]).map((src, i) => (
-            <div key={i} className="overflow-hidden rounded-sm">
-              <img src={src} className="w-full h-full object-cover" alt="" />
-            </div>
-          ))}
-        </div>
-      );
-
-    case 'grid-3':
-      return (
-        <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateColumns: '58% 40%', gridTemplateRows: '1fr 1fr', gap: sp(4), padding: sp(4) }}>
-          <div className="overflow-hidden rounded-sm" style={{ gridRow: '1 / 3' }}>
-            <img src={ph((def.p as number[])[0])} className="w-full h-full object-cover" alt="" />
-          </div>
-          <div className="overflow-hidden rounded-sm">
-            <img src={ph((def.p as number[])[1])} className="w-full h-full object-cover" alt="" />
-          </div>
-          <div className="overflow-hidden rounded-sm">
-            <img src={ph((def.p as number[])[2])} className="w-full h-full object-cover" alt="" />
-          </div>
-        </div>
-      );
-
-    case 'grid-3-v':
-      return (
-        <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateRows: '55% 43%', gridTemplateColumns: '1fr 1fr', gap: sp(4), padding: sp(4) }}>
-          <div className="overflow-hidden rounded-sm" style={{ gridColumn: '1 / 3' }}>
-            <img src={ph((def.p as number[])[0])} className="w-full h-full object-cover" alt="" />
-          </div>
-          <div className="overflow-hidden rounded-sm">
-            <img src={ph((def.p as number[])[1])} className="w-full h-full object-cover" alt="" />
-          </div>
-          <div className="overflow-hidden rounded-sm">
-            <img src={ph((def.p as number[])[2])} className="w-full h-full object-cover" alt="" />
-          </div>
-        </div>
-      );
-
-    case 'grid-4':
-      return (
-        <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(4), padding: sp(4) }}>
-          {phArr(def.p as number[]).map((src, i) => (
-            <div key={i} className="overflow-hidden rounded-sm">
-              <img src={src} className="w-full h-full object-cover" alt="" />
-            </div>
-          ))}
-        </div>
-      );
-
-    case 'quote': {
-      const q = CAMINO_QUOTES[(def.q ?? 0) % CAMINO_QUOTES.length];
-      return (
-        <div className="w-full h-full flex flex-col justify-center items-center text-center bg-[#F5F2EA]" style={{ padding: sp(24) }}>
-          <p className="text-[#2D3A27]/20 uppercase tracking-[0.3em]" style={{ fontSize: fs(0.48), marginBottom: sp(14) }}>—</p>
-          <p className="font-serif italic text-[#2D3A27] leading-relaxed" style={{ fontSize: fs(0.88) }}>
-            "{q}"
-          </p>
-          <div style={{ width: sp(22), height: '1px', background: 'rgba(45,58,39,0.18)', margin: `${sp(16)} auto` }} />
-          <p className="text-[#2D3A27]/30" style={{ fontSize: fs(0.5) }}>{DEMO_USER.route}</p>
+          {caption ? (
+            <p className="font-serif italic text-[#2D3A27]/60 leading-relaxed text-center" style={{ fontSize: fs(0.62), marginTop: sp(9), padding: `0 ${sp(4)}` }}>
+              "{caption}"
+            </p>
+          ) : (
+            <p className="font-serif italic text-[#2D3A27]/25 text-right" style={{ fontSize: fs(0.48), marginTop: sp(5) }}>
+              {bookData.route}
+            </p>
+          )}
         </div>
       );
     }
 
-    case 'milestone':
+    // ── Stacked 2 — 2 fotos empilhadas, fundo branco ────────────────────────
+    case 'stacked-2':
       return (
-        <div className="w-full h-full flex flex-col justify-center bg-[#1B2616]" style={{ padding: sp(20) }}>
-          <p className="text-[#E8E4D9]/20 uppercase tracking-[0.3em]" style={{ fontSize: fs(0.48) }}>Marco</p>
-          <div style={{ width: sp(20), height: '1px', background: 'rgba(232,228,217,0.15)', margin: `${sp(12)} 0` }} />
-          <p className="font-serif italic text-[#E8E4D9]" style={{ fontSize: fs(2.2), lineHeight: 1 }}>{DEMO_USER.km}</p>
-          <p className="text-[#E8E4D9]/50 uppercase tracking-widest" style={{ fontSize: fs(0.55) }}>quilômetros</p>
-          <div style={{ width: sp(20), height: '1px', background: 'rgba(232,228,217,0.15)', margin: `${sp(14)} 0` }} />
-          <p className="text-[#E8E4D9]/30" style={{ fontSize: fs(0.58) }}>{DEMO_USER.days} dias · {DEMO_USER.stamps} carimbos</p>
+        <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: sp(4), padding: sp(10) }}>
+          {arr.map((pi, i) => (
+            <div key={i} className="overflow-hidden">
+              <img src={ph(pi)} className="w-full h-full object-cover" alt="" />
+            </div>
+          ))}
         </div>
       );
 
-    case 'reflection':
+    // ── Grid 4 — 2×2 grade, fundo branco ────────────────────────────────────
+    case 'grid-4-white':
       return (
-        <div className="w-full h-full flex flex-col justify-center bg-[#FDFCF8]" style={{ padding: sp(22) }}>
-          <p className="text-[#2D3A27]/20 uppercase tracking-[0.3em]" style={{ fontSize: fs(0.48) }}>Reflexão</p>
-          <div style={{ width: sp(24), height: '1px', background: 'rgba(45,58,39,0.12)', margin: `${sp(12)} 0` }} />
-          <p className="font-serif italic text-[#2D3A27] leading-relaxed" style={{ fontSize: fs(0.75) }}>
-            "{bookData.reflectionText}"
+        <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
+          {arr.map((pi, i) => (
+            <div key={i} className="overflow-hidden">
+              <img src={ph(pi)} className="w-full h-full object-cover" alt="" />
+            </div>
+          ))}
+        </div>
+      );
+
+    // ── Stagger 4 — collage assimétrica com offset vertical ─────────────────
+    case 'stagger-4':
+      return (
+        <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
+          <div style={{ display: 'grid', gridTemplateRows: '46% 50%', gap: sp(3) }}>
+            <div className="overflow-hidden"><img src={ph(arr[0])} className="w-full h-full object-cover" alt="" /></div>
+            <div className="overflow-hidden"><img src={ph(arr[2])} className="w-full h-full object-cover" alt="" /></div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateRows: '50% 46%', gap: sp(3), marginTop: sp(10) }}>
+            <div className="overflow-hidden"><img src={ph(arr[1])} className="w-full h-full object-cover" alt="" /></div>
+            <div className="overflow-hidden"><img src={ph(arr[3])} className="w-full h-full object-cover" alt="" /></div>
+          </div>
+        </div>
+      );
+
+    // ── Trio H — 2 fotos em cima + 1 larga embaixo ──────────────────────────
+    case 'trio-h':
+      return (
+        <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateRows: '54% 42%', gridTemplateColumns: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
+          <div className="overflow-hidden"><img src={ph(arr[0])} className="w-full h-full object-cover" alt="" /></div>
+          <div className="overflow-hidden"><img src={ph(arr[1])} className="w-full h-full object-cover" alt="" /></div>
+          <div className="overflow-hidden" style={{ gridColumn: '1 / 3' }}>
+            <img src={ph(arr[2])} className="w-full h-full object-cover" alt="" />
+          </div>
+        </div>
+      );
+
+    // ── Trio V — 1 foto coluna esquerda + 2 empilhadas à direita ────────────
+    case 'trio-v':
+      return (
+        <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateColumns: '52% 44%', gridTemplateRows: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
+          <div className="overflow-hidden" style={{ gridRow: '1 / 3' }}>
+            <img src={ph(arr[0])} className="w-full h-full object-cover" alt="" />
+          </div>
+          <div className="overflow-hidden"><img src={ph(arr[1])} className="w-full h-full object-cover" alt="" /></div>
+          <div className="overflow-hidden"><img src={ph(arr[2])} className="w-full h-full object-cover" alt="" /></div>
+        </div>
+      );
+
+    // ── Panorama — foto contínua cruzando a lombada (metade L e R) ──────────
+    case 'panorama-L':
+      return (
+        <div className="w-full h-full overflow-hidden" style={{ background: '#141a12' }}>
+          <img src={ph(def.p as number)} className="w-full h-full object-cover"
+            style={{ objectPosition: '0% center' }} alt="" />
+        </div>
+      );
+
+    case 'panorama-R':
+      return (
+        <div className="w-full h-full overflow-hidden" style={{ background: '#141a12' }}>
+          <img src={ph(def.p as number)} className="w-full h-full object-cover"
+            style={{ objectPosition: '100% center' }} alt="" />
+        </div>
+      );
+
+    // ── Selos — grade dinâmica de carimbos da credencial ────────────────────
+    case 'stamps': {
+      const total = DEMO_USER.stamps;
+      const cols = total <= 12 ? 3 : total <= 20 ? 4 : total <= 32 ? 5 : 6;
+      return (
+        <div className="w-full h-full bg-[#FDFCF8] flex flex-col" style={{ padding: sp(14) }}>
+          <p className="text-[#2D3A27]/25 uppercase tracking-[0.28em] text-center" style={{ fontSize: fs(0.44), marginBottom: sp(10) }}>
+            Carimbos da Credencial
           </p>
-          <div style={{ width: sp(24), height: '1px', background: 'rgba(45,58,39,0.12)', margin: `${sp(14)} 0 ${sp(10)}` }} />
-          <p className="text-[#2D3A27]/35" style={{ fontSize: fs(0.55) }}>— {DEMO_USER.name}</p>
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: sp(3), flex: 1 }}>
+            {Array.from({ length: total }).map((_, i) => (
+              <div key={i} className="flex items-center justify-center border border-[#2D3A27]/10 bg-[#F5F2EA]"
+                style={{ borderRadius: sp(2) }}>
+                <p className="font-serif italic text-[#2D3A27]/20" style={{ fontSize: fs(0.5) }}>{i + 1}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-[#2D3A27]/20 text-center" style={{ fontSize: fs(0.42), marginTop: sp(7) }}>
+            {bookData.route} · {DEMO_USER.startDate} — {DEMO_USER.endDate}
+          </p>
         </div>
       );
+    }
 
-    case 'closing':
-      return (
-        <div className="w-full h-full flex flex-col justify-center items-center text-center bg-[#2D3A27]" style={{ padding: sp(22) }}>
-          <p className="font-serif italic text-[#E8E4D9]/60" style={{ fontSize: fs(1.5) }}>Ultreia</p>
-          <p className="font-serif italic text-[#E8E4D9]/35" style={{ fontSize: fs(0.85), marginTop: sp(4) }}>et Suseia</p>
-          <div style={{ width: sp(26), height: '1px', background: 'rgba(232,228,217,0.2)', margin: `${sp(16)} auto` }} />
-          <p className="text-[#E8E4D9]/25 uppercase tracking-widest" style={{ fontSize: fs(0.5) }}>{DEMO_USER.route}</p>
-          <p className="text-[#E8E4D9]/18" style={{ fontSize: fs(0.48), marginTop: sp(4) }}>{DEMO_USER.km} km · {DEMO_USER.days} dias</p>
-        </div>
-      );
-
-    case 'endpaper-back':
-      return (
-        <div className="w-full h-full bg-[#1B2616] flex items-center justify-center" style={{ background: 'linear-gradient(145deg, #2D3A27 0%, #1B2616 60%, #131e10 100%)' }}>
-          <div className="opacity-10 absolute inset-0" style={{ backgroundImage: 'repeating-linear-gradient(-45deg, transparent, transparent 20px, rgba(232,228,217,0.12) 20px, rgba(232,228,217,0.12) 21px)' }} />
-        </div>
-      );
-
+    // ── Contracapa ───────────────────────────────────────────────────────────
     case 'back-cover':
       return (
         <div className="w-full h-full flex flex-col justify-between bg-[#1B2616]" style={{ padding: sp(20) }}>
@@ -470,25 +435,50 @@ function useBookSize() {
 // BookPage root
 // ---------------------------------------------------------------------------
 export default function BookPage() {
+  const { t } = useT();
   const [step, setStep] = useState<Step>('reveal');
-  const [bookData, setBookData] = useState<BookData>(DEFAULT_BOOK_DATA);
+  const [bookData, setBookData] = useState<BookData>(() => {
+    const route = t('bp.demo.route');
+    return {
+      ...DEFAULT_BOOK_DATA,
+      route,
+      title: `${route}, ${new Date().getFullYear()}`,
+    };
+  });
+  const [selectedModel, setSelectedModel] = useState<ModelId>('journey');
+  const [hasCustomized, setHasCustomized] = useState(false);
   const update = (patch: Partial<BookData>) => setBookData(p => ({ ...p, ...patch }));
 
   return (
     <div className="min-h-screen bg-[#FDFCF8] font-sans">
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#1B2616]/95 backdrop-blur-sm px-6 py-3 flex items-center justify-between">
-        <a href="/" className="flex items-center gap-2 text-[#E8E4D9]/50 hover:text-[#E8E4D9] transition-colors text-sm">
-          <ArrowLeft size={15} /><span className="hidden sm:inline">Voltar ao site</span>
-        </a>
+        <Link to="/" className="flex items-center gap-2 text-[#E8E4D9]/50 hover:text-[#E8E4D9] transition-colors text-sm">
+          <ArrowLeft size={15} /><span className="hidden sm:inline">{t('bp.back')}</span>
+        </Link>
         <img src="/img-apoio/logo-sf.png" alt="Peregrino" className="h-8 object-contain" style={{ filter: 'brightness(0) invert(1) opacity(0.85)' }} />
         <div className="w-24" />
       </header>
 
       <div className="pt-[56px]">
         <AnimatePresence mode="wait">
-          {step === 'reveal'    && <StepReveal    key="r" bookData={bookData} onNext={() => setStep('customize')} />}
-          {step === 'customize' && <StepCustomize key="c" bookData={bookData} onChange={update} onNext={() => setStep('order')} onBack={() => setStep('reveal')} />}
-          {step === 'order'     && <StepOrder     key="o" bookData={bookData} onBack={() => setStep('customize')} />}
+          {step === 'reveal' && (
+            <StepReveal key="r" bookData={bookData}
+              selectedModel={selectedModel} onSelectModel={setSelectedModel}
+              hasCustomized={hasCustomized}
+              onCustomize={() => setStep('customize')}
+              onOrder={() => setStep('order')} />
+          )}
+          {step === 'customize' && (
+            <StepCustomize key="c" bookData={bookData} onChange={update}
+              selectedModel={selectedModel} onSelectModel={setSelectedModel}
+              onDone={() => { setHasCustomized(true); setStep('reveal'); }}
+              onBack={() => setStep('reveal')} />
+          )}
+          {step === 'order' && (
+            <StepOrder key="o" bookData={bookData}
+              selectedModel={selectedModel}
+              onBack={() => setStep('reveal')} />
+          )}
         </AnimatePresence>
       </div>
     </div>
@@ -506,9 +496,10 @@ const FlipPage = React.forwardRef<HTMLDivElement, { children?: React.ReactNode }
 FlipPage.displayName = 'FlipPage';
 
 // ---------------------------------------------------------------------------
-// Livro interativo — 48 páginas
+// Livro interativo — 50 páginas
 // ---------------------------------------------------------------------------
 function InteractiveBook({ bookData }: { bookData: BookData }) {
+  const { t } = useT();
   const bookRef = useRef<any>(null);
   const [page, setPage] = useState(0);
   const [bookOpen, setBookOpen] = useState(false);
@@ -566,14 +557,14 @@ function InteractiveBook({ bookData }: { bookData: BookData }) {
           <div className="flex flex-col items-center gap-3">
             <motion.button
               onClick={() => setBookOpen(true)}
-              animate={{ opacity: [0.3, 0.6, 0.3] }}
+              animate={{ opacity: [0.6, 1, 0.6] }}
               transition={{ repeat: Infinity, duration: 2.8, ease: 'easeInOut' }}
-              className="text-[#E8E4D9]/50 text-xs uppercase tracking-widest cursor-pointer hover:text-[#E8E4D9]/80 transition-colors"
+              className="text-[#E8E4D9] text-xs uppercase tracking-widest cursor-pointer hover:text-white transition-colors"
             >
-              Clique para abrir o livro
+              {t('bp.click_book')}
             </motion.button>
-            <p className="text-[#E8E4D9]/30 text-xs max-w-[220px] text-center leading-relaxed">
-              48 páginas com os registros da sua jornada, montadas automaticamente.
+            <p className="text-[#E8E4D9]/60 text-xs max-w-[220px] text-center leading-relaxed">
+              {t('bp.pages_desc')}
             </p>
           </div>
         </motion.div>
@@ -605,16 +596,17 @@ function InteractiveBook({ bookData }: { bookData: BookData }) {
           </div>
 
           <div className="flex items-center gap-6">
-            <button onClick={goPrev} disabled={page === 0}
-              className="w-10 h-10 rounded-full bg-[#E8E4D9]/10 flex items-center justify-center hover:bg-[#E8E4D9]/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            <button
+              onClick={page === 0 ? () => setBookOpen(false) : goPrev}
+              className="w-10 h-10 rounded-full bg-[#E8E4D9]/15 flex items-center justify-center hover:bg-[#E8E4D9]/30 transition-colors"
             >
               <ChevronLeft size={18} className="text-[#E8E4D9]" />
             </button>
-            <span className="text-[#E8E4D9]/30 text-xs tabular-nums min-w-[5.5rem] text-center">
+            <span className="text-[#E8E4D9]/70 text-xs tabular-nums min-w-[5.5rem] text-center">
               {page === 0 ? 'Capa' : page >= TOTAL - 1 ? 'Contracapa' : `pág. ${page + 1} / ${TOTAL}`}
             </span>
             <button onClick={goNext} disabled={page >= TOTAL - 1}
-              className="w-10 h-10 rounded-full bg-[#E8E4D9]/10 flex items-center justify-center hover:bg-[#E8E4D9]/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="w-10 h-10 rounded-full bg-[#E8E4D9]/15 flex items-center justify-center hover:bg-[#E8E4D9]/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronRight size={18} className="text-[#E8E4D9]" />
             </button>
@@ -629,7 +621,15 @@ function InteractiveBook({ bookData }: { bookData: BookData }) {
 // ---------------------------------------------------------------------------
 // Step 1 — Revelação
 // ---------------------------------------------------------------------------
-function StepReveal({ bookData, onNext }: { bookData: BookData; onNext: () => void }) {
+function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, onCustomize, onOrder }: {
+  bookData: BookData;
+  selectedModel: ModelId;
+  onSelectModel: (m: ModelId) => void;
+  hasCustomized: boolean;
+  onCustomize: () => void;
+  onOrder: () => void;
+}) {
+  const { t } = useT();
   const [statsVisible, setStatsVisible] = useState(false);
   const statsRef = useRef<HTMLDivElement>(null);
   const aKm     = useCountUp(DEMO_USER.km,     1200, statsVisible);
@@ -659,18 +659,35 @@ function StepReveal({ bookData, onNext }: { bookData: BookData; onNext: () => vo
           className="relative z-10 text-center px-6 pt-8 md:pt-10 pb-8"
         >
           <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-[#E8E4D9] italic leading-[1.08] tracking-tight">
-            Seu livro está pronto.
+            {t('bp.headline')}
           </h1>
         </motion.div>
 
-        {/* Livro — centro absoluto */}
+        {/* Livro */}
         <motion.div
           initial={{ opacity: 0, y: 60 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.45, duration: 1, type: 'spring', damping: 16 }}
-          className="relative z-10 flex justify-center px-4 pb-10"
+          className="relative z-10 flex justify-center px-4 pb-6"
         >
           <InteractiveBook bookData={bookData} />
+        </motion.div>
+
+        {/* Botão Personalizar — logo abaixo do livro */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.9, duration: 0.5 }}
+          className="relative z-10 flex justify-center pb-10"
+        >
+          <motion.button
+            onClick={onCustomize}
+            whileHover={{ scale: 1.05, backgroundColor: 'rgba(232,228,217,0.18)' }}
+            whileTap={{ scale: 0.97 }}
+            className="flex items-center gap-2 px-8 py-3 rounded-full border border-[#E8E4D9]/25 bg-[#E8E4D9]/10 text-[#E8E4D9] text-sm font-medium transition-colors"
+          >
+            <Type size={14} /> {t('bp.customize')}
+          </motion.button>
         </motion.div>
 
         {/* Stats — tipografia editorial, sem cards */}
@@ -683,10 +700,10 @@ function StepReveal({ bookData, onNext }: { bookData: BookData; onNext: () => vo
             style={{ divideColor: 'rgba(200,169,110,0.12)' } as React.CSSProperties}
           >
             {[
-              { value: aKm,     unit: 'km',   label: 'percorridos' },
-              { value: aDays,   unit: 'dias', label: 'de caminhada' },
-              { value: aStamps, unit: '',     label: 'carimbos' },
-              { value: aPhotos, unit: '',     label: 'fotos' },
+              { value: aKm,     unit: 'km', label: t('bp.stat.km') },
+              { value: aDays,   unit: '',   label: t('bp.stat.days') },
+              { value: aStamps, unit: '',   label: t('bp.stat.stamps') },
+              { value: aPhotos, unit: '',   label: t('bp.stat.photos') },
             ].map((stat, i) => (
               <motion.div
                 key={i}
@@ -702,37 +719,65 @@ function StepReveal({ bookData, onNext }: { bookData: BookData; onNext: () => vo
                   {stat.value}
                   {stat.unit && <span style={{ fontSize: '55%', marginLeft: '0.2em' }}>{stat.unit}</span>}
                 </span>
-                <span className="text-[#E8E4D9]/30 text-xs uppercase tracking-widest mt-2">{stat.label}</span>
+                <span className="text-[#E8E4D9]/55 text-xs uppercase tracking-widest mt-2">{stat.label}</span>
               </motion.div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* ── CTA — máximo contraste ── */}
-      <div className="bg-[#0D1509] px-6 py-20 flex flex-col items-center gap-6 text-center">
+      {/* ── Modelos — clicáveis para selecionar e personalizar ── */}
+      <div className="bg-[#0D1509] px-6 py-16 flex flex-col items-center gap-6 text-center">
         <p className="text-[#C8A96E]/50 text-xs uppercase tracking-[0.35em]">
-          Capa dura · 48 páginas · Formato A4 · Envio mundial
+          {t('bp.format')}
         </p>
-        <p
-          className="font-serif italic text-[#E8E4D9] leading-none"
-          style={{ fontSize: 'clamp(4rem, 14vw, 7rem)' }}
-        >
-          €49
-        </p>
-        <p className="text-[#E8E4D9]/20 text-xs -mt-2">impressão + frete internacional inclusos</p>
-        <motion.button
-          onClick={onNext}
-          whileHover={{ scale: 1.04, backgroundColor: '#ffffff' }}
-          whileTap={{ scale: 0.97 }}
-          className="bg-[#E8E4D9] text-[#0D1509] px-14 py-5 rounded-full font-bold text-lg flex items-center gap-3 mt-2 transition-colors"
-          style={{ boxShadow: '0 0 60px rgba(200,169,110,0.25), 0 8px 32px rgba(0,0,0,0.5)' }}
-        >
-          Personalizar e encomendar <ArrowRight size={20} />
-        </motion.button>
-        <p className="text-[#E8E4D9]/15 text-xs max-w-xs">
-          Ajuste fotos, textos e título antes de confirmar
-        </p>
+        <p className="text-[#E8E4D9]/50 text-sm">{t('bp.choose')}</p>
+
+        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-lg">
+          {BOOK_MODELS.map((m) => {
+            const active = selectedModel === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => { onSelectModel(m.id); onCustomize(); }}
+                className={`flex-1 flex flex-col items-center gap-1 rounded-2xl py-5 px-3 transition-all duration-200 cursor-pointer ${
+                  active
+                    ? 'scale-[1.04]'
+                    : 'hover:border-[#C8A96E]/30'
+                }`}
+                style={{
+                  background: active ? 'rgba(200,169,110,0.16)' : 'rgba(255,255,255,0.04)',
+                  border: active ? '1px solid rgba(200,169,110,0.45)' : '1px solid rgba(255,255,255,0.07)',
+                }}
+              >
+                {m.featured && <span className="text-[#C8A96E]/55 text-[0.55rem] uppercase tracking-widest mb-0.5">{t('bp.popular')}</span>}
+                <p className="text-[#C8A96E]/70 text-xs uppercase tracking-[0.2em]">{m.label}</p>
+                <p className="font-serif italic text-[#E8E4D9]" style={{ fontSize: 'clamp(1.6rem, 4vw, 2.2rem)' }}>{m.price}</p>
+                <p className="text-[#E8E4D9]/60 text-xs">{m.pages} páginas</p>
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="text-[#E8E4D9]/50 text-xs">{t('bp.shipping')}</p>
+
+        {hasCustomized ? (
+          <motion.button
+            onClick={onOrder}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            whileHover={{ scale: 1.04, backgroundColor: '#ffffff' }}
+            whileTap={{ scale: 0.97 }}
+            className="bg-[#E8E4D9] text-[#0D1509] px-14 py-5 rounded-full font-bold text-lg flex items-center gap-3 mt-2 transition-colors"
+            style={{ boxShadow: '0 0 60px rgba(200,169,110,0.25), 0 8px 32px rgba(0,0,0,0.5)' }}
+          >
+            {t('bp.order')} <ArrowRight size={20} />
+          </motion.button>
+        ) : (
+          <p className="text-[#E8E4D9]/30 text-xs max-w-xs">
+            {t('bp.hint')}
+          </p>
+        )}
       </div>
     </motion.div>
   );
@@ -741,29 +786,55 @@ function StepReveal({ bookData, onNext }: { bookData: BookData; onNext: () => vo
 // ---------------------------------------------------------------------------
 // Step 2 — Personalizar (3 abas)
 // ---------------------------------------------------------------------------
-function StepCustomize({ bookData, onChange, onNext, onBack }: {
-  bookData: BookData; onChange: (p: Partial<BookData>) => void; onNext: () => void; onBack: () => void;
+function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDone, onBack }: {
+  bookData: BookData;
+  onChange: (p: Partial<BookData>) => void;
+  selectedModel: ModelId;
+  onSelectModel: (m: ModelId) => void;
+  onDone: () => void;
+  onBack: () => void;
 }) {
+  const { t } = useT();
   const [tab, setTab] = useState<CustomizeTab>('cover');
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="max-w-2xl mx-auto px-6 py-10 flex flex-col gap-8">
       <div className="text-center">
-        <p className="text-[#2D3A27]/35 text-xs uppercase tracking-[0.3em] mb-2">Passo 2 de 3</p>
-        <h2 className="font-serif text-3xl md:text-4xl text-[#2D3A27] italic mb-2">Personalize seu livro</h2>
-        <p className="text-[#2D3A27]/50 text-sm">Fotos, textos e capa — tudo do seu jeito.</p>
+        <h2 className="font-serif text-3xl md:text-4xl text-[#2D3A27] italic mb-2">{t('bp.s2.title')}</h2>
+        <p className="text-[#2D3A27]/50 text-sm">{t('bp.s2.sub')}</p>
+      </div>
+
+      {/* Seletor de modelo */}
+      <div>
+        <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-3">{t('bp.s2.model')}</p>
+        <div className="flex gap-3">
+          {BOOK_MODELS.map((m) => (
+            <button
+              key={m.id}
+              onClick={() => onSelectModel(m.id)}
+              className={`flex-1 flex flex-col items-center gap-0.5 rounded-2xl py-3 px-2 border transition-all duration-200 ${
+                selectedModel === m.id
+                  ? 'bg-[#2D3A27] border-[#2D3A27] text-[#E8E4D9]'
+                  : 'bg-[#F5F2EA] border-[#2D3A27]/10 text-[#2D3A27]/50 hover:border-[#2D3A27]/30'
+              }`}
+            >
+              <span className="text-xs font-semibold">{m.label}</span>
+              <span className={`text-[0.65rem] ${selectedModel === m.id ? 'text-[#E8E4D9]/60' : 'text-[#2D3A27]/35'}`}>{m.price} · {m.pages} pág.</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex bg-[#F5F2EA] rounded-2xl p-1 gap-1">
         {([
-          { id: 'cover' as const,  label: 'Capa',   icon: <BookOpen size={14} /> },
-          { id: 'texts' as const,  label: 'Textos', icon: <Type size={14} /> },
-          { id: 'photos' as const, label: 'Fotos',  icon: <Image size={14} /> },
-        ]).map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === t.id ? 'bg-white text-[#2D3A27] shadow-sm' : 'text-[#2D3A27]/40 hover:text-[#2D3A27]/70'}`}
+          { id: 'cover' as const,  label: t('bp.s2.tab.cover'),  icon: <BookOpen size={14} /> },
+          { id: 'texts' as const,  label: t('bp.s2.tab.texts'),  icon: <Type size={14} /> },
+          { id: 'photos' as const, label: t('bp.s2.tab.photos'), icon: <Image size={14} /> },
+        ]).map(tab_ => (
+          <button key={tab_.id} onClick={() => setTab(tab_.id)}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === tab_.id ? 'bg-white text-[#2D3A27] shadow-sm' : 'text-[#2D3A27]/40 hover:text-[#2D3A27]/70'}`}
           >
-            {t.icon}{t.label}
+            {tab_.icon}{tab_.label}
           </button>
         ))}
       </div>
@@ -789,7 +860,7 @@ function StepCustomize({ bookData, onChange, onNext, onBack }: {
               </div>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-3">Foto de capa</p>
+              <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-3">{t('bp.s2.cover_photo')}</p>
               <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
                 {DEMO_USER.allPhotos.map((photo, i) => (
                   <button key={i} onClick={() => onChange({ coverPhoto: photo })}
@@ -801,7 +872,7 @@ function StepCustomize({ bookData, onChange, onNext, onBack }: {
               </div>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-3">Título do livro</p>
+              <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-3">{t('bp.s2.title_label')}</p>
               <input type="text" value={bookData.title} maxLength={60} onChange={e => onChange({ title: e.target.value })}
                 placeholder="Ex: Caminho Francês, 2026"
                 className="w-full bg-[#F5F2EA] border border-[#2D3A27]/10 rounded-2xl px-5 py-4 font-serif italic text-[#2D3A27] text-lg focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20"
@@ -839,6 +910,27 @@ function StepCustomize({ bookData, onChange, onNext, onBack }: {
                 className="w-full bg-[#F5F2EA] border border-[#2D3A27]/10 rounded-2xl px-5 py-4 font-serif italic text-[#2D3A27] text-sm focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none"
               />
               <p className="text-xs text-[#2D3A27]/25 mt-1 text-right">{bookData.reflectionText.length}/400</p>
+            </div>
+            <div className="border-t border-[#2D3A27]/8 pt-6">
+              <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Legendas das fotos</p>
+              <p className="text-xs text-[#2D3A27]/35 mb-5">Três frases curtas distribuídas ao longo do livro, ao lado das fotos em destaque.</p>
+              {([
+                { key: 'caption1' as const, label: 'Legenda 1', hint: 'Início da jornada — págs. 7–8', val: bookData.caption1 },
+                { key: 'caption2' as const, label: 'Legenda 2', hint: 'Meio do caminho — págs. 23–24', val: bookData.caption2 },
+                { key: 'caption3' as const, label: 'Legenda 3', hint: 'Chegada — págs. 39–40', val: bookData.caption3 },
+              ]).map(({ key, label, hint, val }) => (
+                <div key={key} className="mb-5">
+                  <div className="flex justify-between items-baseline mb-2">
+                    <p className="text-xs font-medium text-[#2D3A27]/50">{label}</p>
+                    <p className="text-[0.6rem] text-[#2D3A27]/25">{hint}</p>
+                  </div>
+                  <textarea value={val} maxLength={120} onChange={e => onChange({ [key]: e.target.value })} rows={2}
+                    placeholder="Uma frase sobre este momento..."
+                    className="w-full bg-[#F5F2EA] border border-[#2D3A27]/10 rounded-xl px-4 py-3 font-serif italic text-[#2D3A27] text-sm focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none"
+                  />
+                  <p className="text-xs text-[#2D3A27]/25 mt-1 text-right">{val.length}/120</p>
+                </div>
+              ))}
             </div>
           </motion.div>
         )}
@@ -883,14 +975,14 @@ function StepCustomize({ bookData, onChange, onNext, onBack }: {
 
       <div className="flex justify-between items-center pt-4 border-t border-[#2D3A27]/8">
         <button onClick={onBack} className="flex items-center gap-2 text-sm text-[#2D3A27]/40 hover:text-[#2D3A27] transition-colors">
-          <ArrowLeft size={15} /> Voltar
+          <ArrowLeft size={15} /> {t('bp.s2.back')}
         </button>
-        <motion.button onClick={onNext} disabled={bookData.selectedPhotos.length < 4}
+        <motion.button onClick={onDone} disabled={bookData.selectedPhotos.length < 4}
           whileHover={bookData.selectedPhotos.length >= 4 ? { scale: 1.03 } : {}}
           whileTap={bookData.selectedPhotos.length >= 4 ? { scale: 0.97 } : {}}
           className="bg-[#2D3A27] text-[#E8E4D9] px-8 py-3.5 rounded-full font-semibold flex items-center gap-2 hover:bg-[#1B2616] transition-colors shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          Confirmar <ArrowRight size={16} />
+          {t('bp.s2.done')} <ArrowRight size={16} />
         </motion.button>
       </div>
     </motion.div>
@@ -900,7 +992,9 @@ function StepCustomize({ bookData, onChange, onNext, onBack }: {
 // ---------------------------------------------------------------------------
 // Step 3 — Resumo e checkout
 // ---------------------------------------------------------------------------
-function StepOrder({ bookData, onBack }: { bookData: BookData; onBack: () => void }) {
+function StepOrder({ bookData, selectedModel, onBack }: { bookData: BookData; selectedModel: ModelId; onBack: () => void }) {
+  const { t } = useT();
+  const model = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -914,17 +1008,16 @@ function StepOrder({ bookData, onBack }: { bookData: BookData; onBack: () => voi
       });
       const data = await res.json();
       if (data.url) { window.location.href = data.url; }
-      else { setError('Não foi possível iniciar o pagamento. Tente novamente.'); }
-    } catch { setError('Erro de conexão. Tente novamente.'); }
+      else { setError(t('bp.s3.error')); }
+    } catch { setError(t('bp.s3.error_conn')); }
     finally { setLoading(false); }
   };
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="max-w-lg mx-auto px-6 py-12 flex flex-col gap-7">
       <div className="text-center">
-        <p className="text-[#2D3A27]/35 text-xs uppercase tracking-[0.3em] mb-2">Passo 3 de 3</p>
-        <h2 className="font-serif text-3xl md:text-4xl text-[#2D3A27] italic mb-2">Resumo do pedido</h2>
-        <p className="text-[#2D3A27]/50 text-sm">Confirme os detalhes antes de pagar.</p>
+        <h2 className="font-serif text-3xl md:text-4xl text-[#2D3A27] italic mb-2">{t('bp.s3.title')}</h2>
+        <p className="text-[#2D3A27]/50 text-sm">{t('bp.s3.sub')}</p>
       </div>
 
       <div className="bg-[#F5F2EA] rounded-3xl p-6 flex gap-5">
@@ -935,29 +1028,31 @@ function StepOrder({ bookData, onBack }: { bookData: BookData; onBack: () => voi
           <p className="font-serif italic text-[#2D3A27] text-lg leading-tight">{bookData.title}</p>
           <p className="text-xs text-[#2D3A27]/40 uppercase tracking-wider">{DEMO_USER.name}</p>
           <div className="flex flex-wrap gap-2 mt-2">
-            <span className="text-xs bg-[#2D3A27]/8 text-[#2D3A27]/60 px-2.5 py-1 rounded-full">📸 {DEMO_USER.photos} fotos</span>
+            <span className="text-xs bg-[#2D3A27]/8 text-[#2D3A27]/60 px-2.5 py-1 rounded-full">📸 {DEMO_USER.photos} {t('bp.stat.photos')}</span>
             <span className="text-xs bg-[#2D3A27]/8 text-[#2D3A27]/60 px-2.5 py-1 rounded-full">🗺️ {DEMO_USER.km} km</span>
           </div>
           <div className="flex flex-wrap gap-1.5 mt-1">
-            <span className="text-xs bg-white text-[#2D3A27]/50 px-2 py-0.5 rounded-full border border-[#2D3A27]/8">Capa dura</span>
-            <span className="text-xs bg-white text-[#2D3A27]/50 px-2 py-0.5 rounded-full border border-[#2D3A27]/8">48 págs · A4</span>
+            <span className="text-xs bg-white text-[#2D3A27]/50 px-2 py-0.5 rounded-full border border-[#2D3A27]/8">{t('bp.s3.ondemand')}</span>
+            <span className="text-xs bg-white text-[#2D3A27]/50 px-2 py-0.5 rounded-full border border-[#2D3A27]/8">{model.pages} p. · A4</span>
+            <span className="text-xs bg-white text-[#2D3A27]/50 px-2 py-0.5 rounded-full border border-[#2D3A27]/8">{model.label}</span>
           </div>
         </div>
       </div>
 
       <div className="bg-white rounded-3xl p-6 border border-[#2D3A27]/8">
-        <div className="flex justify-between text-sm text-[#2D3A27] mb-2"><span>Coffee Table Book</span><span>€49,00</span></div>
-        <div className="flex justify-between text-xs text-[#2D3A27]/40 mb-4"><span>Impressão + envio internacional</span><span>incluso</span></div>
+        <div className="flex justify-between text-sm text-[#2D3A27] mb-2"><span>Coffee Table Book — {model.label}</span><span>{model.price}</span></div>
+        <div className="flex justify-between text-xs text-[#2D3A27]/40 mb-1"><span>{model.pages} p. · A4</span><span></span></div>
+        <div className="flex justify-between text-xs text-[#2D3A27]/40 mb-4"><span>{t('bp.s3.shipping')}</span><span>{t('bp.s3.shipping_val')}</span></div>
         <div className="border-t border-[#2D3A27]/8 pt-4 flex justify-between font-semibold text-[#2D3A27]">
-          <span>Total</span><span className="font-serif italic text-xl">€49,00</span>
+          <span>{t('bp.s3.subtotal')}</span><span className="font-serif italic text-xl">{model.price}</span>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
         {[
-          { icon: <Shield size={15} />, label: 'Pagamento seguro', sub: 'via Stripe' },
-          { icon: <Globe size={15} />,  label: 'Envio global',     sub: '140+ países' },
-          { icon: <Package size={15} />,label: 'Sob encomenda',    sub: 'Lulu.com' },
+          { icon: <Shield size={15} />, label: t('bp.s3.secure'),   sub: 'via Stripe' },
+          { icon: <Globe size={15} />,  label: t('bp.s3.global'),   sub: '140+ países' },
+          { icon: <Package size={15} />,label: t('bp.s3.ondemand'), sub: 'Lulu.com' },
         ].map((item, i) => (
           <div key={i} className="bg-[#F5F2EA] rounded-2xl p-3 flex flex-col items-center gap-1 text-center">
             <div className="text-[#2D3A27]/40">{item.icon}</div>
@@ -974,13 +1069,12 @@ function StepOrder({ bookData, onBack }: { bookData: BookData; onBack: () => voi
         className="w-full bg-[#2D3A27] text-[#E8E4D9] py-4 rounded-full font-semibold flex items-center justify-center gap-3 hover:bg-[#1B2616] transition-colors disabled:opacity-60 disabled:cursor-not-allowed shadow-lg text-base"
       >
         {loading
-          ? <><svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>A preparar...</>
-          : <><CreditCard size={18} />Pagar €49,00 com cartão</>
+          ? <><svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>{t('bp.s3.preparing')}</>
+          : <><CreditCard size={18} />{t('bp.s3.confirm')}</>
         }
       </motion.button>
 
-      <button onClick={onBack} className="text-sm text-[#2D3A27]/40 hover:text-[#2D3A27] transition-colors text-center">← Voltar e personalizar</button>
-      <p className="text-xs text-[#2D3A27]/25 text-center -mt-2">Endereço de entrega solicitado no checkout · Processado pelo Stripe</p>
+      <button onClick={onBack} className="text-sm text-[#2D3A27]/40 hover:text-[#2D3A27] transition-colors text-center">{t('bp.s3.back')}</button>
     </motion.div>
   );
 }

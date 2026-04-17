@@ -67,10 +67,11 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 ### Editor do Livro (`/book`)
 | Componente | Status | Descrição Técnica |
 | :--- | :--- | :--- |
-| **Step 1 — Revelação** | ✅ Concluído | Hero "Seu livro está pronto" (fonte reduzida, espaço superior compacto) + livro interativo 48 pág. |
-| **Step 2 — Personalizar** | ✅ Concluído | Seleção de foto de capa + título editável com preview ao vivo |
-| **Step 3 — Finalizar** | ✅ Concluído | Resumo do pedido + integração Stripe Checkout |
-| **Livro interativo** | 🔄 Em revisão | Atualmente 48 páginas — será expandido para ~54 págs. (ver roadmap abaixo) |
+| **Step 1 — Revelação** | ✅ Concluído | Hero + livro 54 pág. + botão "Personalizar" + cards de modelo clicáveis + botão "Encomendar" condicional |
+| **Step 2 — Personalizar** | ✅ Concluído | Seletor de modelo + abas Capa/Textos/Fotos + "Ver resultado" volta ao Step 1 |
+| **Step 3 — Encomendar** | ✅ Concluído | Resumo dinâmico pelo modelo selecionado + Stripe Checkout |
+| **Livro interativo** | ✅ Concluído | 54 páginas: capa, prefácio, 50 layouts fotográficos, selos dinâmicos, contracapa |
+| **i18n do /book** | ✅ Concluído | 39 keys `bp.*` em 10 idiomas; capa usa nome da rota traduzido; I18nProvider no App raiz |
 | **Login SSO** | ⚠️ Placeholder | Aguarda domínio + integração Supabase Auth |
 | **Fotos reais** | ⚠️ Demo | Usa fotos das rotas como demo. Substituir por galeria do Supabase após SSO |
 | **Cloudflare Worker** | ⚠️ Parcial | `functions/create-checkout.js` criado. Falta `STRIPE_SECRET_KEY` no painel Cloudflare |
@@ -78,6 +79,43 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 ---
 
 ## 🔄 Histórico de Alterações
+
+### Sessão 18/04/2026 — Refactor UX do /book + i18n completo
+
+#### Novo fluxo UX da página `/book`
+O fluxo anterior tinha um único botão "Personalizar e encomendar" no final. O novo fluxo é:
+
+1. **Revelar** → botão "Personalizar livro" logo abaixo do hint do livro
+2. Os 3 cards de modelo (Essencial / Jornada / Legado) são **clicáveis** — selecionam o modelo e vão direto para Personalizar
+3. **Personalizar** (Step 2) → seletor de modelo no topo + botão "Ver resultado" volta para Step 1 com `hasCustomized=true`
+4. Step 1 com `hasCustomized=true` → botão **"Encomendar"** aparece
+5. **Step 3** usa o modelo selecionado para exibir nome, páginas e preço corretos
+
+#### Estados adicionados ao `BookPage` root
+- `selectedModel: ModelId` (default `'journey'`)
+- `hasCustomized: boolean` — controla visibilidade do botão Encomendar
+- `BookData.route: string` — campo novo para o nome da rota (traduzível)
+
+#### Correção crítica de i18n — idioma não respeitado na `/book`
+**Causa raiz**: `I18nProvider` estava dentro do componente `LandingPage`. Ao navegar para `/book`, o contexto era descartado e tudo ficava em português.
+
+**Correção**:
+- `I18nProvider` movido para `App.tsx` (nível raiz — compartilhado entre todas as rotas)
+- `LandingPage` não encapsula mais com `I18nProvider`
+- `BookPage` importa e usa `useT()` em todos os componentes
+- Botão "Voltar ao site" mudou de `<a href="/">` para `<Link to="/">` (React Router — sem reload)
+
+#### Traduções do BookPage (src/i18n.ts)
+Adicionadas **~39 keys** com prefixo `bp.*` para os 10 idiomas (PT-BR, PT-PT, EN, ES, FR, DE, IT, JA, KO, ZH-CN):
+- UI completa: headline, botões, abas, labels dos formulários, resumo do pedido, badges
+- `bp.demo.route` — nome da rota demo traduzido por idioma (ex: "The French Way" em EN, "Camino Francés" em ES)
+
+#### Capa do livro agora respeita o idioma
+- `DEFAULT_BOOK_DATA.title` era `"Caminho Francês, 2026"` hardcoded
+- Agora o `useState` do `BookPage` inicializa o título e `bookData.route` usando `t('bp.demo.route')`
+- `renderBookPage` usa `bookData.route` em todas as páginas internas (prefácio, `centered-dark`, `large-white`, selos)
+
+---
 
 ### Sessão 17/04/2026 (noite) — Revisão do livro interativo
 
@@ -221,4 +259,4 @@ Autorizar no browser uma última vez após o fix — token fica salvo permanente
 
 ---
 
-*Última atualização: 17/04/2026 (noite) — Sessão com Claude Sonnet 4.6*
+*Última atualização: 18/04/2026 — Sessão com Claude Sonnet 4.6*

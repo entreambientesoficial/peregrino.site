@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { I18nProvider, useT, AVAILABLE_LANGS } from './i18n';
+import { useT, AVAILABLE_LANGS } from './i18n';
 import { motion, useScroll, useTransform, AnimatePresence, useMotionValueEvent } from 'framer-motion';
 import {
   MapPin, ShieldAlert,
@@ -9,11 +9,7 @@ import {
 } from 'lucide-react';
 
 export default function LandingPage() {
-  return (
-    <I18nProvider>
-      <LandingPageInner />
-    </I18nProvider>
-  );
+  return <LandingPageInner />;
 }
 
 const Footer = ({ onOpenLegal }: { onOpenLegal: (page: LegalPage) => void }) => {
