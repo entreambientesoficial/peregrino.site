@@ -455,9 +455,9 @@ function useBookSize() {
   useEffect(() => {
     const upd = () => {
       const vw = window.innerWidth;
-      if (vw < 640)       setSize({ w: 150, h: 200 });
-      else if (vw < 1024) setSize({ w: 240, h: 320 });
-      else                setSize({ w: 340, h: 453 });
+      if (vw < 640)       setSize({ w: 165, h: 220 });
+      else if (vw < 1024) setSize({ w: 270, h: 360 });
+      else                setSize({ w: 440, h: 587 });
     };
     upd();
     window.addEventListener('resize', upd);
@@ -476,39 +476,15 @@ export default function BookPage() {
 
   return (
     <div className="min-h-screen bg-[#FDFCF8] font-sans">
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#1B2616]/95 backdrop-blur-sm px-6 py-4 flex items-center justify-between">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#1B2616]/95 backdrop-blur-sm px-6 py-3 flex items-center justify-between">
         <a href="/" className="flex items-center gap-2 text-[#E8E4D9]/50 hover:text-[#E8E4D9] transition-colors text-sm">
           <ArrowLeft size={15} /><span className="hidden sm:inline">Voltar ao site</span>
         </a>
-        <span className="font-serif text-[#E8E4D9] italic text-lg tracking-tight">Peregrino</span>
-        <div className="text-right">
-          <span className="text-[#E8E4D9]/40 text-xs uppercase tracking-widest hidden sm:block">Coffee Table Book</span>
-          <span className="text-[#E8E4D9] text-sm font-semibold">€49</span>
-        </div>
+        <img src="/img-apoio/logo-sf.png" alt="Peregrino" className="h-8 object-contain" style={{ filter: 'brightness(0) invert(1) opacity(0.85)' }} />
+        <div className="w-24" />
       </header>
 
-      <div className="fixed top-[60px] left-0 right-0 z-40 bg-[#1B2616]/80 backdrop-blur-sm border-b border-[#E8E4D9]/5">
-        <div className="max-w-4xl mx-auto px-6 py-3 flex items-center gap-3">
-          {(['reveal', 'customize', 'order'] as Step[]).map((s, i) => {
-            const labels = ['Seu livro', 'Personalizar', 'Finalizar'];
-            const cur = ['reveal', 'customize', 'order'].indexOf(step);
-            const done = i < cur; const active = i === cur;
-            return (
-              <React.Fragment key={s}>
-                <div className="flex items-center gap-2">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs transition-all ${done ? 'bg-[#E8E4D9] text-[#1B2616]' : active ? 'bg-[#E8E4D9]/20 border border-[#E8E4D9]/60 text-[#E8E4D9]' : 'bg-[#E8E4D9]/10 text-[#E8E4D9]/30'}`}>
-                    {done ? <Check size={10} /> : i + 1}
-                  </div>
-                  <span className={`text-xs hidden sm:block transition-colors ${active ? 'text-[#E8E4D9]' : done ? 'text-[#E8E4D9]/60' : 'text-[#E8E4D9]/25'}`}>{labels[i]}</span>
-                </div>
-                {i < 2 && <div className={`flex-1 h-px transition-colors ${done ? 'bg-[#E8E4D9]/40' : 'bg-[#E8E4D9]/10'}`} />}
-              </React.Fragment>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="pt-[108px]">
+      <div className="pt-[56px]">
         <AnimatePresence mode="wait">
           {step === 'reveal'    && <StepReveal    key="r" bookData={bookData} onNext={() => setStep('customize')} />}
           {step === 'customize' && <StepCustomize key="c" bookData={bookData} onChange={update} onNext={() => setStep('order')} onBack={() => setStep('reveal')} />}
@@ -535,65 +511,116 @@ FlipPage.displayName = 'FlipPage';
 function InteractiveBook({ bookData }: { bookData: BookData }) {
   const bookRef = useRef<any>(null);
   const [page, setPage] = useState(0);
-  const [hasFlipped, setHasFlipped] = useState(false);
+  const [bookOpen, setBookOpen] = useState(false);
   const { w, h } = useBookSize();
-  const TOTAL = PAGE_DEFS.length; // 48
+  const TOTAL = PAGE_DEFS.length;
 
   const goNext = () => bookRef.current?.pageFlip().flipNext();
   const goPrev = () => bookRef.current?.pageFlip().flipPrev();
 
-  const S = w / 340;
+  const S = w / 400;
   const sp = (n: number) => `${n * S}px`;
   const fs = (n: number) => `${n * S}rem`;
 
   return (
-    <div className="flex flex-col items-center gap-5">
-      <AnimatePresence>
-        {!hasFlipped && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ delay: 1.0 }}
-            className="flex items-center gap-2 text-[#E8E4D9]/35 text-xs uppercase tracking-widest"
+    <div className="flex flex-col items-center gap-6 w-full">
+
+      {/* ── Wrapper com altura mínima para não colapsar durante a transição ── */}
+      <div className="relative flex flex-col items-center" style={{ minWidth: `${w * 2 + 40}px`, minHeight: `${h}px` }}>
+
+        {/* ── LIVRO FECHADO — sempre montado, visível apenas quando fechado ── */}
+        <motion.div
+          animate={{ opacity: bookOpen ? 0 : 1, scale: bookOpen ? 0.92 : 1, y: bookOpen ? -20 : 0 }}
+          transition={{ duration: 0.45, ease: 'easeInOut' }}
+          className="flex flex-col items-center gap-7"
+          style={{ pointerEvents: bookOpen ? 'none' : 'auto', position: bookOpen ? 'absolute' : 'relative' }}
+        >
+          <motion.button
+            onClick={() => setBookOpen(true)}
+            className="relative cursor-pointer"
+            whileHover={{ y: -14, transition: { duration: 0.35, ease: 'easeOut' } }}
+            whileTap={{ scale: 0.97 }}
+            style={{ filter: 'drop-shadow(-20px 32px 80px rgba(0,0,0,0.8)) drop-shadow(-6px 10px 24px rgba(0,0,0,0.45))' }}
           >
-            <motion.span animate={{ x: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 1.5 }}>←</motion.span>
-            <span>Clique para folhear</span>
-            <motion.span animate={{ x: [0, 3, 0] }} transition={{ repeat: Infinity, duration: 1.5 }}>→</motion.span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            {/* Lombada */}
+            <div className="absolute left-0 top-0 bottom-0 z-10 rounded-l-sm" style={{
+              width: `${Math.round(w * 0.054)}px`,
+              background: 'linear-gradient(to right, rgba(0,0,0,0.65), rgba(0,0,0,0.22) 40%, rgba(255,255,255,0.08) 65%, rgba(0,0,0,0.15))',
+            }} />
+            {/* Capa */}
+            <div className="relative rounded-r-xl rounded-l-sm overflow-hidden" style={{ width: `${w}px`, height: `${h}px` }}>
+              <img src={bookData.coverPhoto} className="w-full h-full object-cover" alt="Capa" />
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.74) 0%, rgba(0,0,0,0.05) 55%, rgba(0,0,0,0.22) 100%)' }} />
+              <div className="absolute inset-0 flex flex-col justify-between" style={{ padding: sp(22) }}>
+                <span className="self-end text-white/40 uppercase tracking-[0.25em]" style={{ fontSize: fs(0.5) }}>Peregrino</span>
+                <div>
+                  <div style={{ width: sp(30), height: '1px', background: 'rgba(255,255,255,0.28)', marginBottom: sp(12) }} />
+                  <p className="font-serif italic text-white leading-tight" style={{ fontSize: fs(1.05) }}>{bookData.title}</p>
+                  <p className="text-white/45 uppercase tracking-wider" style={{ fontSize: fs(0.56), marginTop: sp(8) }}>{DEMO_USER.name}</p>
+                </div>
+              </div>
+              <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 45%)' }} />
+            </div>
+          </motion.button>
 
-      <div style={{ filter: 'drop-shadow(0 50px 100px rgba(0,0,0,0.7)) drop-shadow(0 10px 20px rgba(0,0,0,0.3))' }}>
-        {/* @ts-ignore */}
-        <HTMLFlipBook
-          ref={bookRef} width={w} height={h} size="fixed"
-          minWidth={w} maxWidth={w} minHeight={h} maxHeight={h}
-          drawShadow={true} flippingTime={700} usePortrait={false}
-          startZIndex={10} autoSize={false} clickEventForward={true}
-          useMouseEvents={true} swipeDistance={30} showPageCorners={true}
-          disableFlipByClick={false} style={{}} className="" startPage={0}
-          onFlip={(e: any) => { setPage(e.data); if (e.data > 0) setHasFlipped(true); }}
-        >
-          {PAGE_DEFS.map((def, idx) => (
-            <FlipPage key={idx}>
-              {renderBookPage(def, idx + 1, bookData, S, sp, fs)}
-            </FlipPage>
-          ))}
-        </HTMLFlipBook>
-      </div>
+          <div className="flex flex-col items-center gap-3">
+            <motion.button
+              onClick={() => setBookOpen(true)}
+              animate={{ opacity: [0.3, 0.6, 0.3] }}
+              transition={{ repeat: Infinity, duration: 2.8, ease: 'easeInOut' }}
+              className="text-[#E8E4D9]/50 text-xs uppercase tracking-widest cursor-pointer hover:text-[#E8E4D9]/80 transition-colors"
+            >
+              Clique para abrir o livro
+            </motion.button>
+            <p className="text-[#E8E4D9]/30 text-xs max-w-[220px] text-center leading-relaxed">
+              48 páginas com os registros da sua jornada, montadas automaticamente.
+            </p>
+          </div>
+        </motion.div>
 
-      {/* Controles */}
-      <div className="flex items-center gap-6">
-        <button onClick={goPrev} disabled={page === 0}
-          className="w-10 h-10 rounded-full bg-[#E8E4D9]/10 flex items-center justify-center hover:bg-[#E8E4D9]/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        {/* ── LIVRO ABERTO — sempre montado, visível apenas quando aberto ── */}
+        <motion.div
+          animate={{ opacity: bookOpen ? 1 : 0, scale: bookOpen ? 1 : 0.96 }}
+          transition={{ duration: 0.45, ease: 'easeInOut' }}
+          className="flex flex-col items-center gap-5"
+          style={{ pointerEvents: bookOpen ? 'auto' : 'none', position: bookOpen ? 'relative' : 'absolute' }}
         >
-          <ChevronLeft size={18} className="text-[#E8E4D9]" />
-        </button>
-        <span className="text-[#E8E4D9]/30 text-xs tabular-nums min-w-[5rem] text-center">
-          {page === 0 ? 'Capa' : page >= TOTAL - 1 ? 'Contracapa' : `pág. ${page + 1} / ${TOTAL}`}
-        </span>
-        <button onClick={goNext} disabled={page >= TOTAL - 1}
-          className="w-10 h-10 rounded-full bg-[#E8E4D9]/10 flex items-center justify-center hover:bg-[#E8E4D9]/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          <ChevronRight size={18} className="text-[#E8E4D9]" />
-        </button>
+          <div style={{ filter: 'drop-shadow(0 50px 100px rgba(0,0,0,0.72)) drop-shadow(0 12px 24px rgba(0,0,0,0.35))' }}>
+            {/* @ts-ignore */}
+            <HTMLFlipBook
+              ref={bookRef} width={w} height={h} size="fixed"
+              minWidth={w} maxWidth={w} minHeight={h} maxHeight={h}
+              drawShadow={true} flippingTime={700} usePortrait={false}
+              startZIndex={10} autoSize={false} clickEventForward={true}
+              useMouseEvents={true} swipeDistance={30} showPageCorners={true}
+              disableFlipByClick={false} style={{}} className="" startPage={0}
+              onFlip={(e: any) => setPage(e.data)}
+            >
+              {PAGE_DEFS.map((def, idx) => (
+                <FlipPage key={idx}>
+                  {renderBookPage(def, idx + 1, bookData, S, sp, fs)}
+                </FlipPage>
+              ))}
+            </HTMLFlipBook>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <button onClick={goPrev} disabled={page === 0}
+              className="w-10 h-10 rounded-full bg-[#E8E4D9]/10 flex items-center justify-center hover:bg-[#E8E4D9]/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft size={18} className="text-[#E8E4D9]" />
+            </button>
+            <span className="text-[#E8E4D9]/30 text-xs tabular-nums min-w-[5.5rem] text-center">
+              {page === 0 ? 'Capa' : page >= TOTAL - 1 ? 'Contracapa' : `pág. ${page + 1} / ${TOTAL}`}
+            </span>
+            <button onClick={goNext} disabled={page >= TOTAL - 1}
+              className="w-10 h-10 rounded-full bg-[#E8E4D9]/10 flex items-center justify-center hover:bg-[#E8E4D9]/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronRight size={18} className="text-[#E8E4D9]" />
+            </button>
+          </div>
+        </motion.div>
+
       </div>
     </div>
   );
@@ -629,18 +656,11 @@ function StepReveal({ bookData, onNext }: { bookData: BookData; onNext: () => vo
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.7 }}
-          className="relative z-10 text-center px-6 pt-16 md:pt-20 pb-8"
+          className="relative z-10 text-center px-6 pt-8 md:pt-10 pb-8"
         >
-          <p className="text-[#C8A96E]/70 text-xs uppercase tracking-[0.4em] mb-5">
-            {DEMO_USER.name} · {DEMO_USER.route}
-          </p>
-          <h1 className="font-serif text-4xl md:text-6xl lg:text-7xl text-[#E8E4D9] italic leading-[1.08] tracking-tight">
-            Seu livro<br />está pronto.
+          <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-[#E8E4D9] italic leading-[1.08] tracking-tight">
+            Seu livro está pronto.
           </h1>
-          <div className="w-12 h-px mx-auto my-7" style={{ background: 'rgba(200,169,110,0.3)' }} />
-          <p className="text-[#E8E4D9]/40 text-sm max-w-xs mx-auto leading-relaxed">
-            48 páginas com os registros da sua jornada, montadas automaticamente.
-          </p>
         </motion.div>
 
         {/* Livro — centro absoluto */}

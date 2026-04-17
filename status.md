@@ -67,9 +67,10 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 ### Editor do Livro (`/book`)
 | Componente | Status | Descrição Técnica |
 | :--- | :--- | :--- |
-| **Step 1 — Revelação** | ✅ Concluído | Hero "Seu livro está pronto" + livro interativo com page-flip (react-pageflip, 12 páginas) |
+| **Step 1 — Revelação** | ✅ Concluído | Hero "Seu livro está pronto" (fonte reduzida, espaço superior compacto) + livro interativo 48 pág. |
 | **Step 2 — Personalizar** | ✅ Concluído | Seleção de foto de capa + título editável com preview ao vivo |
 | **Step 3 — Finalizar** | ✅ Concluído | Resumo do pedido + integração Stripe Checkout |
+| **Livro interativo** | 🔄 Em revisão | Atualmente 48 páginas — será expandido para ~54 págs. (ver roadmap abaixo) |
 | **Login SSO** | ⚠️ Placeholder | Aguarda domínio + integração Supabase Auth |
 | **Fotos reais** | ⚠️ Demo | Usa fotos das rotas como demo. Substituir por galeria do Supabase após SSO |
 | **Cloudflare Worker** | ⚠️ Parcial | `functions/create-checkout.js` criado. Falta `STRIPE_SECRET_KEY` no painel Cloudflare |
@@ -77,6 +78,43 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 ---
 
 ## 🔄 Histórico de Alterações
+
+### Sessão 17/04/2026 (noite) — Revisão do livro interativo
+
+#### Melhorias visuais aplicadas na página `/book`
+- Header: logo `logo-sf.png` substituindo texto; sem preço; sem barra de passos
+- Título hero: "Seu livro está pronto." em linha única, fonte reduzida (`5xl/6xl`), padding superior compacto
+- Subtítulo "Anderson · Caminho Francês" removido (já aparece na capa do livro)
+- "48 páginas com os registros…" movido para abaixo do hint "Clique para abrir o livro"
+- Tamanho do livro aumentado: desktop 440×587 (era 400×533)
+- **Animação de abertura corrigida**: livro fechado e aberto agora são sempre montados (sem unmount/remount); transição é cross-fade por `opacity` + `scale` — sem o "piscada" que existia antes com `AnimatePresence mode="wait"`
+
+#### Decisão de design acordada — nova estrutura do livro (~54 páginas)
+
+O usuário forneceu um PDF de referência com 50 páginas de layouts fotográficos (templates reais do livro que será impresso). A nova estrutura acordada para o `BookPage.tsx` é:
+
+| Pág. | Tipo | Conteúdo |
+|------|------|----------|
+| 0 | Capa | Foto + título (já existe) |
+| 1 | Prefácio | Verso da capa + texto grande com todas as infos da jornada (rota, datas, km, dias, carimbos) — personalizável pelo usuário |
+| 2–51 | Fotos | 50 layouts fotográficos conforme o PDF de referência |
+| 52 | Selos | Página dinâmica com os carimbos da credencial (grid auto-ajustável por quantidade) |
+| 53 | Contracapa | Verso final |
+
+**Total: ~54 páginas** (número par, obrigatório para o `react-pageflip`).
+
+#### Detalhes dos 50 layouts de foto (do PDF de referência)
+Os layouts alternam entre: fotos panorâmicas página inteira (fundo escuro), grids 2×2, collages assimétricas, spreads duplos (foto cruzando a lombada), 2 fotos empilhadas, e combinações mistas. Espaços brancos nas margens servem para texto customizável.
+Spreads duplos (foto panorâmica contínua): páginas 7–8, 23–24, 39–40.
+Total de fotos no livro completo: ~90 fotos.
+
+#### Selos (pág. 52) — dinâmico por rota
+Renderiza grid de selos onde o tamanho da célula se ajusta automaticamente à quantidade (`DEMO_USER.stamps`). Rotas maiores (ex: Caminho Francês, 28+ selos) → células menores. Rotas menores → células maiores. Requer array `DEMO_USER.stampImages[]` (a definir).
+
+#### Próxima sessão de código
+Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 layouts do PDF + prefácio + selos.
+
+---
 
 ### Sessão 17/04/2026 (tarde)
 
@@ -183,4 +221,4 @@ Autorizar no browser uma última vez após o fix — token fica salvo permanente
 
 ---
 
-*Última atualização: 17/04/2026 (tarde) — Sessão com Claude Sonnet 4.6*
+*Última atualização: 17/04/2026 (noite) — Sessão com Claude Sonnet 4.6*
