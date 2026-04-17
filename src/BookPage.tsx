@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, MapPin, Camera, Stamp, Route, CreditCard, Check } from 'lucide-react';
+import HTMLFlipBook from 'react-pageflip';
+import { ArrowLeft, ArrowRight, MapPin, Camera, Route, CreditCard, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // Demo data — substituir pelos dados reais do Supabase após login SSO
@@ -22,6 +23,10 @@ const DEMO_USER = {
     '/img-apoio/card6-ferrol.webp',
     '/img-apoio/card7-via-de-la-plata.webp',
     '/img-apoio/card8-granja-de-moreruela.webp',
+    '/img-apoio/card9-viseu.webp',
+    '/img-apoio/card10-caminho-portugues-lisboa.webp',
+    '/img-apoio/card11-caminho-aragones.webp',
+    '/img-apoio/card12-caminho-de-inverno.webp',
   ],
 };
 
@@ -93,6 +98,194 @@ export default function BookPage() {
 }
 
 // ---------------------------------------------------------------------------
+// Componente de página do livro (usado pelo HTMLFlipBook)
+// ---------------------------------------------------------------------------
+const FlipPage = React.forwardRef<HTMLDivElement, { children?: React.ReactNode; className?: string }>(
+  ({ children, className = '' }, ref) => (
+    <div ref={ref} className={`bg-[#FDFCF8] overflow-hidden ${className}`}>
+      {children}
+    </div>
+  )
+);
+FlipPage.displayName = 'FlipPage';
+
+// ---------------------------------------------------------------------------
+// Livro interativo com page-flip
+// ---------------------------------------------------------------------------
+function InteractiveBook({ coverPhoto, bookTitle }: { coverPhoto: string; bookTitle: string }) {
+  const bookRef = useRef<any>(null);
+  const [page, setPage] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
+  const [bookSize, setBookSize] = useState({ width: 320, height: 426 });
+
+  const totalPages = 12; // capa + páginas de conteúdo + contracapa
+
+  useEffect(() => {
+    const updateSize = () => {
+      const w = window.innerWidth;
+      if (w < 640) {
+        setBookSize({ width: 155, height: 207 });
+      } else if (w < 1024) {
+        setBookSize({ width: 220, height: 293 });
+      } else {
+        setBookSize({ width: 280, height: 373 });
+      }
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
+  const goNext = () => bookRef.current?.pageFlip().flipNext();
+  const goPrev = () => bookRef.current?.pageFlip().flipPrev();
+
+  const photos = DEMO_USER.photos_preview;
+
+  return (
+    <div className="flex flex-col items-center gap-6">
+      {/* Hint inicial */}
+      <AnimatePresence>
+        {!isOpen && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="text-[#E8E4D9]/40 text-xs uppercase tracking-widest flex items-center gap-2"
+          >
+            <span>Clique no livro para folhear</span>
+            <motion.span animate={{ x: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.2 }}>→</motion.span>
+          </motion.p>
+        )}
+      </AnimatePresence>
+
+      {/* Livro */}
+      <div className="relative" style={{ filter: 'drop-shadow(0 30px 60px rgba(0,0,0,0.5))' }}>
+        {/* @ts-ignore */}
+        <HTMLFlipBook
+          ref={bookRef}
+          width={bookSize.width}
+          height={bookSize.height}
+          size="fixed"
+          minWidth={bookSize.width}
+          maxWidth={bookSize.width}
+          minHeight={bookSize.height}
+          maxHeight={bookSize.height}
+          drawShadow={true}
+          flippingTime={700}
+          usePortrait={false}
+          startZIndex={10}
+          autoSize={false}
+          clickEventForward={true}
+          useMouseEvents={true}
+          swipeDistance={30}
+          showPageCorners={true}
+          disableFlipByClick={false}
+          style={{}}
+          className=""
+          startPage={0}
+          onFlip={(e: any) => {
+            setPage(e.data);
+            if (e.data > 0) setIsOpen(true);
+          }}
+        >
+          {/* Página 0 — Capa */}
+          <FlipPage>
+            <div className="w-full h-full relative">
+              <img src={coverPhoto} alt="Capa" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20 flex flex-col justify-between p-4 md:p-6">
+                <span className="text-white/60 text-xs uppercase tracking-[0.2em] self-end">Peregrino</span>
+                <div>
+                  <p className="text-white font-serif italic leading-tight" style={{ fontSize: bookSize.width < 200 ? '0.75rem' : '1.1rem' }}>{bookTitle}</p>
+                  <p className="text-white/50 uppercase tracking-widest mt-1" style={{ fontSize: bookSize.width < 200 ? '0.55rem' : '0.7rem' }}>{DEMO_USER.name}</p>
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-br from-white/8 via-transparent to-transparent pointer-events-none" />
+            </div>
+          </FlipPage>
+
+          {/* Página 1 — Folha de rosto */}
+          <FlipPage className="flex flex-col justify-center items-center text-center p-6 bg-[#FDFCF8]">
+            <div className="w-full h-full flex flex-col justify-center items-center gap-3 p-4">
+              <div className="w-8 h-px bg-[#2D3A27]/20" />
+              <p className="text-[#2D3A27]/30 uppercase tracking-[0.3em]" style={{ fontSize: bookSize.width < 200 ? '0.5rem' : '0.6rem' }}>Peregrino</p>
+              <p className="font-serif italic text-[#2D3A27] leading-tight" style={{ fontSize: bookSize.width < 200 ? '0.8rem' : '1.2rem' }}>{bookTitle}</p>
+              <p className="text-[#2D3A27]/40" style={{ fontSize: bookSize.width < 200 ? '0.5rem' : '0.65rem' }}>{DEMO_USER.name}</p>
+              <div className="w-8 h-px bg-[#2D3A27]/20" />
+              <p className="text-[#2D3A27]/30" style={{ fontSize: bookSize.width < 200 ? '0.45rem' : '0.6rem' }}>
+                {DEMO_USER.startDate} — {DEMO_USER.endDate}
+              </p>
+            </div>
+          </FlipPage>
+
+          {/* Página 2 — Stats da jornada */}
+          <FlipPage className="bg-[#2D3A27] flex flex-col justify-center items-center p-4 md:p-6">
+            <div className="w-full h-full flex flex-col justify-center gap-3 p-2">
+              <p className="text-[#E8E4D9]/40 uppercase tracking-widest text-center" style={{ fontSize: bookSize.width < 200 ? '0.45rem' : '0.55rem' }}>Sua jornada</p>
+              {[
+                { label: 'Rota', value: DEMO_USER.route },
+                { label: 'Distância', value: `${DEMO_USER.km} km` },
+                { label: 'Duração', value: `${DEMO_USER.days} dias` },
+                { label: 'Carimbos', value: `${DEMO_USER.stamps}` },
+                { label: 'Fotos', value: `${DEMO_USER.photos}` },
+              ].map((item, i) => (
+                <div key={i} className="flex justify-between items-center border-b border-[#E8E4D9]/10 pb-2">
+                  <span className="text-[#E8E4D9]/40" style={{ fontSize: bookSize.width < 200 ? '0.5rem' : '0.65rem' }}>{item.label}</span>
+                  <span className="text-[#E8E4D9] font-medium" style={{ fontSize: bookSize.width < 200 ? '0.5rem' : '0.65rem' }}>{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </FlipPage>
+
+          {/* Páginas 3 a 10 — Fotos */}
+          {photos.slice(0, 8).map((photo, i) => (
+            <FlipPage key={`photo-${i}`}>
+              <div className="w-full h-full relative">
+                <img src={photo} alt={`Página ${i + 3}`} className="w-full h-full object-cover" />
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-3">
+                  <p className="text-white/60 text-right" style={{ fontSize: bookSize.width < 200 ? '0.45rem' : '0.6rem' }}>
+                    {DEMO_USER.route} · {i + 1}
+                  </p>
+                </div>
+              </div>
+            </FlipPage>
+          ))}
+
+          {/* Página 11 — Contracapa */}
+          <FlipPage className="bg-[#1B2616] flex flex-col justify-center items-center p-6">
+            <div className="w-full h-full flex flex-col justify-center items-center gap-4">
+              <p className="font-serif italic text-[#E8E4D9]/60" style={{ fontSize: bookSize.width < 200 ? '0.9rem' : '1.3rem' }}>Ultreia et Suseia</p>
+              <div className="w-8 h-px bg-[#E8E4D9]/20" />
+              <p className="text-[#E8E4D9]/30 text-center" style={{ fontSize: bookSize.width < 200 ? '0.45rem' : '0.6rem' }}>peregrino.app</p>
+            </div>
+          </FlipPage>
+        </HTMLFlipBook>
+      </div>
+
+      {/* Controles de navegação */}
+      <div className="flex items-center gap-6">
+        <button
+          onClick={goPrev}
+          disabled={page === 0}
+          className="w-10 h-10 rounded-full bg-[#E8E4D9]/10 flex items-center justify-center hover:bg-[#E8E4D9]/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <ChevronLeft size={18} className="text-[#E8E4D9]" />
+        </button>
+        <span className="text-[#E8E4D9]/30 text-xs tabular-nums">
+          {page === 0 ? 'Capa' : `${page} / ${totalPages - 1}`}
+        </span>
+        <button
+          onClick={goNext}
+          disabled={page >= totalPages - 1}
+          className="w-10 h-10 rounded-full bg-[#E8E4D9]/10 flex items-center justify-center hover:bg-[#E8E4D9]/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <ChevronRight size={18} className="text-[#E8E4D9]" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Step 1 — Revelação do livro
 // ---------------------------------------------------------------------------
 function StepReveal({ coverPhoto, bookTitle, onNext }: { coverPhoto: string; bookTitle: string; onNext: () => void }) {
@@ -103,8 +296,8 @@ function StepReveal({ coverPhoto, bookTitle, onNext }: { coverPhoto: string; boo
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Hero — fundo escuro com revelação */}
-      <div className="bg-[#1B2616] px-6 py-16 md:py-24 flex flex-col items-center text-center gap-6">
+      {/* Hero — fundo escuro com livro interativo */}
+      <div className="bg-[#1B2616] px-6 py-12 md:py-20 flex flex-col items-center text-center gap-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -119,43 +312,14 @@ function StepReveal({ coverPhoto, bookTitle, onNext }: { coverPhoto: string; boo
           </p>
         </motion.div>
 
-        {/* Book mockup 3D */}
+        {/* Livro interativo */}
         <motion.div
-          initial={{ opacity: 0, y: 40, rotateY: -15 }}
-          animate={{ opacity: 1, y: 0, rotateY: -8 }}
-          transition={{ delay: 0.5, duration: 0.8, type: 'spring' }}
-          className="relative mt-4"
-          style={{ perspective: '800px' }}
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.8, type: 'spring' }}
+          className="w-full flex flex-col items-center"
         >
-          <div className="relative" style={{ transform: 'rotateY(-8deg)', transformStyle: 'preserve-3d' }}>
-            {/* Spine */}
-            <div
-              className="absolute left-0 top-0 bottom-0 w-6 bg-[#2D1B14] rounded-l-sm"
-              style={{ transform: 'rotateY(90deg) translateZ(-12px) translateX(-12px)', transformOrigin: 'left center' }}
-            />
-            {/* Cover */}
-            <div className="relative w-64 md:w-80 rounded-r-lg overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.6)]">
-              <img
-                src={coverPhoto}
-                alt="Capa do livro"
-                className="w-full aspect-[3/4] object-cover"
-              />
-              {/* Overlay com título */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20 flex flex-col justify-between p-6">
-                <div className="flex justify-end">
-                  <span className="text-white/60 text-xs uppercase tracking-[0.3em]">Peregrino</span>
-                </div>
-                <div>
-                  <p className="text-white font-serif italic text-xl leading-tight">{bookTitle}</p>
-                  <p className="text-white/50 text-xs mt-1 uppercase tracking-widest">{DEMO_USER.name}</p>
-                </div>
-              </div>
-              {/* Brilho da capa */}
-              <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent pointer-events-none" />
-            </div>
-          </div>
-          {/* Sombra no chão */}
-          <div className="absolute -bottom-4 left-4 right-4 h-8 bg-black/30 blur-xl rounded-full" />
+          <InteractiveBook coverPhoto={coverPhoto} bookTitle={bookTitle} />
         </motion.div>
       </div>
 
@@ -163,7 +327,7 @@ function StepReveal({ coverPhoto, bookTitle, onNext }: { coverPhoto: string; boo
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8 }}
+        transition={{ delay: 0.9 }}
         className="bg-[#F5F2EA] px-6 py-10"
       >
         <p className="text-center text-xs uppercase tracking-[0.25em] text-[#2D3A27]/40 mb-8">O que está no seu livro</p>
@@ -171,14 +335,14 @@ function StepReveal({ coverPhoto, bookTitle, onNext }: { coverPhoto: string; boo
           {[
             { icon: <Route size={20} />, value: `${DEMO_USER.km} km`, label: 'percorridos' },
             { icon: <MapPin size={20} />, value: `${DEMO_USER.days} dias`, label: 'de caminhada' },
-            { icon: <Stamp size={20} />, value: `${DEMO_USER.stamps}`, label: 'carimbos' },
+            { icon: <span className="text-lg">🔖</span>, value: `${DEMO_USER.stamps}`, label: 'carimbos' },
             { icon: <Camera size={20} />, value: `${DEMO_USER.photos}`, label: 'fotos' },
           ].map((stat, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.9 + i * 0.1 }}
+              transition={{ delay: 1.0 + i * 0.1 }}
               className="bg-white rounded-2xl p-5 flex flex-col items-center gap-2 text-center shadow-sm"
             >
               <div className="text-[#2D3A27]/40">{stat.icon}</div>
@@ -186,19 +350,6 @@ function StepReveal({ coverPhoto, bookTitle, onNext }: { coverPhoto: string; boo
               <span className="text-xs text-[#2D3A27]/40 uppercase tracking-wider">{stat.label}</span>
             </motion.div>
           ))}
-        </div>
-
-        {/* Preview de fotos */}
-        <div className="max-w-2xl mx-auto mt-8">
-          <p className="text-xs uppercase tracking-[0.25em] text-[#2D3A27]/40 mb-4 text-center">Prévia das páginas</p>
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-            {DEMO_USER.photos_preview.map((photo, i) => (
-              <div key={i} className="aspect-square rounded-xl overflow-hidden">
-                <img src={photo} alt="" className="w-full h-full object-cover" />
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-xs text-[#2D3A27]/30 mt-3">+{DEMO_USER.photos - 6} fotos incluídas automaticamente</p>
         </div>
       </motion.div>
 
@@ -229,12 +380,9 @@ function StepReveal({ coverPhoto, bookTitle, onNext }: { coverPhoto: string; boo
 // Step 2 — Personalização da capa
 // ---------------------------------------------------------------------------
 function StepCustomize({ coverPhoto, bookTitle, onChangeCover, onChangeTitle, onNext, onBack }: {
-  coverPhoto: string;
-  bookTitle: string;
-  onChangeCover: (p: string) => void;
-  onChangeTitle: (t: string) => void;
-  onNext: () => void;
-  onBack: () => void;
+  coverPhoto: string; bookTitle: string;
+  onChangeCover: (p: string) => void; onChangeTitle: (t: string) => void;
+  onNext: () => void; onBack: () => void;
 }) {
   const allPhotos = [DEMO_USER.coverPhoto, ...DEMO_USER.photos_preview];
 
@@ -267,11 +415,9 @@ function StepCustomize({ coverPhoto, bookTitle, onChangeCover, onChangeTitle, on
       {/* Escolha de foto */}
       <div>
         <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-3">Foto de capa</p>
-        <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
+        <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
           {allPhotos.map((photo, i) => (
-            <button
-              key={i}
-              onClick={() => onChangeCover(photo)}
+            <button key={i} onClick={() => onChangeCover(photo)}
               className={`aspect-square rounded-xl overflow-hidden ring-2 transition-all ${
                 coverPhoto === photo ? 'ring-[#2D3A27] scale-105' : 'ring-transparent hover:ring-[#2D3A27]/30'
               }`}
@@ -286,10 +432,7 @@ function StepCustomize({ coverPhoto, bookTitle, onChangeCover, onChangeTitle, on
       <div>
         <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-3">Título do livro</p>
         <input
-          type="text"
-          value={bookTitle}
-          onChange={e => onChangeTitle(e.target.value)}
-          maxLength={60}
+          type="text" value={bookTitle} onChange={e => onChangeTitle(e.target.value)} maxLength={60}
           className="w-full bg-[#F5F2EA] border border-[#2D3A27]/10 rounded-2xl px-5 py-3 font-serif italic text-[#2D3A27] text-lg focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20"
         />
         <p className="text-xs text-[#2D3A27]/30 mt-1 text-right">{bookTitle.length}/60</p>
@@ -299,10 +442,7 @@ function StepCustomize({ coverPhoto, bookTitle, onChangeCover, onChangeTitle, on
         <button onClick={onBack} className="flex items-center gap-2 text-sm text-[#2D3A27]/40 hover:text-[#2D3A27] transition-colors">
           <ArrowLeft size={15} /> Voltar
         </button>
-        <motion.button
-          onClick={onNext}
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
+        <motion.button onClick={onNext} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
           className="bg-[#2D3A27] text-[#E8E4D9] px-8 py-3 rounded-full font-semibold flex items-center gap-2 hover:bg-[#1B2616] transition-colors"
         >
           Confirmar capa <ArrowRight size={16} />
@@ -356,7 +496,6 @@ function StepOrder({ coverPhoto, bookTitle, onBack }: { coverPhoto: string; book
         <p className="text-[#2D3A27]/50 text-sm">Confirme os detalhes antes de pagar.</p>
       </div>
 
-      {/* Card do produto */}
       <div className="bg-[#F5F2EA] rounded-3xl p-6 flex gap-5">
         <div className="w-20 rounded-xl overflow-hidden shadow-md shrink-0">
           <img src={coverPhoto} alt="Capa" className="w-full aspect-[3/4] object-cover" />
@@ -377,15 +516,12 @@ function StepOrder({ coverPhoto, bookTitle, onBack }: { coverPhoto: string; book
         </div>
       </div>
 
-      {/* Preço */}
       <div className="bg-white rounded-3xl p-6 border border-[#2D3A27]/8">
         <div className="flex justify-between text-sm text-[#2D3A27] mb-2">
-          <span>Coffee Table Book</span>
-          <span>€49,00</span>
+          <span>Coffee Table Book</span><span>€49,00</span>
         </div>
         <div className="flex justify-between text-xs text-[#2D3A27]/40 mb-4">
-          <span>Impressão + envio internacional</span>
-          <span>incluso</span>
+          <span>Impressão + envio internacional</span><span>incluso</span>
         </div>
         <div className="border-t border-[#2D3A27]/8 pt-4 flex justify-between font-semibold text-[#2D3A27]">
           <span>Total</span>
@@ -396,8 +532,7 @@ function StepOrder({ coverPhoto, bookTitle, onBack }: { coverPhoto: string; book
       {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
       <motion.button
-        onClick={handleCheckout}
-        disabled={loading}
+        onClick={handleCheckout} disabled={loading}
         whileHover={loading ? {} : { scale: 1.02 }}
         whileTap={loading ? {} : { scale: 0.98 }}
         className="w-full bg-[#2D3A27] text-[#E8E4D9] py-4 rounded-full font-semibold flex items-center justify-center gap-3 hover:bg-[#1B2616] transition-colors disabled:opacity-60 disabled:cursor-not-allowed shadow-lg text-base"
@@ -411,19 +546,15 @@ function StepOrder({ coverPhoto, bookTitle, onBack }: { coverPhoto: string; book
             A preparar pagamento...
           </>
         ) : (
-          <>
-            <CreditCard size={18} />
-            Pagar €49,00 com cartão
-          </>
+          <><CreditCard size={18} />Pagar €49,00 com cartão</>
         )}
       </motion.button>
 
       <button onClick={onBack} className="text-sm text-[#2D3A27]/40 hover:text-[#2D3A27] transition-colors text-center">
         ← Voltar e ajustar capa
       </button>
-
       <p className="text-xs text-[#2D3A27]/30 text-center">
-        Pagamento seguro via Stripe · Seu endereço de entrega será solicitado no checkout
+        Pagamento seguro via Stripe · Endereço de entrega solicitado no checkout
       </p>
     </motion.div>
   );
