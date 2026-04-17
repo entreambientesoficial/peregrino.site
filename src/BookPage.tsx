@@ -619,61 +619,100 @@ function StepReveal({ bookData, onNext }: { bookData: BookData; onNext: () => vo
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.5 }}>
 
-      {/* Hero */}
-      <div className="bg-[#1B2616] bg-noise bg-topography relative overflow-hidden px-6 py-16 md:py-24 flex flex-col items-center text-center gap-10">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[280px] bg-[#E8E4D9]/4 rounded-full blur-[120px] pointer-events-none" />
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.7 }} className="relative z-10">
-          <p className="text-[#E8E4D9]/40 text-xs uppercase tracking-[0.35em] mb-5">Olá, {DEMO_USER.name} · {DEMO_USER.route}</p>
-          <h1 className="font-serif text-4xl md:text-6xl lg:text-7xl text-[#E8E4D9] italic leading-[1.1] tracking-tight">
+      {/* ── Bloco único: headline + livro + stats ── */}
+      <div className="bg-[#1B2616] bg-noise relative overflow-hidden">
+        {/* Luz ambiente */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-[#C8A96E]/6 rounded-full blur-[140px] pointer-events-none" />
+
+        {/* Headline */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.7 }}
+          className="relative z-10 text-center px-6 pt-16 md:pt-20 pb-8"
+        >
+          <p className="text-[#C8A96E]/70 text-xs uppercase tracking-[0.4em] mb-5">
+            {DEMO_USER.name} · {DEMO_USER.route}
+          </p>
+          <h1 className="font-serif text-4xl md:text-6xl lg:text-7xl text-[#E8E4D9] italic leading-[1.08] tracking-tight">
             Seu livro<br />está pronto.
           </h1>
-          <div className="w-10 h-px bg-[#E8E4D9]/20 mx-auto my-6" />
-          <p className="text-[#E8E4D9]/50 text-sm md:text-base max-w-sm mx-auto leading-relaxed">
-            48 páginas montadas automaticamente com os registros da sua jornada pelo {DEMO_USER.route}.
-          </p>
-          <p className="text-[#E8E4D9]/25 text-xs mt-2 uppercase tracking-widest">
-            Prévia com suas fotos de demonstração · O livro usará suas fotos reais
+          <div className="w-12 h-px mx-auto my-7" style={{ background: 'rgba(200,169,110,0.3)' }} />
+          <p className="text-[#E8E4D9]/40 text-sm max-w-xs mx-auto leading-relaxed">
+            48 páginas com os registros da sua jornada, montadas automaticamente.
           </p>
         </motion.div>
-        <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.9, type: 'spring', damping: 18 }} className="relative z-10 w-full flex flex-col items-center">
+
+        {/* Livro — centro absoluto */}
+        <motion.div
+          initial={{ opacity: 0, y: 60 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45, duration: 1, type: 'spring', damping: 16 }}
+          className="relative z-10 flex justify-center px-4 pb-10"
+        >
           <InteractiveBook bookData={bookData} />
         </motion.div>
-      </div>
 
-      {/* Stats */}
-      <div ref={statsRef} className="bg-[#F5F2EA] px-6 py-14">
-        <p className="text-center text-xs uppercase tracking-[0.3em] text-[#2D3A27]/40 mb-10">O que está no seu livro</p>
-        <div className="max-w-2xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { icon: <Route size={18} />,   value: aKm,     unit: ' km',   label: 'percorridos' },
-            { icon: <MapPin size={18} />,   value: aDays,   unit: ' dias', label: 'de caminhada' },
-            { icon: <span className="text-base">🔖</span>, value: aStamps, unit: '', label: 'carimbos' },
-            { icon: <Camera size={18} />,   value: aPhotos, unit: '',      label: 'fotos' },
-          ].map((stat, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: statsVisible ? 1 : 0, y: statsVisible ? 0 : 16 }} transition={{ delay: i * 0.08 }}
-              className="bg-white rounded-2xl p-5 flex flex-col items-center gap-2 text-center shadow-sm"
-            >
-              <div className="text-[#2D3A27]/40">{stat.icon}</div>
-              <span className="font-serif text-2xl text-[#2D3A27] italic tabular-nums">{stat.value}<span className="text-lg">{stat.unit}</span></span>
-              <span className="text-xs text-[#2D3A27]/40 uppercase tracking-wider">{stat.label}</span>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      {/* CTA */}
-      <div className="bg-[#2D3A27] bg-noise px-6 py-16 flex flex-col items-center gap-5">
-        <div className="text-center">
-          <p className="text-[#E8E4D9]/35 text-xs uppercase tracking-[0.25em] mb-4">Capa dura · 48 páginas · A4 · Envio para qualquer país</p>
-          <p className="font-serif text-6xl text-[#E8E4D9] italic leading-none">€49</p>
-          <p className="text-[#E8E4D9]/25 text-xs mt-2">impressão + frete internacional inclusos</p>
-        </div>
-        <motion.button onClick={onNext} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-          className="bg-[#E8E4D9] text-[#1B2616] px-12 py-4 rounded-full font-semibold flex items-center gap-3 shadow-2xl text-base hover:bg-white transition-colors mt-2"
+        {/* Stats — tipografia editorial, sem cards */}
+        <div
+          ref={statsRef}
+          className="relative z-10 border-t px-6 py-10"
+          style={{ borderColor: 'rgba(200,169,110,0.15)' }}
         >
-          Personalizar e encomendar <ArrowRight size={18} />
+          <div className="max-w-3xl mx-auto grid grid-cols-2 md:grid-cols-4 divide-x"
+            style={{ divideColor: 'rgba(200,169,110,0.12)' } as React.CSSProperties}
+          >
+            {[
+              { value: aKm,     unit: 'km',   label: 'percorridos' },
+              { value: aDays,   unit: 'dias', label: 'de caminhada' },
+              { value: aStamps, unit: '',     label: 'carimbos' },
+              { value: aPhotos, unit: '',     label: 'fotos' },
+            ].map((stat, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: statsVisible ? 1 : 0, y: statsVisible ? 0 : 12 }}
+                transition={{ delay: i * 0.1 }}
+                className="flex flex-col items-center text-center py-4 px-4"
+              >
+                <span
+                  className="font-serif italic tabular-nums leading-none"
+                  style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', color: '#C8A96E' }}
+                >
+                  {stat.value}
+                  {stat.unit && <span style={{ fontSize: '55%', marginLeft: '0.2em' }}>{stat.unit}</span>}
+                </span>
+                <span className="text-[#E8E4D9]/30 text-xs uppercase tracking-widest mt-2">{stat.label}</span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── CTA — máximo contraste ── */}
+      <div className="bg-[#0D1509] px-6 py-20 flex flex-col items-center gap-6 text-center">
+        <p className="text-[#C8A96E]/50 text-xs uppercase tracking-[0.35em]">
+          Capa dura · 48 páginas · Formato A4 · Envio mundial
+        </p>
+        <p
+          className="font-serif italic text-[#E8E4D9] leading-none"
+          style={{ fontSize: 'clamp(4rem, 14vw, 7rem)' }}
+        >
+          €49
+        </p>
+        <p className="text-[#E8E4D9]/20 text-xs -mt-2">impressão + frete internacional inclusos</p>
+        <motion.button
+          onClick={onNext}
+          whileHover={{ scale: 1.04, backgroundColor: '#ffffff' }}
+          whileTap={{ scale: 0.97 }}
+          className="bg-[#E8E4D9] text-[#0D1509] px-14 py-5 rounded-full font-bold text-lg flex items-center gap-3 mt-2 transition-colors"
+          style={{ boxShadow: '0 0 60px rgba(200,169,110,0.25), 0 8px 32px rgba(0,0,0,0.5)' }}
+        >
+          Personalizar e encomendar <ArrowRight size={20} />
         </motion.button>
-        <p className="text-xs text-[#E8E4D9]/20 text-center max-w-xs">Pode ajustar fotos, textos e título antes de pagar</p>
+        <p className="text-[#E8E4D9]/15 text-xs max-w-xs">
+          Ajuste fotos, textos e título antes de confirmar
+        </p>
       </div>
     </motion.div>
   );
