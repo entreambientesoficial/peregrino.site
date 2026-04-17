@@ -33,11 +33,12 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 ## 🛠️ Stack Tecnológica
 - **Framework**: React.js (Vite)
 - **Estilização**: Tailwind CSS (Customizado com texturas e sombras táteis)
-- **Animações**: Framer Motion (`useScroll`, `useTransform`, `useMotionValueEvent`, `AnimatePresence`)
+- **Animações**: Framer Motion + react-pageflip (livro interativo em `/book`)
 - **Ícones**: Lucide React
 - **i18n**: Sistema próprio em `src/i18n.ts` — 10 idiomas, Context API, mesma lógica do app
+- **Roteamento**: React Router v6 (`/` landing, `/book` editor do livro)
 - **Deploy**: Cloudflare Pages (deploy automático a cada push no `main`)
-- **Pagamentos**: Stripe (conta criada, chaves de teste configuradas em `.env`)
+- **Pagamentos**: Stripe (conta criada, chaves de teste em `.env`, Worker em `functions/`)
 - **Design System**: Focado em tons terrosos (`#E8E4D9`, `#2D3A27`, `#1B2616`), texturas de ruído e topografia
 
 ---
@@ -52,55 +53,63 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ## 📊 Status dos Componentes
 
+### Landing Page (`/`)
 | Componente | Status | Descrição Técnica |
 | :--- | :--- | :--- |
 | **HeroSection** | ✅ Concluído | Vídeo full-screen e botão de conversão funcional. Texto traduzido. |
 | **DownloadModal** | ✅ Concluído | Fluxo PWA com detecção iOS/Android/Desktop. QR Code real (qrcode.react). |
 | **FeaturesSection** | ✅ Concluído | Grid bento de 7 cards táteis. Texto traduzido. |
 | **JourneySection** | ✅ Concluído | Efeito Baralho. 12 rotas reais. Indicador de progresso. Texto traduzido. |
-| **BookSection** | ✅ Concluído | Vídeo em loop + frases animadas rotativas. Botão conectado ao Cloudflare Worker. |
+| **BookSection** | ✅ Concluído | Vídeo em loop + frases animadas. Botão leva para `/book`. |
 | **Footer** | ✅ Concluído | Logo, seletor de idioma inline (10 idiomas), links legais, copyright. |
 | **Modais Legais** | ✅ Concluído | Termos de Uso, Privacidade (LGPD + GDPR) e Contato em PT-BR. |
-| **Stripe Worker** | ⚠️ Parcial | `functions/create-checkout.js` criado. Falta: configurar `STRIPE_SECRET_KEY` no Cloudflare Dashboard e definir preço/produto final. |
-| **Página /livro** | ❌ Não iniciado | Editor do livro — login SSO, galeria de fotos, escolha de layout, checkout. |
+
+### Editor do Livro (`/book`)
+| Componente | Status | Descrição Técnica |
+| :--- | :--- | :--- |
+| **Step 1 — Revelação** | ✅ Concluído | Hero "Seu livro está pronto" + livro interativo com page-flip (react-pageflip, 12 páginas) |
+| **Step 2 — Personalizar** | ✅ Concluído | Seleção de foto de capa + título editável com preview ao vivo |
+| **Step 3 — Finalizar** | ✅ Concluído | Resumo do pedido + integração Stripe Checkout |
+| **Login SSO** | ⚠️ Placeholder | Aguarda domínio + integração Supabase Auth |
+| **Fotos reais** | ⚠️ Demo | Usa fotos das rotas como demo. Substituir por galeria do Supabase após SSO |
+| **Cloudflare Worker** | ⚠️ Parcial | `functions/create-checkout.js` criado. Falta `STRIPE_SECRET_KEY` no painel Cloudflare |
 
 ---
 
 ## 🔄 Histórico de Alterações
 
-### Sessão 17/04/2026
+### Sessão 17/04/2026 (tarde)
 
-#### Deploy — Cloudflare Pages
-- Site deployado em **https://peregrino-site.pages.dev/**
-- Deploy automático via GitHub (push no `main` → Cloudflare reconstrói)
-- **Fix crítico**: `img-apoio/` movido para `public/img-apoio/` — imagens e vídeo da BookSection não apareciam em produção (Vite só inclui `public/` no build)
+#### Página `/book` — Editor do Coffee Table Book
+- Rota `/book` criada com React Router — mesmo repositório e deploy do site principal
+- **Modelo B (automático)**: sistema monta o livro com os dados do app; usuário só aprova
+- **Livro interativo**: `react-pageflip` com animação 3D realista de virada de página
+  - 12 páginas: capa, folha de rosto, stats da jornada (fundo escuro), 8 fotos, contracapa
+  - Responsivo: tamanho ajusta para mobile/tablet/desktop
+  - Hint animado "Clique no livro para folhear" some após primeira interação
+  - Botões prev/next + contador de páginas
+- **3 etapas**: Revelação → Personalizar capa → Finalizar pedido
+- `public/_redirects` adicionado para SPA routing no Cloudflare Pages
+- Preço atual: **€49** (ajustado após análise de margem vs Lulu)
 
-#### Stripe — conta criada e integração parcial
-- Conta Stripe criada em nome de Anderson Del Arco (Brasil) — pessoa física, sem CNPJ
-- Chaves de teste salvas em `.env` (nunca commitadas)
-- `functions/create-checkout.js` criado — Cloudflare Worker que cria sessão de checkout
-- `public/sucesso.html` criado — página de confirmação pós-pagamento
-- Preço provisório: **€79** (a confirmar após pesquisa de custo de produção)
-- **Pendente**: configurar variável `STRIPE_SECRET_KEY` no painel do Cloudflare Pages
-
-#### Decisão estratégica — fluxo do Coffee Table Book
-- O botão "Encomendar meu Livro" **não vai direto para o Stripe**
-- Fluxo correto: botão → `/livro` (nova rota) → login SSO → editor → Stripe
-- Parceiro gráfico a definir: **Prodigi** ou **Lulu.com** (ambos têm API, impressão sob demanda, envio global)
-- Integração via API do parceiro: site monta o PDF → envia para gráfica → gráfica entrega ao peregrino
-- Fase 1 (validação): rota `/livro` simples; Fase 2 (após receita): editor completo com fotos do Supabase
+#### Decisões estratégicas do Coffee Table Book
+- **Parceiro gráfico escolhido**: **Lulu.com** — API madura, envio global 140+ países, ~€25-30 custo de produção capa dura 50 pág.
+- **Modelo de integração**: Modelo B automático — sistema gera PDF com fotos/dados do Supabase, envia via API Lulu, gráfica entrega direto ao cliente
+- **Preço de lançamento**: €49 (margem ~€16-20 sobre custo de produção + frete)
+- **Escalada**: após validar demanda → subir para €69-79 e migrar Stripe para Portugal (taxa 1.5% vs 3.99%)
 
 #### Plataformas de monetização definidas
-- **Stripe** → loja do site (livro + futuros produtos) — taxa: 3.99% + R$0.39 (Brasil)
-- **Ko-fi** → doações dentro do app — zero taxa, zero mensalidade
-- Migração futura para Portugal (conta da filha) quando projeto gerar receita — taxa europeia: 1.5%
+- **Stripe** → loja do site (livro + futuros produtos) — conta criada, modo teste ativo
+- **Ko-fi** → doações dentro do app — zero taxa, zero mensalidade (conta ainda não criada)
+- **Lulu.com** → produção e envio do livro — conta a criar quando domínio estiver definido
+
+### Sessão 17/04/2026 (manhã)
+- Fix crítico: `img-apoio/` movido para `public/` — imagens não apareciam em produção
+- Stripe Worker (`functions/create-checkout.js`) criado
+- Página `/sucesso` criada
 
 ### Sessão 16/04/2026
-- Sistema multilíngue (`src/i18n.ts`) — 10 idiomas, detecção em cascata
-- DownloadModal reescrito para fluxo PWA
-- Footer adicionado com seletor de idioma inline
-- Otimização de mídia: 86MB removidos (imagens WebP -95%, vídeos recomprimidos -56%)
-- Modais legais: Termos, Privacidade (LGPD+GDPR), Contato
+- Sistema multilíngue, DownloadModal PWA, Footer, otimização de mídia (-86MB), modais legais
 
 ---
 
@@ -109,13 +118,13 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 | # | Item | Detalhe | Prioridade |
 |---|---|---|---|
 | 1 | **Definir domínio** | Desbloqueia tudo abaixo | 🔴 Bloqueante |
-| 2 | **↳ URLs definitivas** | Atualizar placeholder `https://peregrino.app` no modal PWA e no Stripe Worker | 🔴 Depende do domínio |
-| 3 | **↳ Deep link App → Site** | Configurar no app URL final `?lang=xx#livro` ao fim da jornada | 🔴 Depende do domínio |
+| 2 | **↳ URLs definitivas** | Atualizar `https://peregrino.app` no modal PWA e no Stripe Worker | 🔴 Depende do domínio |
+| 3 | **↳ Deep link App → Site** | Configurar no app URL final `?lang=xx` ao fim da jornada | 🔴 Depende do domínio |
 | 4 | **↳ Deploy no domínio definitivo** | Apontar domínio para Cloudflare Pages | 🔴 Depende do domínio |
-| 5 | **Configurar Stripe no Cloudflare** | Adicionar `STRIPE_SECRET_KEY` em Settings → Environment Variables no painel Cloudflare Pages | 🟠 Alta |
-| 6 | **Rota `/livro`** | Nova página: login SSO (Supabase) + galeria de fotos + editor + checkout Stripe | 🟠 Alta |
-| 7 | **Definir parceiro gráfico** | Pesquisar Prodigi vs Lulu.com: preço de produção, qualidade, API, prazo de entrega | 🟠 Alta |
-| 8 | **Definir preço do livro** | Baseado no custo de produção + margem. Provisório: €79 | 🟡 Média |
+| 5 | **↳ Login SSO no `/book`** | Integrar Supabase Auth — substituir demo data pelos dados reais do peregrino | 🔴 Depende do domínio |
+| 6 | **Configurar Stripe no Cloudflare** | Adicionar `STRIPE_SECRET_KEY` em Settings → Environment Variables no painel Cloudflare Pages | 🟠 Alta |
+| 7 | **Conta Lulu.com** | Criar conta de desenvolvedor, testar API, definir produto (A4, 50 pág, capa dura) | 🟠 Alta |
+| 8 | **Geração do PDF** | Backend que monta o PDF do livro com fotos/dados do Supabase e envia para API Lulu | 🟠 Alta |
 | 9 | **Ko-fi** | Criar conta ko-fi.com para doações no app | 🟡 Média |
 | 10 | **Tradução dos termos legais** | Atualmente só PT-BR. Adicionar EN quando projeto gerar receita | 🟢 Baixa |
 
@@ -126,7 +135,9 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 ```
 APP-PEREGRINO LANDING/
 ├── src/
-│   ├── LandingPage.tsx           ← Componente único com todas as seções
+│   ├── App.tsx                   ← React Router (/ e /book)
+│   ├── LandingPage.tsx           ← Landing principal (todas as seções)
+│   ├── BookPage.tsx              ← Editor do livro (/book) — 3 etapas + page-flip
 │   └── i18n.ts                   ← Sistema multilíngue (10 idiomas, Context API)
 ├── public/
 │   ├── img-apoio/
@@ -134,10 +145,10 @@ APP-PEREGRINO LANDING/
 │   │   └── video-site-peregrino.mp4 ← Vídeo BookSection (2.9 MB)
 │   ├── video-apoio/
 │   │   └── 2.mp4                 ← Vídeo Hero (9.4 MB)
-│   └── sucesso.html              ← Página pós-pagamento Stripe
+│   ├── sucesso.html              ← Página pós-pagamento Stripe
+│   └── _redirects                ← SPA routing para Cloudflare Pages
 ├── functions/
 │   └── create-checkout.js        ← Cloudflare Worker — cria sessão Stripe
-├── video-backups/                ← Backups dos vídeos originais (gitignored)
 ├── scripts/
 │   ├── optimize-images.mjs       ← Converte PNG/JPG → WebP via sharp
 │   └── optimize-videos.mjs       ← Recomprime MP4 via fluent-ffmpeg (CRF 28)
@@ -172,4 +183,4 @@ Autorizar no browser uma última vez após o fix — token fica salvo permanente
 
 ---
 
-*Última atualização: 17/04/2026 — Sessão com Claude Sonnet 4.6*
+*Última atualização: 17/04/2026 (tarde) — Sessão com Claude Sonnet 4.6*
