@@ -12,9 +12,20 @@ dist
 dist-ssr
 *.local
 
+# Variáveis de ambiente (chaves de API — NUNCA commitar)
+.env
+.env.local
+.env.production
+
 # Backups de mídia (originais antes da otimização)
 img-apoio/originals/
+public/img-apoio/originals/
 video-backups/
+
+# Imagens originais PNG/JPG dentro de public (apenas WebP vai para o repo)
+public/img-apoio/*.png
+public/img-apoio/*.jpg
+public/img-apoio/*.jpeg
 
 # Editor directories and files
 .vscode/*

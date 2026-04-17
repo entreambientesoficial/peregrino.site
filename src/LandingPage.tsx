@@ -781,6 +781,65 @@ const SequentialCard = ({ route, index, total, progress }: { route: any, index: 
   );
 };
 
+const OrderBookButton = () => {
+  const { t } = useT();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleOrder = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          successUrl: `${window.location.origin}/sucesso`,
+          cancelUrl: `${window.location.origin}/#livro`,
+        }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError('Não foi possível iniciar o checkout. Tente novamente.');
+      }
+    } catch {
+      setError('Erro de conexão. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <motion.button
+        onClick={handleOrder}
+        disabled={loading}
+        whileHover={loading ? {} : { scale: 1.05, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)' }}
+        whileTap={loading ? {} : { scale: 0.95 }}
+        className="bg-[#2D1B14] text-[#FDFCF8] px-8 md:px-12 py-4 md:py-5 rounded-full text-base md:text-lg font-bold shadow-2xl flex items-center gap-3 border border-white/5 disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        {loading ? (
+          <>
+            <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+            </svg>
+            A preparar...
+          </>
+        ) : (
+          <>
+            {t('book.cta')}
+            <ArrowRight className="w-5 h-5" />
+          </>
+        )}
+      </motion.button>
+      {error && <p className="text-red-400 text-sm text-center max-w-xs">{error}</p>}
+    </div>
+  );
+};
+
 const BookSection = () => {
   const { t } = useT();
   const sectionRef = useRef(null);
@@ -851,16 +910,9 @@ const BookSection = () => {
         {/* CTA */}
         <motion.div
           style={{ opacity, y }}
-          className="mt-10 md:mt-14 flex flex-col items-center"
+          className="mt-10 md:mt-14 flex flex-col items-center gap-4"
         >
-          <motion.button
-            whileHover={{ scale: 1.05, boxShadow: "0 25px 50px -12px rgba(0,0,0,0.4)" }}
-            whileTap={{ scale: 0.95 }}
-            className="bg-[#2D1B14] text-[#FDFCF8] px-8 md:px-12 py-4 md:py-5 rounded-full text-base md:text-lg font-bold shadow-2xl flex items-center gap-3 border border-white/5"
-          >
-            {t('book.cta')}
-            <ArrowRight className="w-5 h-5" />
-          </motion.button>
+          <OrderBookButton />
         </motion.div>
 
       </div>
