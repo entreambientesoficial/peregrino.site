@@ -459,28 +459,11 @@ function useBookSize() {
 }
 
 // ---------------------------------------------------------------------------
-// URLs de OAuth — separadas por responsabilidade
-//
-// SUPABASE_AUTH_CALLBACK: URL do endpoint do Supabase (usada no QR Code para
-//   usuários mobile que querem escanear e autenticar pelo celular).
-//
-// OAUTH_REDIRECT_URL: URL explícita para onde o Supabase redireciona o
-//   navegador WEB após o login Google. O parâmetro ?auth_type=web garante
-//   que o sistema operacional NÃO tente interceptar a URL como deep link do
-//   app Peregrino — forçando o browser a permanecer na sessão web.
-//
-// ⚠️  Esta URL deve estar cadastrada em:
-//   Supabase Dashboard → Authentication → URL Configuration → Redirect URLs
-//   Adicione: http://localhost:5173/book?auth_type=web (dev)
-//             https://seu-dominio.com/book?auth_type=web (produção)
+// URL de redirect OAuth — dinâmica, funciona em dev e produção
+// ⚠️  Deve estar cadastrada em: Supabase → Auth → URL Configuration → Redirect URLs
+//     Adicione: http://localhost:5173/** (dev) e https://peregrino-site.pages.dev/** (prod)
 // ---------------------------------------------------------------------------
-const SUPABASE_AUTH_CALLBACK = `${import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '')}/auth/v1/callback`
-  || 'http://localhost:5173/book';
-
-// URL dinâmica de redirect pós-login — usa window.location.origin para funcionar
-// tanto em dev (localhost:5173) quanto em produção (peregrino-site.pages.dev).
-// O parâmetro mode=browser_verify impede interceptação por deep link do app.
-const OAUTH_REDIRECT_URL = `${window.location.origin}/book?mode=browser_verify`;
+const OAUTH_REDIRECT_URL = `${window.location.origin}/book`;
 
 // ---------------------------------------------------------------------------
 // Auth Modal — intercepta "Personalizar livro" quando user é null
@@ -494,17 +477,10 @@ function AuthModal({ onClose, onGuestMode }: { onClose: () => void; onGuestMode:
     setLoading(true);
     setError(null);
     try {
-      // Log de confirmação — confirma a URL antes do redirect acontecer
       console.log('Iniciando login OAuth para:', OAUTH_REDIRECT_URL);
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          // redirectTo deve ser idêntico ao cadastrado no painel do Supabase
-          redirectTo: OAUTH_REDIRECT_URL,
-          // skipBrowserRedirect: false garante que o redirect aconteça no
-          // próprio navegador (não tenta abrir app externo)
-          skipBrowserRedirect: false,
-        },
+        options: { redirectTo: OAUTH_REDIRECT_URL, skipBrowserRedirect: false },
       });
       if (authError) throw authError;
     } catch (e: any) {
@@ -523,7 +499,7 @@ function AuthModal({ onClose, onGuestMode }: { onClose: () => void; onGuestMode:
       {/* Backdrop */}
       <div className="absolute inset-0 bg-[#1B2616]/70 backdrop-blur-xl" onClick={onClose} />
 
-      {/* Card — bottom-sheet no mobile, centralizado no desktop */}
+      {/* Card */}
       <motion.div
         initial={{ y: 60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -531,7 +507,7 @@ function AuthModal({ onClose, onGuestMode }: { onClose: () => void; onGuestMode:
         transition={{ type: 'spring', damping: 24, stiffness: 300 }}
         className="relative z-10 w-full sm:max-w-md bg-[#FDFCF8] rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl px-8 pt-8 pb-10"
       >
-        {/* Botão fechar */}
+        {/* Fechar */}
         <button
           onClick={onClose}
           className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-[#2D3A27]/8 hover:bg-[#2D3A27]/15 transition-colors text-[#2D3A27]/50"
@@ -540,43 +516,24 @@ function AuthModal({ onClose, onGuestMode }: { onClose: () => void; onGuestMode:
         </button>
 
         {/* Cabeçalho */}
-        <div className="flex flex-col items-center text-center mb-7">
+        <div className="flex flex-col items-center text-center mb-6">
           <img src="/img-apoio/vieira.png" alt="" className="h-10 object-contain mb-4" />
-          <h2 className="font-serif text-2xl text-[#2D3A27] italic mb-1">{t('bp.auth.title')}</h2>
-          <p className="text-[#2D3A27]/50 text-sm max-w-xs">{t('bp.auth.sub')}</p>
-        </div>
-
-        {/* QR Code — URL completa com redirectTo embutido para o celular saber para onde voltar */}
-        <div className="flex flex-col items-center bg-[#F5F2EA] rounded-2xl p-5 gap-3 mb-6">
-          <p className="text-[0.65rem] uppercase tracking-[0.25em] text-[#2D3A27]/35">{t('bp.auth.qr_label')}</p>
-          <div className="p-3 bg-white rounded-xl shadow-sm">
-            <QRCodeSVG
-              value={`${import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '')}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(OAUTH_REDIRECT_URL)}`}
-              size={120}
-              bgColor="#ffffff"
-              fgColor="#2D3A27"
-              level="M"
-            />
+          <h2 className="font-serif text-2xl text-[#2D3A27] italic mb-3">{t('bp.auth.title')}</h2>
+          {/* Aviso de instrução */}
+          <div className="px-4 py-2.5 bg-[#2D3A27]/6 rounded-2xl border border-[#2D3A27]/10 w-full">
+            <p className="text-[#2D3A27]/70 text-xs leading-relaxed text-center">
+              Utilize a <span className="font-semibold text-[#2D3A27]">mesma conta do App Peregrino</span> para carregar suas fotos automaticamente.
+            </p>
           </div>
-          <p className="text-xs text-[#2D3A27]/45 text-center max-w-[220px] leading-relaxed">
-            {t('bp.auth.qr_sub')}
-          </p>
         </div>
 
-        {/* Divisor */}
-        <div className="flex items-center gap-3 mb-5">
-          <div className="flex-1 h-px bg-[#2D3A27]/8" />
-          <span className="text-[0.65rem] uppercase tracking-[0.25em] text-[#2D3A27]/30">{t('bp.auth.or')}</span>
-          <div className="flex-1 h-px bg-[#2D3A27]/8" />
-        </div>
-
-        {/* Botão Google */}
+        {/* Botão Google — ação principal destaque */}
         <motion.button
           onClick={handleGoogle}
           disabled={loading}
           whileHover={!loading ? { scale: 1.02 } : {}}
           whileTap={!loading ? { scale: 0.98 } : {}}
-          className="w-full flex items-center justify-center gap-3 bg-white border border-[#2D3A27]/15 rounded-full py-3.5 text-[#2D3A27] font-medium text-sm shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+          className="w-full flex items-center justify-center gap-3 bg-[#2D3A27] rounded-2xl py-4 text-[#E8E4D9] font-semibold text-sm shadow-lg hover:bg-[#1B2616] transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-5"
         >
           {loading ? (
             <>
@@ -599,7 +556,17 @@ function AuthModal({ onClose, onGuestMode }: { onClose: () => void; onGuestMode:
           )}
         </motion.button>
 
-        {error && <p className="text-red-500/80 text-xs text-center mb-3">{error}</p>}
+        {/* Divisor */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-1 h-px bg-[#2D3A27]/10" />
+          <span className="text-[0.65rem] uppercase tracking-[0.25em] text-[#2D3A27]/30">ou entre com e-mail</span>
+          <div className="flex-1 h-px bg-[#2D3A27]/10" />
+        </div>
+
+        {/* Formulário e-mail + senha */}
+        <EmailPasswordForm onError={setError} />
+
+        {error && <p className="text-red-500/80 text-xs text-center mt-3 mb-1">{error}</p>}
 
         {/* Modo convidado */}
         <button
@@ -610,6 +577,79 @@ function AuthModal({ onClose, onGuestMode }: { onClose: () => void; onGuestMode:
         </button>
       </motion.div>
     </motion.div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Formulário e-mail + senha — para usuários que não usam Google
+// ---------------------------------------------------------------------------
+function EmailPasswordForm({ onError }: { onError: (msg: string) => void }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPass, setShowPass] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      // onAuthStateChange no BookPage detecta o login automaticamente
+    } catch (err: any) {
+      onError(err?.message ?? 'E-mail ou senha incorretos.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inputClass = "w-full bg-white border border-[#2D3A27]/15 rounded-xl px-4 py-3 text-sm text-[#2D3A27] placeholder-[#2D3A27]/30 focus:outline-none focus:border-[#2D3A27]/40 focus:ring-1 focus:ring-[#2D3A27]/20 transition-all";
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <input
+        type="email"
+        placeholder="seu@email.com"
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+        className={inputClass}
+        autoComplete="email"
+        required
+      />
+      <div className="relative">
+        <input
+          type={showPass ? 'text' : 'password'}
+          placeholder="Senha"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          className={inputClass}
+          autoComplete="current-password"
+          required
+        />
+        <button
+          type="button"
+          onClick={() => setShowPass(v => !v)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#2D3A27]/30 hover:text-[#2D3A27]/60 transition-colors text-xs"
+        >
+          {showPass ? 'ocultar' : 'mostrar'}
+        </button>
+      </div>
+      <motion.button
+        type="submit"
+        disabled={loading || !email || !password}
+        whileHover={!loading ? { scale: 1.01 } : {}}
+        whileTap={!loading ? { scale: 0.99 } : {}}
+        className="w-full bg-[#E8E4D9] text-[#2D3A27] font-semibold text-sm rounded-xl py-3 hover:bg-[#ddd9cc] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+      >
+        {loading ? (
+          <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+          </svg>
+        ) : 'Entrar'}
+      </motion.button>
+    </form>
   );
 }
 
@@ -776,37 +816,8 @@ export default function BookPage() {
     return () => subscription.unsubscribe();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ---------------------------------------------------------------------------
-  // Polling — detecta login via QR Code (celular autenticou, PC não recebeu
-  // o evento do onAuthStateChange pois são dispositivos diferentes).
-  // Roda a cada 2s apenas enquanto o AuthModal estiver aberto.
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    if (!showAuthModal) return; // só ativa quando o modal de QR está visível
-
-    console.log('[Auth/Polling] Modal aberto — iniciando verificação a cada 2s.');
-
-    const interval = setInterval(async () => {
-      const { data: { user: polledUser } } = await supabase.auth.getUser();
-
-      if (polledUser) {
-        console.log('[Auth/Polling] Usuário detectado via polling:', polledUser.email);
-        clearInterval(interval);
-        setUser(polledUser);
-        setShowAuthModal(false);
-        setStep('customize');
-        loadUserData(polledUser.id);
-      } else {
-        console.log('[Auth/Polling] Aguardando autenticação...');
-      }
-    }, 2000);
-
-    // Limpa o intervalo quando o modal fechar ou o componente desmontar
-    return () => {
-      console.log('[Auth/Polling] Modal fechado — polling encerrado.');
-      clearInterval(interval);
-    };
-  }, [showAuthModal]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Polling removido — o onAuthStateChange acima já detecta todos os logins
+  // (Google OAuth redirect + email/senha) de forma confiável no mesmo browser.
 
   const handleCustomize = () => {
     if (!user) { setShowAuthModal(true); return; }
