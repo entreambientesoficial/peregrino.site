@@ -82,7 +82,21 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ## 🔄 Histórico de Alterações
 
-### Sessão 18/04/2026 (cont.) — OAuth Fix + QR Code correto + Polling + Produção no ar
+### Sessão 18/04/2026 (cont.) — Reestruturação do Login (AuthModal)
+
+#### Fim da tentativa Cross-Device (QR Code)
+**Contexto**: A verificação via polling (`getUser()`) checava apenas a sessão do browser do dispositivo atual (PC). O login do usuário via QR Code instanciaria a sessão no navegador do **celular**, impossibilitando qualquer cruzamento nativo direto pelo Supabase de forma confiável para o PC sem o envolvimento extra de um database intermitente.
+**Decisão**: **Abandonar a abordagem Cross-Device (QR Code)** para manter a infraestrutura da LaunchPage leve e com redução de possíveis falhas. Adotamos o modelo clássico e robusto na própria aba, garantindo 100% de estabilidade de redirect no Supabase.
+
+#### Refatoração do `AuthModal` (`BookPage.tsx`):
+- **Botão Google em Destaque**: Agora a interface sugere de forma central o Single-Sign-On com Conta Google.
+- **Formulário de E-mail/Senha**: Adicionado um submenu amigável para digitação de credenciais (direcionado a quem usa Hotmail, UOL, etc.), integrado via função customizada `EmailPasswordForm` que chama nativamente o método `signInWithPassword`.
+- **Aviso Instrucional**: Adicionado de forma evidente no topo: *"Utilize a mesma conta do App Peregrino para carregar suas fotos automaticamente"*, educando o usuário da obrigatoriedade do sincronismo de base de dados.
+- **Funcionamento Fluido Nativizado**: A própria janela do navegador recebe a sessão. Nisso, o `useEffect` nativo atrelado a `onAuthStateChange` resolve instantaneamente a lógica, extrai as informações fechando o `AuthModal` automaticamente e instanciando as fotos, mantendo a experiência do usuário excelente e sem quebras.
+
+---
+
+### Sessão 18/04/2026 (anteriormente) — OAuth Fix + QR Code correto + Polling + Produção no ar
 
 #### Problema resolvido: tela branca em produção
 **Causa**: variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` não estavam configuradas no painel do Cloudflare Pages. O Vite injeta apenas variáveis com prefixo `VITE_` no bundle; sem elas, `createClient('', '')` lançava exceção e o React renderizava em branco.
