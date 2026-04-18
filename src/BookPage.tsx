@@ -459,6 +459,30 @@ function useBookSize() {
 }
 
 // ---------------------------------------------------------------------------
+// URLs de OAuth — separadas por responsabilidade
+//
+// SUPABASE_AUTH_CALLBACK: URL do endpoint do Supabase (usada no QR Code para
+//   usuários mobile que querem escanear e autenticar pelo celular).
+//
+// OAUTH_REDIRECT_URL: URL explícita para onde o Supabase redireciona o
+//   navegador WEB após o login Google. O parâmetro ?auth_type=web garante
+//   que o sistema operacional NÃO tente interceptar a URL como deep link do
+//   app Peregrino — forçando o browser a permanecer na sessão web.
+//
+// ⚠️  Esta URL deve estar cadastrada em:
+//   Supabase Dashboard → Authentication → URL Configuration → Redirect URLs
+//   Adicione: http://localhost:5173/book?auth_type=web (dev)
+//             https://seu-dominio.com/book?auth_type=web (produção)
+// ---------------------------------------------------------------------------
+const SUPABASE_AUTH_CALLBACK = `${import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '')}/auth/v1/callback`
+  || 'http://localhost:5173/book';
+
+// URL explícita de redirect pós-login — NÃO usa window.location.origin para
+// evitar variações entre ambientes que possam resolver para o scheme do app.
+// O parâmetro auth_type=web bloqueia qualquer interceptação por deep link.
+const OAUTH_REDIRECT_URL = 'http://localhost:5173/book?auth_type=web';
+
+// ---------------------------------------------------------------------------
 // Auth Modal — intercepta "Personalizar livro" quando user é null
 // ---------------------------------------------------------------------------
 function AuthModal({ onClose, onGuestMode }: { onClose: () => void; onGuestMode: () => void }) {
@@ -466,16 +490,21 @@ function AuthModal({ onClose, onGuestMode }: { onClose: () => void; onGuestMode:
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Deep link para o app Peregrino — atualizar com URL definitiva após domínio definido
-  const QR_DEEP_LINK = `${window.location.origin}/book`;
-
   const handleGoogle = async () => {
     setLoading(true);
     setError(null);
     try {
+      // Log de confirmação — confirma a URL antes do redirect acontecer
+      console.log('Iniciando login OAuth para:', OAUTH_REDIRECT_URL);
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: `${window.location.origin}/book` },
+        options: {
+          // redirectTo deve ser idêntico ao cadastrado no painel do Supabase
+          redirectTo: OAUTH_REDIRECT_URL,
+          // skipBrowserRedirect: false garante que o redirect aconteça no
+          // próprio navegador (não tenta abrir app externo)
+          skipBrowserRedirect: false,
+        },
       });
       if (authError) throw authError;
     } catch (e: any) {
@@ -517,11 +546,17 @@ function AuthModal({ onClose, onGuestMode }: { onClose: () => void; onGuestMode:
           <p className="text-[#2D3A27]/50 text-sm max-w-xs">{t('bp.auth.sub')}</p>
         </div>
 
-        {/* QR Code */}
+        {/* QR Code — URL completa com redirectTo embutido para o celular saber para onde voltar */}
         <div className="flex flex-col items-center bg-[#F5F2EA] rounded-2xl p-5 gap-3 mb-6">
           <p className="text-[0.65rem] uppercase tracking-[0.25em] text-[#2D3A27]/35">{t('bp.auth.qr_label')}</p>
           <div className="p-3 bg-white rounded-xl shadow-sm">
-            <QRCodeSVG value={QR_DEEP_LINK} size={120} bgColor="#ffffff" fgColor="#2D3A27" level="M" />
+            <QRCodeSVG
+              value={`${import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '')}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(OAUTH_REDIRECT_URL)}`}
+              size={120}
+              bgColor="#ffffff"
+              fgColor="#2D3A27"
+              level="M"
+            />
           </div>
           <p className="text-xs text-[#2D3A27]/45 text-center max-w-[220px] leading-relaxed">
             {t('bp.auth.qr_sub')}
@@ -656,6 +691,9 @@ export default function BookPage() {
         .order('taken_at', { ascending: false })
         .limit(50);
 
+      // Log principal — mostra o retorno bruto da query (lista vazia [] incluída)
+      console.log('Dados recuperados:', photos);
+      // Log detalhado — diagnóstico completo com contagem e possível erro
       console.log('[Peregrino/photos]', { photos, photoCount, photosError, userId });
 
       const latestStamp  = latestStamps?.[0] as any;
@@ -704,16 +742,31 @@ export default function BookPage() {
 
   // Listener de auth — detecta login inclusive após redirect OAuth
   useEffect(() => {
+    // Verificação inicial de sessão — cobre o caso de redirect pós-OAuth
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
+        console.log('[Auth] Sessão existente detectada, carregando dados do usuário:', session.user.email);
         setUser(session.user);
         loadUserData(session.user.id);
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Guard: ignora eventos que não sejam de sessão web válida.
+      // O parâmetro auth_type=web no redirect URL já bloqueia deep links,
+      // mas este guard é uma camada extra de segurança.
+      if (event === 'SIGNED_OUT') {
+        console.log('[Auth] Usuário desconectado.');
+        setUser(null);
+        return;
+      }
+
+      console.log('[Auth] Evento recebido:', event, '| Usuário:', session?.user?.email ?? 'nenhum');
+
       setUser(session?.user ?? null);
       if (session?.user) {
+        // Sessão web confirmada — carrega dados e avança o fluxo
+        console.log('[Auth] Sessão web confirmada. Carregando dados e avançando para personalizar.');
         loadUserData(session.user.id);
         setShowAuthModal(false);
         setStep('customize');
@@ -722,6 +775,38 @@ export default function BookPage() {
 
     return () => subscription.unsubscribe();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---------------------------------------------------------------------------
+  // Polling — detecta login via QR Code (celular autenticou, PC não recebeu
+  // o evento do onAuthStateChange pois são dispositivos diferentes).
+  // Roda a cada 2s apenas enquanto o AuthModal estiver aberto.
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (!showAuthModal) return; // só ativa quando o modal de QR está visível
+
+    console.log('[Auth/Polling] Modal aberto — iniciando verificação a cada 2s.');
+
+    const interval = setInterval(async () => {
+      const { data: { user: polledUser } } = await supabase.auth.getUser();
+
+      if (polledUser) {
+        console.log('[Auth/Polling] Usuário detectado via polling:', polledUser.email);
+        clearInterval(interval);
+        setUser(polledUser);
+        setShowAuthModal(false);
+        setStep('customize');
+        loadUserData(polledUser.id);
+      } else {
+        console.log('[Auth/Polling] Aguardando autenticação...');
+      }
+    }, 2000);
+
+    // Limpa o intervalo quando o modal fechar ou o componente desmontar
+    return () => {
+      console.log('[Auth/Polling] Modal fechado — polling encerrado.');
+      clearInterval(interval);
+    };
+  }, [showAuthModal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCustomize = () => {
     if (!user) { setShowAuthModal(true); return; }

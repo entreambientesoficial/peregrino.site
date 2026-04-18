@@ -82,6 +82,48 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ## 🔄 Histórico de Alterações
 
+### Sessão 18/04/2026 (cont.) — OAuth Fix + QR Code correto + Polling + Produção no ar
+
+#### Problema resolvido: tela branca em produção
+**Causa**: variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` não estavam configuradas no painel do Cloudflare Pages. O Vite injeta apenas variáveis com prefixo `VITE_` no bundle; sem elas, `createClient('', '')` lançava exceção e o React renderizava em branco.
+**Fix**: adicionadas as variáveis em Cloudflare Pages → Settings → Environment Variables. Site voltou ao ar em `https://peregrino-site.pages.dev/`.
+
+#### Problema resolvido: Google OAuth tentando abrir o app em vez do browser
+**Causa**: `redirectTo` estava usando `window.location.origin` dinamicamente. A URL `http://localhost:5173/book` não estava na lista de Redirect URLs do Supabase (`/book` sem o path base não era coberto por `http://localhost:5173`), então o Supabase fazia fallback para o **Site URL** (`https://peregrino.pages.dev`) que tem PWA/Service Worker configurado, o que fazia o OS tentar abrir como app.
+
+**Fix aplicado em `BookPage.tsx`**:
+- `OAUTH_REDIRECT_URL` fixado em `'http://localhost:5173/book?auth_type=web'` (explícito, sem `window.location.origin`)
+- Parâmetro `?auth_type=web` impede interceptação por deep link do app
+- `skipBrowserRedirect: false` explícito no `signInWithOAuth`
+- URL adicionada na lista de Redirect URLs do Supabase
+- `console.log('Iniciando login OAuth para:', OAUTH_REDIRECT_URL)` adicionado antes do redirect para confirmação
+
+#### QR Code corrigido — endpoint `/authorize` em vez de `/callback`
+**Problema**: QR apontava para `/auth/v1/callback` (destino pós-login), que não inicia o fluxo OAuth.
+**Fix**: QR agora aponta para o endpoint correto de início do fluxo:
+```
+${VITE_SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(OAUTH_REDIRECT_URL)}
+```
+Ao escanear, o celular abre o browser → Google autentica → Supabase cria sessão → Polling no PC detecta.
+
+#### Polling de 2s — detecta login via QR sem depender do onAuthStateChange cross-device
+`onAuthStateChange` não dispara entre dispositivos diferentes (celular autenticou, PC não sabe). Solução: polling separado em `useEffect` dependente de `showAuthModal`:
+- Roda `supabase.auth.getUser()` a cada **2 segundos** — somente quando o `AuthModal` está aberto
+- Ao detectar usuário: fecha modal, chama `loadUserData()`, avança para Step "Personalizar"
+- Cleanup automático: `clearInterval` quando modal fecha ou componente desmonta
+- Logs: `[Auth/Polling]` no console para acompanhamento
+
+#### Logging de auth aprimorado (`onAuthStateChange`)
+- Evento `SIGNED_OUT` tratado separadamente (guard explícito)
+- Todos os eventos logados: `[Auth] Evento recebido: SIGNED_IN | Usuário: email`
+- Sessão existente (redirect pós-OAuth) logada: `[Auth] Sessão existente detectada...`
+
+#### Logs de debug de fotos
+- `console.log('Dados recuperados:', photos)` adicionado logo após a query de fotos em `loadUserData` — exibe o array bruto (mesmo que vazio `[]`)
+- Log detalhado mantido: `[Peregrino/photos]` com `{ photos, photoCount, photosError, userId }`
+
+---
+
 ### Sessão 18/04/2026 (noite) — Auth Gate + Dados Reais + Logout + Debug de Fotos
 
 #### Auth Gate — `AuthModal` implementado em `BookPage.tsx`
@@ -243,6 +285,7 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 | 3 | **↳ Deep link App → Site** | Configurar no app URL final `?lang=xx` ao fim da jornada | 🔴 Depende do domínio |
 | 4 | **↳ Deploy no domínio definitivo** | Apontar domínio para Cloudflare Pages | 🔴 Depende do domínio |
 | 5 | **↳ Login SSO no `/book`** | ~~Integrar Supabase Auth~~ — **Concluído**: AuthModal + Google OAuth + dados reais do Supabase integrados | ✅ Feito |
+| 5b | **↳ Env vars no Cloudflare** | `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` adicionadas em Settings → Environment Variables | ✅ Feito |
 | 6 | **Configurar Stripe no Cloudflare** | Adicionar `STRIPE_SECRET_KEY` em Settings → Environment Variables no painel Cloudflare Pages | 🟠 Alta |
 | 7 | **Conta Lulu.com** | Criar conta de desenvolvedor, testar API, configurar 3 produtos (A4, 50/100/150 pág, capa dura) | 🟠 Alta |
 | 8 | **Geração do PDF** | Backend que monta o PDF do livro com fotos/dados do Supabase e envia para API Lulu | 🟠 Alta |
@@ -330,4 +373,4 @@ O `logo-sf.png` (fundo branco + texto vermelho) não permite recolorir só o tex
 
 ---
 
-*Última atualização: 18/04/2026 (noite, cont.) — Sessão com Claude Sonnet 4.6*
+*Última atualização: 18/04/2026 (tarde, cont.) — Sessão com Antigravity (Google DeepMind)*
