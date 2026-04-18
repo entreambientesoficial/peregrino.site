@@ -119,69 +119,91 @@ type PageKind =
 
 interface PageDef { kind: PageKind; p?: number | number[]; ck?: 'c1' | 'c2' | 'c3' }
 
-const PAGE_DEFS: PageDef[] = [
-  { kind: 'cover' },                              // 0
-  { kind: 'preface' },                            // 1
-  // ── Bloco 1 — spread 1/2 a 7/8
-  { kind: 'stagger-4',    p: [0,1,2,3] },        // 2
-  { kind: 'full-dark',    p: 4 },                // 3
-  { kind: 'centered-dark',p: 5 },                // 4
-  { kind: 'centered-dark',p: 6 },                // 5
-  { kind: 'stacked-2',    p: [7,8] },            // 6
-  { kind: 'large-white',  p: 9,  ck: 'c1' },     // 7  ← legenda 1
-  { kind: 'panorama-L',   p: 10 },               // 8
-  { kind: 'panorama-R',   p: 10 },               // 9
-  // ── Bloco 2 — spread 9/10 a 15/16
-  { kind: 'grid-4-white', p: [0,1,2,3] },        // 10
-  { kind: 'grid-4-white', p: [4,5,6,7] },        // 11
-  { kind: 'large-white',  p: 8 },                // 12
-  { kind: 'stacked-2',    p: [9,10] },           // 13
-  { kind: 'full-dark',    p: 0 },                // 14
-  { kind: 'full-dark',    p: 1 },                // 15
-  { kind: 'full-dark',    p: 2 },                // 16
-  { kind: 'grid-4-white', p: [3,4,5,6] },        // 17
-  // ── Bloco 3 — spread 17/18 a 23/24
-  { kind: 'stagger-4',    p: [7,8,9,10] },       // 18
-  { kind: 'full-dark',    p: 0 },                // 19
-  { kind: 'full-dark',    p: 1 },                // 20
-  { kind: 'full-dark',    p: 2 },                // 21
-  { kind: 'stacked-2',    p: [3,4] },            // 22
-  { kind: 'large-white',  p: 5,  ck: 'c2' },     // 23  ← legenda 2
-  { kind: 'panorama-L',   p: 6 },                // 24
-  { kind: 'panorama-R',   p: 6 },                // 25
-  // ── Bloco 4 — spread 25/26 a 31/32
-  { kind: 'trio-h',       p: [7,8,9] },          // 26
-  { kind: 'trio-v',       p: [10,0,1] },         // 27
-  { kind: 'large-white',  p: 2 },                // 28
-  { kind: 'stacked-2',    p: [3,4] },            // 29
-  { kind: 'full-dark',    p: 5 },                // 30
-  { kind: 'full-dark',    p: 6 },                // 31
-  { kind: 'full-dark',    p: 7 },                // 32
-  { kind: 'grid-4-white', p: [8,9,10,0] },       // 33
-  // ── Bloco 5 — spread 33/34 a 39/40
-  { kind: 'grid-4-white', p: [1,2,3,4] },        // 34
-  { kind: 'full-dark',    p: 5 },                // 35
-  { kind: 'full-dark',    p: 6 },                // 36
-  { kind: 'full-dark',    p: 7 },                // 37
-  { kind: 'stacked-2',    p: [8,9] },            // 38
-  { kind: 'large-white',  p: 10, ck: 'c3' },     // 39  ← legenda 3
-  { kind: 'panorama-L',   p: 0 },                // 40
-  { kind: 'panorama-R',   p: 0 },                // 41
-  // ── Bloco 6 — spread 41/42 a 49/50
-  { kind: 'grid-4-white', p: [1,2,3,4] },        // 42
-  { kind: 'grid-4-white', p: [5,6,7,8] },        // 43
-  { kind: 'large-white',  p: 9 },                // 44
-  { kind: 'stacked-2',    p: [10,0] },           // 45
-  { kind: 'full-dark',    p: 1 },                // 46
-  { kind: 'full-dark',    p: 2 },                // 47
-  { kind: 'full-dark',    p: 3 },                // 48
-  { kind: 'grid-4-white', p: [4,5,6,7] },        // 49
-  { kind: 'grid-4-white', p: [8,9,10,0] },       // 50
-  { kind: 'large-white',  p: 1 },                // 51
-  // ── Fechamento
-  { kind: 'stamps' },                             // 52
-  { kind: 'back-cover' },                         // 53
+// Bloco de 50 layouts fotográficos — repetido N vezes conforme o modelo escolhido.
+// Os valores de `p` não importam; apenas o tipo (single vs array) define o nº de slots.
+const PHOTO_BLOCK: PageDef[] = [
+  { kind: 'stagger-4',    p: [0,1,2,3] },
+  { kind: 'full-dark',    p: 0 },
+  { kind: 'centered-dark',p: 0 },
+  { kind: 'centered-dark',p: 0 },
+  { kind: 'stacked-2',    p: [0,1] },
+  { kind: 'large-white',  p: 0 },
+  { kind: 'panorama-L',   p: 0 },
+  { kind: 'panorama-R',   p: 0 },
+  { kind: 'grid-4-white', p: [0,1,2,3] },
+  { kind: 'grid-4-white', p: [0,1,2,3] },
+  { kind: 'large-white',  p: 0 },
+  { kind: 'stacked-2',    p: [0,1] },
+  { kind: 'full-dark',    p: 0 },
+  { kind: 'full-dark',    p: 0 },
+  { kind: 'full-dark',    p: 0 },
+  { kind: 'grid-4-white', p: [0,1,2,3] },
+  { kind: 'stagger-4',    p: [0,1,2,3] },
+  { kind: 'full-dark',    p: 0 },
+  { kind: 'full-dark',    p: 0 },
+  { kind: 'full-dark',    p: 0 },
+  { kind: 'stacked-2',    p: [0,1] },
+  { kind: 'large-white',  p: 0 },
+  { kind: 'panorama-L',   p: 0 },
+  { kind: 'panorama-R',   p: 0 },
+  { kind: 'trio-h',       p: [0,1,2] },
+  { kind: 'trio-v',       p: [0,1,2] },
+  { kind: 'large-white',  p: 0 },
+  { kind: 'stacked-2',    p: [0,1] },
+  { kind: 'full-dark',    p: 0 },
+  { kind: 'full-dark',    p: 0 },
+  { kind: 'full-dark',    p: 0 },
+  { kind: 'grid-4-white', p: [0,1,2,3] },
+  { kind: 'grid-4-white', p: [0,1,2,3] },
+  { kind: 'full-dark',    p: 0 },
+  { kind: 'full-dark',    p: 0 },
+  { kind: 'full-dark',    p: 0 },
+  { kind: 'stacked-2',    p: [0,1] },
+  { kind: 'large-white',  p: 0 },
+  { kind: 'panorama-L',   p: 0 },
+  { kind: 'panorama-R',   p: 0 },
+  { kind: 'grid-4-white', p: [0,1,2,3] },
+  { kind: 'grid-4-white', p: [0,1,2,3] },
+  { kind: 'large-white',  p: 0 },
+  { kind: 'stacked-2',    p: [0,1] },
+  { kind: 'full-dark',    p: 0 },
+  { kind: 'full-dark',    p: 0 },
+  { kind: 'full-dark',    p: 0 },
+  { kind: 'grid-4-white', p: [0,1,2,3] },
+  { kind: 'grid-4-white', p: [0,1,2,3] },
+  { kind: 'large-white',  p: 0 },
 ];
+
+// Gera as page defs completas para um dado modelo:
+// cover + preface + (modelPages foto-layouts repetidos) + stamps + back-cover
+function generatePageDefs(modelPages: number): PageDef[] {
+  const photoDefs: PageDef[] = [];
+  while (photoDefs.length < modelPages) photoDefs.push(...PHOTO_BLOCK);
+
+  // Trim ao tamanho exato; se terminar em panorama-L, remove para não ficar ímpar sem par
+  photoDefs.length = modelPages;
+  if (photoDefs.at(-1)?.kind === 'panorama-L') photoDefs.pop();
+
+  // react-pageflip exige número par de páginas no total
+  const total = photoDefs.length + 4; // +4 = cover, preface, stamps, back-cover
+  if (total % 2 !== 0) photoDefs.push({ kind: 'full-dark', p: 0 });
+
+  // Distribui as 3 legendas (c1, c2, c3) nos large-white distribuídos pelo livro
+  const lwIdx = photoDefs.reduce<number[]>((acc, d, i) =>
+    d.kind === 'large-white' ? [...acc, i] : acc, []);
+  (['c1', 'c2', 'c3'] as const).forEach((ck, ci) => {
+    const pos = lwIdx[Math.floor(lwIdx.length * (ci + 1) / 4)];
+    if (pos !== undefined) photoDefs[pos] = { ...photoDefs[pos], ck };
+  });
+
+  return [
+    { kind: 'cover' },
+    { kind: 'preface' },
+    ...photoDefs,
+    { kind: 'stamps' },
+    { kind: 'back-cover' },
+  ];
+}
 
 // ---------------------------------------------------------------------------
 // Mock de locais para os espaços de carimbo
@@ -210,11 +232,11 @@ const STAMP_PLACES = [
 // Cada página recebe slots únicos em ordem — foto 0 nunca repete.
 // panorama-R compartilha o mesmo slot do panorama-L anterior (mesma foto, metades opostas).
 // ---------------------------------------------------------------------------
-function buildPhotoSlotMap(): Map<number, number[]> {
+function buildPhotoSlotMap(pageDefs: PageDef[]): Map<number, number[]> {
   let slot = 0;
   const map = new Map<number, number[]>();
-  for (let i = 0; i < PAGE_DEFS.length; i++) {
-    const def = PAGE_DEFS[i];
+  for (let i = 0; i < pageDefs.length; i++) {
+    const def = pageDefs[i];
     if (def.p === undefined) { map.set(i, []); continue; }
     if (def.kind === 'panorama-R') { map.set(i, map.get(i - 1)!); continue; }
     const indices = Array.isArray(def.p) ? def.p : [def.p];
@@ -222,7 +244,6 @@ function buildPhotoSlotMap(): Map<number, number[]> {
   }
   return map;
 }
-const PHOTO_SLOT_MAP = buildPhotoSlotMap();
 
 // ---------------------------------------------------------------------------
 // Renderizador de páginas
@@ -234,10 +255,10 @@ function renderBookPage(
   S: number,
   sp: (n: number) => string,
   fs: (n: number) => string,
+  slotMap: Map<number, number[]>,
 ) {
   const photos = bookData.selectedPhotos;
-  // Slots sequenciais pré-calculados para esta página — sem repetição entre páginas
-  const slots = PHOTO_SLOT_MAP.get(pageIdx) ?? [];
+  const slots = slotMap.get(pageIdx) ?? [];
   const ph = (n: number) => n < photos.length ? photos[n] : `__stamp__:${n}`;
   // Helper: retorna <img> real ou placeholder de carimbo escalado com S
   const img = (n: number, cls: string, sty?: React.CSSProperties) => {
@@ -1113,13 +1134,17 @@ FlipPage.displayName = 'FlipPage';
 // ---------------------------------------------------------------------------
 // Livro interativo — 50 páginas
 // ---------------------------------------------------------------------------
-function InteractiveBook({ bookData }: { bookData: BookData }) {
+function InteractiveBook({ bookData, selectedModel }: { bookData: BookData; selectedModel: ModelId }) {
   const { t } = useT();
   const bookRef = useRef<any>(null);
   const [page, setPage] = useState(0);
   const [bookOpen, setBookOpen] = useState(false);
   const { w, h } = useBookSize();
-  const TOTAL = PAGE_DEFS.length;
+
+  const model = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
+  const pageDefs = React.useMemo(() => generatePageDefs(model.pages), [model.pages]);
+  const slotMap  = React.useMemo(() => buildPhotoSlotMap(pageDefs), [pageDefs]);
+  const TOTAL = pageDefs.length;
 
   const goNext = () => bookRef.current?.pageFlip().flipNext();
   const goPrev = () => bookRef.current?.pageFlip().flipPrev();
@@ -1202,9 +1227,9 @@ function InteractiveBook({ bookData }: { bookData: BookData }) {
               disableFlipByClick={false} style={{}} className="" startPage={0}
               onFlip={(e: any) => setPage(e.data)}
             >
-              {PAGE_DEFS.map((def, idx) => (
+              {pageDefs.map((def, idx) => (
                 <FlipPage key={idx}>
-                  {renderBookPage(def, idx, bookData, S, sp, fs)}
+                  {renderBookPage(def, idx, bookData, S, sp, fs, slotMap)}
                 </FlipPage>
               ))}
             </HTMLFlipBook>
@@ -1311,7 +1336,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
               </div>
             </div>
           ) : (
-            <InteractiveBook bookData={bookData} />
+            <InteractiveBook bookData={bookData} selectedModel={selectedModel} />
           )}
         </motion.div>
 
