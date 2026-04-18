@@ -636,18 +636,18 @@ const JourneySection = () => {
   });
 
   const routes = [
-    { name: "Caminho Francês",           tagKey: "journey.tag.frances",           start: "St-Jean-Pied-de-Port / Somport", dist: "765km", steps: 33, img: "/img-apoio/card1-St-Jean-Pied-de-Port.webp" },
-    { name: "Caminho Português (Central)",tagKey: "journey.tag.portugues.central", start: "Porto",                          dist: "274km", steps: 11, img: "/img-apoio/card2-porto.webp" },
-    { name: "Caminho Português (Lisboa)", tagKey: "journey.tag.portugues.lisboa",  start: "Lisboa",                         dist: "625km", steps: 25, img: "/img-apoio/card10-caminho-portugues-lisboa.webp" },
-    { name: "Caminho Português (Costa)",  tagKey: "journey.tag.portugues.costa",   start: "Porto (variante litoral)",        dist: "281km", steps: 13, img: "/img-apoio/card3-Porto-litoral.webp" },
-    { name: "Português Interior",         tagKey: "journey.tag.interior",          start: "Viseu",                          dist: "426km", steps: 17, img: "/img-apoio/card9-viseu.webp" },
-    { name: "Caminho Primitivo",          tagKey: "journey.tag.primitivo",         start: "Oviedo",                         dist: "321km", steps: 14, img: "/img-apoio/card4-oviedo.webp" },
-    { name: "Caminho do Norte",           tagKey: "journey.tag.norte",             start: "Irún",                           dist: "817km", steps: 35, img: "/img-apoio/card5-norte.webp" },
-    { name: "Caminho Inglês",             tagKey: "journey.tag.ingles",            start: "Ferrol / A Coruña",              dist: "126km", steps:  6, img: "/img-apoio/card6-ferrol.webp" },
-    { name: "Caminho Aragonês",           tagKey: "journey.tag.aragones",          start: "Somport",                        dist: "166km", steps:  6, img: "/img-apoio/card11-caminho-aragones.webp" },
-    { name: "Vía de la Plata",            tagKey: "journey.tag.plata",             start: "Sevilha",                        dist: "990km", steps: 36, img: "/img-apoio/card7-via-de-la-plata.webp" },
-    { name: "Caminho Sanabrês",           tagKey: "journey.tag.sanabres",          start: "Granja de Moreruela",            dist: "340km", steps: 11, img: "/img-apoio/card8-granja-de-moreruela.webp" },
-    { name: "Caminho de Inverno",         tagKey: "journey.tag.inverno",           start: "Ponferrada",                     dist: "269km", steps: 10, img: "/img-apoio/card12-caminho-de-inverno.webp" },
+    { nameKey: "journey.name.frances",           tagKey: "journey.tag.frances",           startKey: null,                        start: "St-Jean-Pied-de-Port / Somport", dist: "765km", steps: 33, img: "/img-apoio/card1-St-Jean-Pied-de-Port.webp" },
+    { nameKey: "journey.name.portugues.central", tagKey: "journey.tag.portugues.central", startKey: null,                        start: "Porto",                          dist: "274km", steps: 11, img: "/img-apoio/card2-porto.webp" },
+    { nameKey: "journey.name.portugues.lisboa",  tagKey: "journey.tag.portugues.lisboa",  startKey: "journey.start.lisboa",      start: "Lisboa",                         dist: "625km", steps: 25, img: "/img-apoio/card10-caminho-portugues-lisboa.webp" },
+    { nameKey: "journey.name.portugues.costa",   tagKey: "journey.tag.portugues.costa",   startKey: "journey.start.porto.costa", start: "Porto (variante litoral)",        dist: "281km", steps: 13, img: "/img-apoio/card3-Porto-litoral.webp" },
+    { nameKey: "journey.name.interior",          tagKey: "journey.tag.interior",          startKey: null,                        start: "Viseu",                          dist: "426km", steps: 17, img: "/img-apoio/card9-viseu.webp" },
+    { nameKey: "journey.name.primitivo",         tagKey: "journey.tag.primitivo",         startKey: null,                        start: "Oviedo",                         dist: "321km", steps: 14, img: "/img-apoio/card4-oviedo.webp" },
+    { nameKey: "journey.name.norte",             tagKey: "journey.tag.norte",             startKey: null,                        start: "Irún",                           dist: "817km", steps: 35, img: "/img-apoio/card5-norte.webp" },
+    { nameKey: "journey.name.ingles",            tagKey: "journey.tag.ingles",            startKey: null,                        start: "Ferrol / A Coruña",              dist: "126km", steps:  6, img: "/img-apoio/card6-ferrol.webp" },
+    { nameKey: "journey.name.aragones",          tagKey: "journey.tag.aragones",          startKey: null,                        start: "Somport",                        dist: "166km", steps:  6, img: "/img-apoio/card11-caminho-aragones.webp" },
+    { nameKey: "journey.name.plata",             tagKey: "journey.tag.plata",             startKey: "journey.start.sevilha",     start: "Sevilha",                        dist: "990km", steps: 36, img: "/img-apoio/card7-via-de-la-plata.webp" },
+    { nameKey: "journey.name.sanabres",          tagKey: "journey.tag.sanabres",          startKey: null,                        start: "Granja de Moreruela",            dist: "340km", steps: 11, img: "/img-apoio/card8-granja-de-moreruela.webp" },
+    { nameKey: "journey.name.inverno",           tagKey: "journey.tag.inverno",           startKey: null,                        start: "Ponferrada",                     dist: "269km", steps: 10, img: "/img-apoio/card12-caminho-de-inverno.webp" },
   ];
 
 
@@ -734,8 +734,8 @@ const SequentialCard = ({ route, index, total, progress }: { route: any, index: 
       {/* Nature Image */}
       <div className="absolute inset-0 z-0 scale-105 group-hover:scale-110 transition-transform duration-[5s] ease-out">
         <img 
-          src={route.img} 
-          alt={route.name}
+          src={route.img}
+          alt={t(route.nameKey)}
           className="w-full h-full object-cover"
         />
         {/* Dark transparency overlay requested by user */}
@@ -751,12 +751,12 @@ const SequentialCard = ({ route, index, total, progress }: { route: any, index: 
             {t(route.tagKey)}
           </span>
           <h3 className="font-serif text-4xl md:text-7xl text-[#E8E4D9] mb-8 tracking-tighter leading-none group-hover:text-white transition-colors">
-            {route.name}
+            {t(route.nameKey)}
           </h3>
           <div className="flex flex-wrap gap-8 text-[#E8E4D9]/80 font-sans text-sm md:text-base border-t border-white/10 pt-8">
             <div className="flex flex-col">
               <span className="text-[10px] uppercase tracking-widest text-white/40 mb-1">{t('journey.label.start')}</span>
-              <span className="font-medium font-serif italic text-lg text-[#E8E4D9]">{route.start}</span>
+              <span className="font-medium font-serif italic text-lg text-[#E8E4D9]">{route.startKey ? t(route.startKey) : route.start}</span>
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] uppercase tracking-widest text-white/40 mb-1">{t('journey.label.dist')}</span>
