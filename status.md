@@ -59,7 +59,7 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 | **HeroSection** | ✅ Concluído | Vídeo full-screen e botão de conversão funcional. Texto traduzido. |
 | **DownloadModal** | ✅ Concluído | Fluxo PWA com detecção iOS/Android/Desktop. QR Code real (qrcode.react). |
 | **FeaturesSection** | ✅ Concluído | Grid bento de 7 cards táteis. Texto traduzido. |
-| **JourneySection** | ✅ Concluído | Efeito Baralho. 12 rotas reais. Indicador de progresso. Texto traduzido. |
+| **JourneySection** | ✅ Concluído | Efeito Baralho. 12 rotas reais. Indicador de progresso. Texto traduzido. Cards otimizados: 900px, WebP q80, média de -65% de peso. |
 | **BookSection** | ✅ Concluído | Vídeo em loop + frases animadas. Botão leva para `/book`. |
 | **Footer** | ✅ Concluído | Logo composta: `vieira.png` + texto "Peregrino" em Playfair Display 700 branco. Seletor de idioma inline (10 idiomas), links legais, copyright. |
 | **Modais Legais** | ✅ Concluído | Termos de Uso, Privacidade (LGPD + GDPR) e Contato em PT-BR. |
@@ -68,21 +68,47 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 | Componente | Status | Descrição Técnica |
 | :--- | :--- | :--- |
 | **Header** | ✅ Concluído | Logo composta: `vieira.png` + "Peregrino" Playfair Display 700 branco. Botão voltar à landing. Botão "Sair" discreto (aparece apenas quando autenticado) que faz logout e reseta para DEMO. |
-| **Step 1 — Revelação** | ✅ Concluído | Livro interativo 54 pág. + botão "Personalizar" + 3 cards de modelo clicáveis + botão "Encomendar" condicional (aparece após personalizar) + aviso de sem fotos (quando autenticado mas galeria vazia) |
-| **3 Modelos de Livro** | ✅ Concluído | **Essencial** 50 pág. €49,90 · **Jornada** 100 pág. €74,90 (destaque) · **Legado** 150 pág. €99,90 — definidos em `BOOK_MODELS` no `BookPage.tsx` |
+| **Step 1 — Revelação** | ✅ Concluído | Livro interativo + botão "Personalizar" + 3 cards de modelo clicáveis + botão "Encomendar" condicional (aparece após personalizar) + aviso de sem fotos (quando autenticado mas galeria vazia) |
+| **3 Modelos de Livro** | ✅ Concluído | **Essencial** 50 pág. €49,90 · **Jornada** 100 pág. €74,90 (destaque) · **Legado** 150 pág. €99,90. Cada modelo gera dinamicamente o número correto de páginas via `generatePageDefs(modelPages)`. |
 | **Step 2 — Personalizar** | ✅ Concluído | Seletor de modelo no topo + abas Capa / Textos / Fotos + "Ver resultado" volta ao Step 1 com `hasCustomized=true` |
 | **Step 3 — Encomendar** | ✅ Concluído | Resumo dinâmico com nome, páginas e preço do modelo selecionado + Stripe Checkout |
-| **Livro interativo** | ✅ Concluído | 54 páginas: capa (pág 0), prefácio (pág 1), 50 layouts fotográficos (págs 2–51), selos dinâmicos (pág 52), contracapa (pág 53) |
+| **Livro interativo** | ✅ Concluído | Estrutura dinâmica: capa + prefácio + N layouts fotográficos (50/100/150 conforme modelo) + selos + contracapa. Layouts definidos em `PHOTO_BLOCK` (50 templates) repetido N vezes por `generatePageDefs()`. Slot map sequencial via `buildPhotoSlotMap()` garante zero repetição de fotos. |
+| **Livro demo (sem login)** | ✅ Concluído | 89 fotos reais do Caminho de Santiago em `public/img-apoio/img-webp/` (1.webp a 90.webp, sem 43). Fotos otimizadas: 1200px, WebP q82, total 22MB (era 178MB, -87%). Pool cobre os 83 slots do modelo de 50 pág. sem nenhuma repetição. |
 | **i18n do /book** | ✅ Concluído | 39 keys `bp.*` em 10 idiomas; capa usa nome da rota traduzido via `t('bp.demo.route')`; `I18nProvider` no `App.tsx` raiz |
-| **Auth Gate + SSO** | ✅ Concluído | `AuthModal` com QR code (deep link para o app), botão Google OAuth (Supabase `signInWithOAuth`), bypass de convidado. `onAuthStateChange` detecta login após redirect OAuth e carrega dados automaticamente. |
-| **Dados reais do peregrino** | ✅ Concluído | `loadUserData` carrega `journeys`, `profiles`, `stamps` e `photos` em paralelo (`Promise.all`). Prioridade de rota: `journeys.route_id` → `profiles.route_id` → `stamps.route_id` → `'frances'`. km exibe `journeys.total_km` ou `stamps.km_accumulated`; **nunca** cai em DEMO_USER.km (bug corrigido). |
-| **Assistente de Preenchimento** | ✅ Concluído | Modal de gap ao clicar "Ver resultado": compara fotos disponíveis vs páginas do plano; oferece upload de fotos (FileReader → Data URL) ou "Manter espaços para carimbos". Contagem de fotos no resumo inclui uploads manuais. |
-| **Espaços para Carimbo (mock)** | ✅ Concluído | `ph()` sem modulo — índices além das fotos reais exibem placeholder elegante com circle tracejado, cidade e dia do Caminho Francês (SJPP→SCQ, 16 locais). Fim da repetição de fotos. |
-| **Cloudflare Worker** | ⚠️ Parcial | `functions/create-checkout.js` criado. Falta `STRIPE_SECRET_KEY` no painel Cloudflare |
+| **Auth Gate + SSO** | ✅ Concluído | `AuthModal` com botão Google OAuth (Supabase `signInWithOAuth`) + formulário email/senha + bypass convidado. `onAuthStateChange` detecta login após redirect OAuth e carrega dados automaticamente. |
+| **Dados reais do peregrino** | ✅ Concluído | `loadUserData` carrega `journeys`, `profiles`, `stamps` e `photos` em paralelo (`Promise.all`). Prioridade de rota: `journeys.route_id` → `profiles.route_id` → `stamps.route_id` → `'frances'`. km: `journeys.total_km` → `stamps.km_accumulated` → `0`. |
+| **Assistente de Preenchimento** | ✅ Concluído | `GapModal` ao clicar "Ver resultado" quando `allPhotos.length < model.pages`. Opções: Upload (FileReader → Data URL, reabre modal se gap persiste) ou "Manter espaços em branco". |
+| **Página de Selos** | ✅ Concluído | `displayCount = max(stampsCount, 28)` — nunca fica em branco. Selos reais mostram número; células extras exibem mock de local do Caminho (código + cidade + dia) usando `STAMP_PLACES[16]`. |
+| **Cloudflare Worker** | ⚠️ Parcial | `functions/create-checkout.js` criado. Falta adicionar `STRIPE_SECRET_KEY` no painel Cloudflare Pages → Settings → Environment Variables. |
 
 ---
 
 ## 🔄 Histórico de Alterações
+
+### Sessão 18/04/2026 (madrugada) — Fotos reais do Caminho + Otimização de assets
+
+#### 89 fotos reais do Caminho de Santiago no livro demo
+- Fotos baixadas de Unsplash/Pexels (licença comercial gratuita), temáticas do Caminho Francês
+- Convertidas de JPG/PNG para WebP via `sharp-cli` pelo terminal do Antigravity (VS Code)
+- Redimensionadas para **1200px de largura** (suficiente para telas Retina no livro interativo)
+- Comprimidas em **WebP quality 82** — resultado: 178MB → 22MB (**-87%**)
+- Salvas em `public/img-apoio/img-webp/1.webp` … `90.webp` (sem o 43, que não existia na origem)
+- `DEMO_USER.allPhotos` atualizado com os 89 caminhos via `Array.from({ length: 90 }).filter(n !== 43).map(n => /img-apoio/img-webp/${n}.webp)`
+- `DEMO_USER.photos` corrigido de `147` para `89`
+- O modelo Essencial (50 pág.) tem 83 slots de foto — todos preenchidos com fotos únicas, zero repetição
+
+#### Otimização dos 12 cards de rota (JourneySection)
+- Cards estavam entre 103KB e 381KB, dimensões de até 1600×1200px
+- Reprocessados para **900px de largura**, **WebP quality 80**
+- Resultado: peso total de ~2.8MB → ~1MB (**-65%** em média)
+- Maiores reduções: card1 (365→100KB, -73%), card10 (381→99KB, -74%), card6 (353→123KB, -65%)
+- Script de otimização disponível em `scripts/optimize-cards.mjs`
+
+#### Pasta de originais
+- Fotos originais ficaram em `img-apoio/img-webp/` na raiz do projeto (fora de `public/`) — não servidas pelo Vite
+- Podem ser deletadas com segurança para liberar espaço em disco; o site usa apenas as de `public/`
+
+---
 
 ### Sessão 18/04/2026 (final) — 3 bugs críticos resolvidos definitivamente
 
@@ -341,19 +367,39 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 
 ## ⏳ Pendências
 
-| # | Item | Detalhe | Prioridade |
-|---|---|---|---|
-| 1 | **Definir domínio** | Desbloqueia tudo abaixo | 🔴 Bloqueante |
-| 2 | **↳ URLs definitivas** | Atualizar `https://peregrino.app` no modal PWA e no Stripe Worker | 🔴 Depende do domínio |
-| 3 | **↳ Deep link App → Site** | Configurar no app URL final `?lang=xx` ao fim da jornada | 🔴 Depende do domínio |
-| 4 | **↳ Deploy no domínio definitivo** | Apontar domínio para Cloudflare Pages | 🔴 Depende do domínio |
-| 5 | **↳ Login SSO no `/book`** | ~~Integrar Supabase Auth~~ — **Concluído**: AuthModal + Google OAuth + dados reais do Supabase integrados | ✅ Feito |
-| 5b | **↳ Env vars no Cloudflare** | `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` adicionadas em Settings → Environment Variables | ✅ Feito |
-| 6 | **Configurar Stripe no Cloudflare** | Adicionar `STRIPE_SECRET_KEY` em Settings → Environment Variables no painel Cloudflare Pages | 🟠 Alta |
-| 7 | **Conta Lulu.com** | Criar conta de desenvolvedor, testar API, configurar 3 produtos (A4, 50/100/150 pág, capa dura) | 🟠 Alta |
-| 8 | **Geração do PDF** | Backend que monta o PDF do livro com fotos/dados do Supabase e envia para API Lulu | 🟠 Alta |
-| 9 | **Ko-fi** | Criar conta ko-fi.com para doações no app | 🟡 Média |
-| 10 | **Tradução dos termos legais** | Atualmente só PT-BR. Adicionar EN quando projeto gerar receita | 🟢 Baixa |
+### 🔴 Bloqueantes (precisam ser resolvidas primeiro)
+
+| # | Item | Detalhe |
+|---|---|---|
+| 1 | **Definir domínio definitivo** | Desbloqueia todos os itens abaixo. Opções: `peregrino.app`, `peregrino.pt`, etc. |
+| 2 | **↳ Atualizar URLs definitivas** | Após domínio: atualizar URL no modal PWA, no Stripe Worker (`create-checkout.js`) e no `OAUTH_REDIRECT_URL` do `BookPage.tsx` (atualmente usa `window.location.origin`) |
+| 3 | **↳ Registar Redirect URL no Supabase** | Auth → URL Configuration → adicionar `https://[dominio]/book` na lista de Redirect URLs permitidas |
+| 4 | **↳ Deploy no domínio definitivo** | Apontar DNS do domínio para Cloudflare Pages |
+| 5 | **↳ Deep link App → Site** | No app Peregrino, ao fim da jornada exibir botão com URL `https://[dominio]/book?lang=xx` |
+
+### 🟠 Alta prioridade (funcionalidade de venda)
+
+| # | Item | Detalhe |
+|---|---|---|
+| 6 | **Configurar Stripe no Cloudflare** | Adicionar `STRIPE_SECRET_KEY` em Cloudflare Pages → Settings → Environment Variables. Worker `functions/create-checkout.js` já criado e aguarda a key. |
+| 7 | **Conta Lulu.com** | Criar conta de desenvolvedor em lulu.com. Configurar 3 produtos (formato A4, 50/100/150 páginas, capa dura). Testar API de criação de pedido. |
+| 8 | **Geração do PDF do livro** | Backend (Cloudflare Worker ou função serverless) que: (1) recebe pedido pós-Stripe, (2) busca fotos do Supabase, (3) monta PDF com os layouts do livro, (4) envia para API Lulu, (5) Lulu entrega direto ao cliente. Maior tarefa técnica do projeto. |
+
+### 🟡 Média prioridade
+
+| # | Item | Detalhe |
+|---|---|---|
+| 9 | **Foto de capa do demo** | A capa do livro demo usa `DEMO_USER.allPhotos[0]` = `1.webp`. Verificar se é uma foto de impacto suficiente; se não, reordenar as fotos ou apontar para uma mais representativa. |
+| 10 | **Teste do fluxo completo pós-login** | Logar com conta real do app → verificar se fotos carregam, rota e km exibem corretos, livro monta sem erros no console. |
+| 11 | **Ko-fi** | Criar conta ko-fi.com para sistema de doações dentro do app Peregrino. Zero taxa, zero mensalidade. |
+
+### 🟢 Baixa prioridade
+
+| # | Item | Detalhe |
+|---|---|---|
+| 12 | **Tradução dos termos legais** | Atualmente só PT-BR. Adicionar versão em EN quando o projeto começar a gerar receita. |
+| 13 | **Limpar originais** | A pasta `img-apoio/img-webp/` na raiz do projeto (fora de `public/`) contém os JPGs originais das 89 fotos. Pode ser deletada para liberar ~180MB em disco sem impacto no site. |
+| 14 | **Remover logs de debug** | `console.log('[Peregrino/photos]', ...)` e `console.log('Dados recuperados:', ...)` em `loadUserData` devem ser removidos antes do lançamento em produção. |
 
 ---
 
@@ -368,23 +414,40 @@ APP-PEREGRINO LANDING/
 │   └── i18n.ts                   ← Sistema multilíngue (10 idiomas, Context API)
 ├── public/
 │   ├── img-apoio/
-│   │   ├── card1 a card12 (.webp) ← Fotos das 12 rotas (WebP, otimizadas)
+│   │   ├── card1 a card12 (.webp) ← 12 rotas — 900px, WebP q80, ~50-120KB cada
+│   │   ├── img-webp/              ← 89 fotos do Caminho para o livro demo
+│   │   │   └── 1.webp … 90.webp  ← (sem 43) — 1200px, WebP q82, total 22MB
 │   │   ├── vieira.png             ← Emblema da concha (fundo transparente) — componente da logo
 │   │   ├── logo-sf.png            ← Logo completa original (referência, não usada nas telas)
-│   │   └── video-site-peregrino.mp4 ← Vídeo BookSection (2.9 MB)
+│   │   └── video-site-peregrino.mp4 ← Vídeo BookSection (~2.9 MB)
 │   ├── video-apoio/
-│   │   └── 2.mp4                 ← Vídeo Hero (9.4 MB)
+│   │   └── 2.mp4                 ← Vídeo Hero (~9.4 MB)
 │   ├── sucesso.html              ← Página pós-pagamento Stripe
 │   └── _redirects                ← SPA routing para Cloudflare Pages
 ├── functions/
-│   └── create-checkout.js        ← Cloudflare Worker — cria sessão Stripe
+│   └── create-checkout.js        ← Cloudflare Worker — cria sessão Stripe (aguarda STRIPE_SECRET_KEY)
 ├── scripts/
 │   ├── optimize-images.mjs       ← Converte PNG/JPG → WebP via sharp
-│   └── optimize-videos.mjs       ← Recomprime MP4 via fluent-ffmpeg (CRF 28)
+│   ├── optimize-videos.mjs       ← Recomprime MP4 via fluent-ffmpeg (CRF 28)
+│   └── optimize-cards.mjs        ← Recomprime cards de rota para 900px/q80
+├── img-apoio/img-webp/           ← ORIGINAIS (JPG/PNG das 89 fotos) — fora de public/, não servido
+│                                    Pode ser deletado para liberar ~180MB em disco
 ├── .env                          ← Chaves Stripe (NUNCA commitar — gitignored)
 ├── peregrino.md                  ← Guia de estética e princípios do projeto
 └── status.md                     ← Este arquivo
 ```
+
+### Lógica central do livro (`BookPage.tsx`)
+
+| Função/Componente | Responsabilidade |
+|---|---|
+| `PHOTO_BLOCK` | Array de 50 `PageDef` — template de layouts (single, grid-4, stagger-4, panorama, etc.) |
+| `generatePageDefs(n)` | Repete `PHOTO_BLOCK` até atingir `n` páginas foto; adiciona capa, prefácio, selos, contracapa |
+| `buildPhotoSlotMap(defs)` | Mapeia índice de página → array de índices sequenciais de foto (sem repetição) |
+| `renderBookPage(def, idx, data, S, sp, fs, slotMap)` | Renderiza uma página; usa `data.allPhotos[slotMap[idx][k]]`; além do pool exibe placeholder de carimbo |
+| `InteractiveBook` | Recebe `selectedModel`; computa `pageDefs` + `slotMap` via `useMemo`; renderiza `HTMLFlipBook` |
+| `GapModal` | Modal que aparece quando `allPhotos.length < model.pages`; upload via FileReader; reabre se gap persiste |
+| `loadUserData(userId)` | `Promise.all` para `journeys`, `profiles`, `stamps` (×2) e `photos`; prioridade de rota e km definida |
 
 ---
 
@@ -436,4 +499,4 @@ O `logo-sf.png` (fundo branco + texto vermelho) não permite recolorir só o tex
 
 ---
 
-*Última atualização: 18/04/2026 (noite, cont.) — Sessão com Antigravity (Google DeepMind)*
+*Última atualização: 18/04/2026 (madrugada) — Sessão com Antigravity (Claude Sonnet 4.6)*
