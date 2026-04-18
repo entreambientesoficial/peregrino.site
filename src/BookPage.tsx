@@ -30,20 +30,10 @@ const DEMO_USER = {
   days: 33,
   km: 765,
   stamps: 28,
-  photos: 147,
-  allPhotos: [
-    '/img-apoio/card1-St-Jean-Pied-de-Port.webp',
-    '/img-apoio/card2-porto.webp',
-    '/img-apoio/card3-Porto-litoral.webp',
-    '/img-apoio/card5-norte.webp',
-    '/img-apoio/card6-ferrol.webp',
-    '/img-apoio/card7-via-de-la-plata.webp',
-    '/img-apoio/card8-granja-de-moreruela.webp',
-    '/img-apoio/card9-viseu.webp',
-    '/img-apoio/card10-caminho-portugues-lisboa.webp',
-    '/img-apoio/card11-caminho-aragones.webp',
-    '/img-apoio/card12-caminho-de-inverno.webp',
-  ],
+  photos: 89,
+  allPhotos: Array.from({ length: 90 }, (_, i) => i + 1)
+    .filter(n => n !== 43)
+    .map(n => `/img-apoio/img-webp/${n}.webp`),
 };
 
 const CAMINO_QUOTES = [
