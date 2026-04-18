@@ -206,20 +206,39 @@ const STAMP_PLACES = [
 ];
 
 // ---------------------------------------------------------------------------
+// Mapeamento sequencial de slots de fotos
+// Cada página recebe slots únicos em ordem — foto 0 nunca repete.
+// panorama-R compartilha o mesmo slot do panorama-L anterior (mesma foto, metades opostas).
+// ---------------------------------------------------------------------------
+function buildPhotoSlotMap(): Map<number, number[]> {
+  let slot = 0;
+  const map = new Map<number, number[]>();
+  for (let i = 0; i < PAGE_DEFS.length; i++) {
+    const def = PAGE_DEFS[i];
+    if (def.p === undefined) { map.set(i, []); continue; }
+    if (def.kind === 'panorama-R') { map.set(i, map.get(i - 1)!); continue; }
+    const indices = Array.isArray(def.p) ? def.p : [def.p];
+    map.set(i, indices.map(() => slot++));
+  }
+  return map;
+}
+const PHOTO_SLOT_MAP = buildPhotoSlotMap();
+
+// ---------------------------------------------------------------------------
 // Renderizador de páginas
 // ---------------------------------------------------------------------------
 function renderBookPage(
   def: PageDef,
-  _idx: number,
+  pageIdx: number,
   bookData: BookData,
   S: number,
   sp: (n: number) => string,
   fs: (n: number) => string,
 ) {
   const photos = bookData.selectedPhotos;
-  // Sem modulo — índice além das fotos disponíveis exibe espaço de carimbo
+  // Slots sequenciais pré-calculados para esta página — sem repetição entre páginas
+  const slots = PHOTO_SLOT_MAP.get(pageIdx) ?? [];
   const ph = (n: number) => n < photos.length ? photos[n] : `__stamp__:${n}`;
-  const arr = def.p as number[];
   // Helper: retorna <img> real ou placeholder de carimbo escalado com S
   const img = (n: number, cls: string, sty?: React.CSSProperties) => {
     const src = ph(n);
@@ -299,7 +318,7 @@ function renderBookPage(
     case 'full-dark':
       return (
         <div className="w-full h-full relative">
-          {img(def.p as number, 'w-full h-full object-cover')}
+          {img(slots[0], 'w-full h-full object-cover')}
           <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.3) 0%, transparent 40%)' }} />
         </div>
       );
@@ -309,7 +328,7 @@ function renderBookPage(
       return (
         <div className="w-full h-full flex flex-col items-center justify-center" style={{ background: '#161c14', padding: sp(14) }}>
           <div className="w-full overflow-hidden" style={{ height: '65%' }}>
-            {img(def.p as number, 'w-full h-full object-cover')}
+            {img(slots[0], 'w-full h-full object-cover')}
           </div>
           <p className="text-[#E8E4D9]/30 uppercase tracking-[0.22em] text-center" style={{ fontSize: fs(0.44), marginTop: sp(10) }}>
             {bookData.route} · {new Date().getFullYear()}
@@ -325,7 +344,7 @@ function renderBookPage(
       return (
         <div className="w-full h-full flex flex-col justify-center bg-[#FDFCF8]" style={{ padding: sp(12) }}>
           <div className="w-full overflow-hidden" style={{ flex: caption ? '0 0 68%' : '0 0 80%', boxShadow: `0 ${sp(3)} ${sp(14)} rgba(0,0,0,0.14)` }}>
-            {img(def.p as number, 'w-full h-full object-cover')}
+            {img(slots[0], 'w-full h-full object-cover')}
           </div>
           {caption ? (
             <p className="font-serif italic text-[#2D3A27]/60 leading-relaxed text-center" style={{ fontSize: fs(0.62), marginTop: sp(9), padding: `0 ${sp(4)}` }}>
@@ -344,9 +363,9 @@ function renderBookPage(
     case 'stacked-2':
       return (
         <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: sp(4), padding: sp(10) }}>
-          {arr.map((pi, i) => (
+          {slots.map((s, i) => (
             <div key={i} className="overflow-hidden">
-              {img(pi, 'w-full h-full object-cover')}
+              {img(s, 'w-full h-full object-cover')}
             </div>
           ))}
         </div>
@@ -356,9 +375,9 @@ function renderBookPage(
     case 'grid-4-white':
       return (
         <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
-          {arr.map((pi, i) => (
+          {slots.map((s, i) => (
             <div key={i} className="overflow-hidden">
-              {img(pi, 'w-full h-full object-cover')}
+              {img(s, 'w-full h-full object-cover')}
             </div>
           ))}
         </div>
@@ -369,12 +388,12 @@ function renderBookPage(
       return (
         <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
           <div style={{ display: 'grid', gridTemplateRows: '46% 50%', gap: sp(3) }}>
-            <div className="overflow-hidden">{img(arr[0], 'w-full h-full object-cover')}</div>
-            <div className="overflow-hidden">{img(arr[2], 'w-full h-full object-cover')}</div>
+            <div className="overflow-hidden">{img(slots[0], 'w-full h-full object-cover')}</div>
+            <div className="overflow-hidden">{img(slots[2], 'w-full h-full object-cover')}</div>
           </div>
           <div style={{ display: 'grid', gridTemplateRows: '50% 46%', gap: sp(3), marginTop: sp(10) }}>
-            <div className="overflow-hidden">{img(arr[1], 'w-full h-full object-cover')}</div>
-            <div className="overflow-hidden">{img(arr[3], 'w-full h-full object-cover')}</div>
+            <div className="overflow-hidden">{img(slots[1], 'w-full h-full object-cover')}</div>
+            <div className="overflow-hidden">{img(slots[3], 'w-full h-full object-cover')}</div>
           </div>
         </div>
       );
@@ -383,10 +402,10 @@ function renderBookPage(
     case 'trio-h':
       return (
         <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateRows: '54% 42%', gridTemplateColumns: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
-          <div className="overflow-hidden">{img(arr[0], 'w-full h-full object-cover')}</div>
-          <div className="overflow-hidden">{img(arr[1], 'w-full h-full object-cover')}</div>
+          <div className="overflow-hidden">{img(slots[0], 'w-full h-full object-cover')}</div>
+          <div className="overflow-hidden">{img(slots[1], 'w-full h-full object-cover')}</div>
           <div className="overflow-hidden" style={{ gridColumn: '1 / 3' }}>
-            {img(arr[2], 'w-full h-full object-cover')}
+            {img(slots[2], 'w-full h-full object-cover')}
           </div>
         </div>
       );
@@ -396,10 +415,10 @@ function renderBookPage(
       return (
         <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateColumns: '52% 44%', gridTemplateRows: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
           <div className="overflow-hidden" style={{ gridRow: '1 / 3' }}>
-            {img(arr[0], 'w-full h-full object-cover')}
+            {img(slots[0], 'w-full h-full object-cover')}
           </div>
-          <div className="overflow-hidden">{img(arr[1], 'w-full h-full object-cover')}</div>
-          <div className="overflow-hidden">{img(arr[2], 'w-full h-full object-cover')}</div>
+          <div className="overflow-hidden">{img(slots[1], 'w-full h-full object-cover')}</div>
+          <div className="overflow-hidden">{img(slots[2], 'w-full h-full object-cover')}</div>
         </div>
       );
 
@@ -407,14 +426,14 @@ function renderBookPage(
     case 'panorama-L':
       return (
         <div className="w-full h-full overflow-hidden" style={{ background: '#141a12' }}>
-          {img(def.p as number, 'w-full h-full object-cover', { objectPosition: '0% center' })}
+          {img(slots[0], 'w-full h-full object-cover', { objectPosition: '0% center' })}
         </div>
       );
 
     case 'panorama-R':
       return (
         <div className="w-full h-full overflow-hidden" style={{ background: '#141a12' }}>
-          {img(def.p as number, 'w-full h-full object-cover', { objectPosition: '100% center' })}
+          {img(slots[0], 'w-full h-full object-cover', { objectPosition: '100% center' })}
         </div>
       );
 
@@ -805,8 +824,8 @@ function GapModal({
             <span className="text-[#2D3A27]/40 text-xs font-serif italic">✦</span>
           </div>
           <div className="text-left">
-            <p className="font-semibold text-sm">Manter espaços para carimbos</p>
-            <p className="text-[#2D3A27]/45 text-xs">As páginas restantes ficam com layout de Espaço para Carimbo / Notas</p>
+            <p className="font-semibold text-sm">Manter espaços em branco</p>
+            <p className="text-[#2D3A27]/45 text-xs">As páginas restantes ficam com layout de Espaço para Notas (os carimbos da rota já ocupam a última página)</p>
           </div>
         </motion.button>
       </motion.div>
@@ -1185,7 +1204,7 @@ function InteractiveBook({ bookData }: { bookData: BookData }) {
             >
               {PAGE_DEFS.map((def, idx) => (
                 <FlipPage key={idx}>
-                  {renderBookPage(def, idx + 1, bookData, S, sp, fs)}
+                  {renderBookPage(def, idx, bookData, S, sp, fs)}
                 </FlipPage>
               ))}
             </HTMLFlipBook>
