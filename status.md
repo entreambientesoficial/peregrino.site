@@ -67,20 +67,58 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 ### Editor do Livro (`/book`)
 | Componente | Status | Descrição Técnica |
 | :--- | :--- | :--- |
-| **Header** | ✅ Concluído | Logo composta: `vieira.png` + "Peregrino" Playfair Display 700 branco. Botão voltar à landing. |
-| **Step 1 — Revelação** | ✅ Concluído | Livro interativo 54 pág. + botão "Personalizar" + 3 cards de modelo clicáveis + botão "Encomendar" condicional (aparece após personalizar) |
+| **Header** | ✅ Concluído | Logo composta: `vieira.png` + "Peregrino" Playfair Display 700 branco. Botão voltar à landing. Botão "Sair" discreto (aparece apenas quando autenticado) que faz logout e reseta para DEMO. |
+| **Step 1 — Revelação** | ✅ Concluído | Livro interativo 54 pág. + botão "Personalizar" + 3 cards de modelo clicáveis + botão "Encomendar" condicional (aparece após personalizar) + aviso de sem fotos (quando autenticado mas galeria vazia) |
 | **3 Modelos de Livro** | ✅ Concluído | **Essencial** 50 pág. €49,90 · **Jornada** 100 pág. €74,90 (destaque) · **Legado** 150 pág. €99,90 — definidos em `BOOK_MODELS` no `BookPage.tsx` |
 | **Step 2 — Personalizar** | ✅ Concluído | Seletor de modelo no topo + abas Capa / Textos / Fotos + "Ver resultado" volta ao Step 1 com `hasCustomized=true` |
 | **Step 3 — Encomendar** | ✅ Concluído | Resumo dinâmico com nome, páginas e preço do modelo selecionado + Stripe Checkout |
 | **Livro interativo** | ✅ Concluído | 54 páginas: capa (pág 0), prefácio (pág 1), 50 layouts fotográficos (págs 2–51), selos dinâmicos (pág 52), contracapa (pág 53) |
 | **i18n do /book** | ✅ Concluído | 39 keys `bp.*` em 10 idiomas; capa usa nome da rota traduzido via `t('bp.demo.route')`; `I18nProvider` no `App.tsx` raiz |
-| **Login SSO** | ⚠️ Placeholder | Aguarda domínio + integração Supabase Auth |
-| **Fotos reais** | ⚠️ Demo | Usa fotos das rotas como demo. Substituir por galeria do Supabase após SSO |
+| **Auth Gate + SSO** | ✅ Concluído | `AuthModal` com QR code (deep link para o app), botão Google OAuth (Supabase `signInWithOAuth`), bypass de convidado. `onAuthStateChange` detecta login após redirect OAuth e carrega dados automaticamente. |
+| **Dados reais do peregrino** | 🔄 Integrado | `loadUserData` carrega `profiles`, `stamps` e `photos` do Supabase com dados reais. Fallback para DEMO_USER se tabelas vazias. Depuração ativa na query de fotos (`console.log` para diagnóstico no browser). |
 | **Cloudflare Worker** | ⚠️ Parcial | `functions/create-checkout.js` criado. Falta `STRIPE_SECRET_KEY` no painel Cloudflare |
 
 ---
 
 ## 🔄 Histórico de Alterações
+
+### Sessão 18/04/2026 (noite) — Auth Gate + Dados Reais + Logout + Debug de Fotos
+
+#### Auth Gate — `AuthModal` implementado em `BookPage.tsx`
+O botão "Personalizar livro" agora é interceptado por `handleCustomize()`: se o utilizador não estiver autenticado, abre o `AuthModal` em vez de avançar para o Step 2.
+
+O `AuthModal` contém:
+- **QR Code** (`qrcode.react`) com deep link para o app Peregrino — para quem acede ao site no desktop e quer sincronizar com os dados do telemóvel
+- **Botão Google OAuth** — `supabase.auth.signInWithOAuth({ provider: 'google', redirectTo: '/book' })`; após redirect, `onAuthStateChange` deteta automaticamente a sessão e avança para Step 2
+- **Link "Continuar sem conta"** — fecha o modal e vai direto para Step 2 (modo convidado)
+- Bottom-sheet no mobile, modal centralizado no desktop
+
+#### Integração de dados reais — `loadUserData`
+Após login, `loadUserData(userId)` executa queries reais no Supabase:
+- `profiles` → `full_name`, `route_id`
+- `stamps` (mais recente) → `km_accumulated`, `stamped_at` (data final)
+- `stamps` (mais antigo) → `stamped_at` (data de início, para calcular duração)
+- `photos` → `thumb_url`, `taken_at` DESC, limit 50
+
+`BookData` foi expandido com campos reais: `userName`, `startDate`, `endDate`, `km`, `days`, `stampsCount`, `photosCount`, `allPhotos`. `DEFAULT_BOOK_DATA` usa `DEMO_USER` como fallback.
+
+Mapeamento `route_id → chave i18n` cobre 12 rotas (frances, portugues, portugues_lisboa, costa, interior, primitivo, norte, ingles, aragones, plata, sanabres, inverno).
+
+Skeleton de loading exibido no lugar do livro enquanto `dataLoading=true`.
+
+#### Logout
+- Botão "Sair" discreto no lado direito do header do `/book` — visível apenas quando `user !== null`
+- `handleSignOut()`: chama `supabase.auth.signOut()`, reseta todos os estados para os valores DEMO, volta para Step 1
+
+#### Depuração da query de fotos
+- Destrutura `error: photosError` da query
+- Adiciona `console.log('[Peregrino/photos]', { photos, photoCount, photosError, userId })` após a query — visível no console do browser para diagnóstico
+
+#### UI de feedback — sem fotos
+Quando o utilizador está autenticado, o carregamento terminou e `noPhotosWarning=true` (zero fotos na tabela), exibe banner discreto abaixo do livro:
+> *"Não encontramos fotos na tua jornada. Usa o app para registar os teus momentos."*
+
+---
 
 ### Sessão 18/04/2026 — Refactor UX do /book + i18n completo
 
@@ -204,7 +242,7 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 | 2 | **↳ URLs definitivas** | Atualizar `https://peregrino.app` no modal PWA e no Stripe Worker | 🔴 Depende do domínio |
 | 3 | **↳ Deep link App → Site** | Configurar no app URL final `?lang=xx` ao fim da jornada | 🔴 Depende do domínio |
 | 4 | **↳ Deploy no domínio definitivo** | Apontar domínio para Cloudflare Pages | 🔴 Depende do domínio |
-| 5 | **↳ Login SSO no `/book`** | Integrar Supabase Auth — substituir demo data pelos dados reais do peregrino | 🔴 Depende do domínio |
+| 5 | **↳ Login SSO no `/book`** | ~~Integrar Supabase Auth~~ — **Concluído**: AuthModal + Google OAuth + dados reais do Supabase integrados | ✅ Feito |
 | 6 | **Configurar Stripe no Cloudflare** | Adicionar `STRIPE_SECRET_KEY` em Settings → Environment Variables no painel Cloudflare Pages | 🟠 Alta |
 | 7 | **Conta Lulu.com** | Criar conta de desenvolvedor, testar API, configurar 3 produtos (A4, 50/100/150 pág, capa dura) | 🟠 Alta |
 | 8 | **Geração do PDF** | Backend que monta o PDF do livro com fotos/dados do Supabase e envia para API Lulu | 🟠 Alta |
@@ -292,4 +330,4 @@ O `logo-sf.png` (fundo branco + texto vermelho) não permite recolorir só o tex
 
 ---
 
-*Última atualização: 18/04/2026 (noite) — Sessão com Claude Sonnet 4.6*
+*Última atualização: 18/04/2026 (noite, cont.) — Sessão com Claude Sonnet 4.6*

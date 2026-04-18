@@ -5,9 +5,19 @@ import HTMLFlipBook from 'react-pageflip';
 import {
   ArrowLeft, ArrowRight, MapPin, Camera, Route,
   CreditCard, Check, ChevronLeft, ChevronRight,
-  Shield, Globe, Package, BookOpen, Type, Image,
+  Shield, Globe, Package, BookOpen, Type, Image, X,
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
+import { createClient } from '@supabase/supabase-js';
 import { useT } from './i18n';
+
+// ---------------------------------------------------------------------------
+// Supabase client — adicionar VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no .env
+// ---------------------------------------------------------------------------
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL ?? '',
+  import.meta.env.VITE_SUPABASE_ANON_KEY ?? ''
+);
 
 // ---------------------------------------------------------------------------
 // Demo data — substituir pelos dados reais do Supabase após login SSO
@@ -55,6 +65,15 @@ interface BookData {
   caption1: string;
   caption2: string;
   caption3: string;
+  // Dados do peregrino — substituídos pelos reais após login
+  userName: string;
+  startDate: string;
+  endDate: string;
+  km: number;
+  days: number;
+  stampsCount: number;
+  photosCount: number;
+  allPhotos: string[];
 }
 
 const DEFAULT_BOOK_DATA: BookData = {
@@ -67,6 +86,14 @@ const DEFAULT_BOOK_DATA: BookData = {
   caption1: 'Os primeiros passos foram os mais difíceis — e os mais inesquecíveis.',
   caption2: 'No meio do caminho, percebi que não estava mais sozinho.',
   caption3: 'Santiago chegou antes do esperado. Ou talvez eu é que tivesse chegado.',
+  userName:    DEMO_USER.name,
+  startDate:   DEMO_USER.startDate,
+  endDate:     DEMO_USER.endDate,
+  km:          DEMO_USER.km,
+  days:        DEMO_USER.days,
+  stampsCount: DEMO_USER.stamps,
+  photosCount: DEMO_USER.photos,
+  allPhotos:   DEMO_USER.allPhotos,
 };
 
 type Step = 'reveal' | 'customize' | 'order';
@@ -184,7 +211,7 @@ function renderBookPage(
             <div>
               <div style={{ width: sp(28), height: '1px', background: 'rgba(255,255,255,0.35)', marginBottom: sp(10) }} />
               <p className="font-serif italic text-white leading-tight" style={{ fontSize: fs(1.1) }}>{bookData.title}</p>
-              <p className="text-white/50 uppercase tracking-wider" style={{ fontSize: fs(0.58), marginTop: sp(6) }}>{DEMO_USER.name}</p>
+              <p className="text-white/50 uppercase tracking-wider" style={{ fontSize: fs(0.58), marginTop: sp(6) }}>{bookData.userName}</p>
             </div>
           </div>
           <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 45%)' }} />
@@ -202,14 +229,14 @@ function renderBookPage(
           </div>
           <div className="flex flex-col" style={{ gap: sp(6) }}>
             {([
-              ['Peregrino', DEMO_USER.name],
+              ['Peregrino', bookData.userName],
               ['Rota',      bookData.route],
-              ['Início',    DEMO_USER.startDate],
-              ['Chegada',   DEMO_USER.endDate],
-              ['Distância', `${DEMO_USER.km} km`],
-              ['Duração',   `${DEMO_USER.days} dias`],
-              ['Carimbos',  `${DEMO_USER.stamps}`],
-              ['Fotos',     `${DEMO_USER.photos}`],
+              ['Início',    bookData.startDate],
+              ['Chegada',   bookData.endDate],
+              ['Distância', `${bookData.km} km`],
+              ['Duração',   `${bookData.days} dias`],
+              ['Carimbos',  `${bookData.stampsCount}`],
+              ['Fotos',     `${bookData.photosCount}`],
             ] as [string,string][]).map(([k, v], i) => (
               <div key={i} className="flex justify-between" style={{ borderBottom: '1px solid rgba(45,58,39,0.08)', paddingBottom: sp(4) }}>
                 <span className="text-[#2D3A27]/35 uppercase tracking-[0.12em]" style={{ fontSize: fs(0.48) }}>{k}</span>
@@ -353,7 +380,7 @@ function renderBookPage(
 
     // ── Selos — grade dinâmica de carimbos da credencial ────────────────────
     case 'stamps': {
-      const total = DEMO_USER.stamps;
+      const total = bookData.stampsCount;
       const cols = total <= 12 ? 3 : total <= 20 ? 4 : total <= 32 ? 5 : 6;
       return (
         <div className="w-full h-full bg-[#FDFCF8] flex flex-col" style={{ padding: sp(14) }}>
@@ -369,7 +396,7 @@ function renderBookPage(
             ))}
           </div>
           <p className="text-[#2D3A27]/20 text-center" style={{ fontSize: fs(0.42), marginTop: sp(7) }}>
-            {bookData.route} · {DEMO_USER.startDate} — {DEMO_USER.endDate}
+            {bookData.route} · {bookData.startDate} — {bookData.endDate}
           </p>
         </div>
       );
@@ -432,6 +459,126 @@ function useBookSize() {
 }
 
 // ---------------------------------------------------------------------------
+// Auth Modal — intercepta "Personalizar livro" quando user é null
+// ---------------------------------------------------------------------------
+function AuthModal({ onClose, onGuestMode }: { onClose: () => void; onGuestMode: () => void }) {
+  const { t } = useT();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Deep link para o app Peregrino — atualizar com URL definitiva após domínio definido
+  const QR_DEEP_LINK = `${window.location.origin}/book`;
+
+  const handleGoogle = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { error: authError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/book` },
+      });
+      if (authError) throw authError;
+    } catch (e: any) {
+      setError(e?.message ?? 'Erro ao conectar com Google');
+      setLoading(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center"
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-[#1B2616]/70 backdrop-blur-xl" onClick={onClose} />
+
+      {/* Card — bottom-sheet no mobile, centralizado no desktop */}
+      <motion.div
+        initial={{ y: 60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 60, opacity: 0 }}
+        transition={{ type: 'spring', damping: 24, stiffness: 300 }}
+        className="relative z-10 w-full sm:max-w-md bg-[#FDFCF8] rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl px-8 pt-8 pb-10"
+      >
+        {/* Botão fechar */}
+        <button
+          onClick={onClose}
+          className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-[#2D3A27]/8 hover:bg-[#2D3A27]/15 transition-colors text-[#2D3A27]/50"
+        >
+          <X size={14} />
+        </button>
+
+        {/* Cabeçalho */}
+        <div className="flex flex-col items-center text-center mb-7">
+          <img src="/img-apoio/vieira.png" alt="" className="h-10 object-contain mb-4" />
+          <h2 className="font-serif text-2xl text-[#2D3A27] italic mb-1">{t('bp.auth.title')}</h2>
+          <p className="text-[#2D3A27]/50 text-sm max-w-xs">{t('bp.auth.sub')}</p>
+        </div>
+
+        {/* QR Code */}
+        <div className="flex flex-col items-center bg-[#F5F2EA] rounded-2xl p-5 gap-3 mb-6">
+          <p className="text-[0.65rem] uppercase tracking-[0.25em] text-[#2D3A27]/35">{t('bp.auth.qr_label')}</p>
+          <div className="p-3 bg-white rounded-xl shadow-sm">
+            <QRCodeSVG value={QR_DEEP_LINK} size={120} bgColor="#ffffff" fgColor="#2D3A27" level="M" />
+          </div>
+          <p className="text-xs text-[#2D3A27]/45 text-center max-w-[220px] leading-relaxed">
+            {t('bp.auth.qr_sub')}
+          </p>
+        </div>
+
+        {/* Divisor */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="flex-1 h-px bg-[#2D3A27]/8" />
+          <span className="text-[0.65rem] uppercase tracking-[0.25em] text-[#2D3A27]/30">{t('bp.auth.or')}</span>
+          <div className="flex-1 h-px bg-[#2D3A27]/8" />
+        </div>
+
+        {/* Botão Google */}
+        <motion.button
+          onClick={handleGoogle}
+          disabled={loading}
+          whileHover={!loading ? { scale: 1.02 } : {}}
+          whileTap={!loading ? { scale: 0.98 } : {}}
+          className="w-full flex items-center justify-center gap-3 bg-white border border-[#2D3A27]/15 rounded-full py-3.5 text-[#2D3A27] font-medium text-sm shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+        >
+          {loading ? (
+            <>
+              <svg className="animate-spin w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+              {t('bp.auth.connecting')}
+            </>
+          ) : (
+            <>
+              <svg width="18" height="18" viewBox="0 0 18 18" className="shrink-0">
+                <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.25-.164-1.84H9v3.48h4.844a4.14 4.14 0 0 1-1.796 2.717v2.258h2.908C16.658 14.013 17.64 11.706 17.64 9.2z"/>
+                <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+                <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
+                <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/>
+              </svg>
+              {t('bp.auth.google')}
+            </>
+          )}
+        </motion.button>
+
+        {error && <p className="text-red-500/80 text-xs text-center mb-3">{error}</p>}
+
+        {/* Modo convidado */}
+        <button
+          onClick={onGuestMode}
+          className="w-full text-xs text-[#2D3A27]/35 hover:text-[#2D3A27]/60 transition-colors text-center py-1.5"
+        >
+          {t('bp.auth.guest')}
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // BookPage root
 // ---------------------------------------------------------------------------
 export default function BookPage() {
@@ -447,7 +594,149 @@ export default function BookPage() {
   });
   const [selectedModel, setSelectedModel] = useState<ModelId>('journey');
   const [hasCustomized, setHasCustomized] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [noPhotosWarning, setNoPhotosWarning] = useState(false);
   const update = (patch: Partial<BookData>) => setBookData(p => ({ ...p, ...patch }));
+
+  // Mapeamento route_id → chave i18n (conforme STATUS.md do App Peregrino)
+  const ROUTE_KEY: Record<string, string> = {
+    frances:          'journey.name.frances',
+    portugues:        'journey.name.portugues.central',
+    portugues_lisboa: 'journey.name.portugues.lisboa',
+    costa:            'journey.name.portugues.costa',
+    interior:         'journey.name.interior',
+    primitivo:        'journey.name.primitivo',
+    norte:            'journey.name.norte',
+    ingles:           'journey.name.ingles',
+    aragones:         'journey.name.aragones',
+    plata:            'journey.name.plata',
+    sanabres:         'journey.name.sanabres',
+    inverno:          'journey.name.inverno',
+  };
+
+  const fmtDate = (iso: string) => {
+    const d = new Date(iso);
+    return `${String(d.getDate()).padStart(2, '0')} ${d.toLocaleString('pt-BR', { month: 'short' })} ${d.getFullYear()}`;
+  };
+
+  const loadUserData = async (userId: string) => {
+    setDataLoading(true);
+    try {
+      // Perfil do peregrino
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, route_id')
+        .eq('id', userId)
+        .single();
+
+      // Stamp mais recente (km + data final) + contagem total
+      const { data: latestStamps, count: stampCount } = await supabase
+        .from('stamps')
+        .select('km_accumulated, stamped_at, route_id', { count: 'exact' })
+        .eq('pilgrim_id', userId)
+        .order('stamped_at', { ascending: false })
+        .limit(1);
+
+      // Stamp mais antigo (data de início)
+      const { data: firstStamps } = await supabase
+        .from('stamps')
+        .select('stamped_at')
+        .eq('pilgrim_id', userId)
+        .order('stamped_at', { ascending: true })
+        .limit(1);
+
+      // Fotos — thumb_url + taken_at para ordenação cronológica
+      const { data: photos, count: photoCount, error: photosError } = await supabase
+        .from('photos')
+        .select('thumb_url, taken_at', { count: 'exact' })
+        .eq('pilgrim_id', userId)
+        .not('thumb_url', 'is', null)
+        .order('taken_at', { ascending: false })
+        .limit(50);
+
+      console.log('[Peregrino/photos]', { photos, photoCount, photosError, userId });
+
+      const latestStamp  = latestStamps?.[0] as any;
+      const firstStamp   = firstStamps?.[0] as any;
+      const routeId      = (profile as any)?.route_id ?? latestStamp?.route_id ?? 'frances';
+      const routeKey     = ROUTE_KEY[routeId] ?? 'journey.name.frances';
+      const route        = t(routeKey);
+      const userName     = (profile as any)?.full_name ?? DEMO_USER.name;
+      const km           = Math.round(latestStamp?.km_accumulated ?? DEMO_USER.km);
+      const totalStamps  = stampCount ?? DEMO_USER.stamps;
+      const totalPhotos  = photoCount ?? DEMO_USER.photos;
+      const startDate    = firstStamp  ? fmtDate(firstStamp.stamped_at)  : DEMO_USER.startDate;
+      const endDate      = latestStamp ? fmtDate(latestStamp.stamped_at) : DEMO_USER.endDate;
+      const days         = firstStamp && latestStamp
+        ? Math.max(1, Math.round(
+            (new Date(latestStamp.stamped_at).getTime() - new Date(firstStamp.stamped_at).getTime())
+            / (1000 * 60 * 60 * 24)
+          ) + 1)
+        : DEMO_USER.days;
+
+      const photoUrls: string[] = (photos ?? [])
+        .map((p: any) => p.thumb_url)
+        .filter(Boolean);
+
+      setNoPhotosWarning(photoUrls.length === 0);
+      const allPhotos  = photoUrls.length >= 4 ? photoUrls : DEFAULT_BOOK_DATA.allPhotos;
+
+      update({
+        route,
+        title:       `${route}, ${new Date().getFullYear()}`,
+        coverPhoto:  allPhotos[0] ?? DEFAULT_BOOK_DATA.coverPhoto,
+        selectedPhotos: allPhotos.slice(0, 8),
+        allPhotos,
+        userName,
+        startDate,
+        endDate,
+        km,
+        days,
+        stampsCount: totalStamps,
+        photosCount: totalPhotos,
+      });
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
+  // Listener de auth — detecta login inclusive após redirect OAuth
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+        loadUserData(session.user.id);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        loadUserData(session.user.id);
+        setShowAuthModal(false);
+        setStep('customize');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCustomize = () => {
+    if (!user) { setShowAuthModal(true); return; }
+    setStep('customize');
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setStep('reveal');
+    setHasCustomized(false);
+    setNoPhotosWarning(false);
+    const route = t('bp.demo.route');
+    setBookData({ ...DEFAULT_BOOK_DATA, route, title: `${route}, ${new Date().getFullYear()}` });
+  };
 
   return (
     <div className="min-h-screen bg-[#FDFCF8] font-sans">
@@ -459,7 +748,16 @@ export default function BookPage() {
           <img src="/img-apoio/vieira.png" alt="" className="h-8 object-contain" />
           <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, color: '#E8E4D9' }} className="text-2xl tracking-tight">Peregrino</span>
         </div>
-        <div className="w-24" />
+        <div className="w-24 flex justify-end">
+          {user && (
+            <button
+              onClick={handleSignOut}
+              className="text-[#E8E4D9]/40 hover:text-[#E8E4D9]/70 transition-colors text-xs uppercase tracking-widest"
+            >
+              Sair
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="pt-[56px]">
@@ -468,7 +766,10 @@ export default function BookPage() {
             <StepReveal key="r" bookData={bookData}
               selectedModel={selectedModel} onSelectModel={setSelectedModel}
               hasCustomized={hasCustomized}
-              onCustomize={() => setStep('customize')}
+              dataLoading={dataLoading}
+              noPhotosWarning={noPhotosWarning}
+              user={user}
+              onCustomize={handleCustomize}
               onOrder={() => setStep('order')} />
           )}
           {step === 'customize' && (
@@ -484,6 +785,16 @@ export default function BookPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Auth Gate Modal */}
+      <AnimatePresence>
+        {showAuthModal && (
+          <AuthModal
+            onClose={() => setShowAuthModal(false)}
+            onGuestMode={() => { setShowAuthModal(false); setStep('customize'); }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -550,7 +861,7 @@ function InteractiveBook({ bookData }: { bookData: BookData }) {
                 <div>
                   <div style={{ width: sp(30), height: '1px', background: 'rgba(255,255,255,0.28)', marginBottom: sp(12) }} />
                   <p className="font-serif italic text-white leading-tight" style={{ fontSize: fs(1.05) }}>{bookData.title}</p>
-                  <p className="text-white/45 uppercase tracking-wider" style={{ fontSize: fs(0.56), marginTop: sp(8) }}>{DEMO_USER.name}</p>
+                  <p className="text-white/45 uppercase tracking-wider" style={{ fontSize: fs(0.56), marginTop: sp(8) }}>{bookData.userName}</p>
                 </div>
               </div>
               <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 45%)' }} />
@@ -624,21 +935,24 @@ function InteractiveBook({ bookData }: { bookData: BookData }) {
 // ---------------------------------------------------------------------------
 // Step 1 — Revelação
 // ---------------------------------------------------------------------------
-function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, onCustomize, onOrder }: {
+function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dataLoading, noPhotosWarning, user, onCustomize, onOrder }: {
   bookData: BookData;
   selectedModel: ModelId;
   onSelectModel: (m: ModelId) => void;
   hasCustomized: boolean;
+  dataLoading: boolean;
+  noPhotosWarning: boolean;
+  user: any;
   onCustomize: () => void;
   onOrder: () => void;
 }) {
   const { t } = useT();
   const [statsVisible, setStatsVisible] = useState(false);
   const statsRef = useRef<HTMLDivElement>(null);
-  const aKm     = useCountUp(DEMO_USER.km,     1200, statsVisible);
-  const aDays   = useCountUp(DEMO_USER.days,   900,  statsVisible);
-  const aStamps = useCountUp(DEMO_USER.stamps, 800,  statsVisible);
-  const aPhotos = useCountUp(DEMO_USER.photos, 1100, statsVisible);
+  const aKm     = useCountUp(bookData.km,          1200, statsVisible && !dataLoading);
+  const aDays   = useCountUp(bookData.days,         900,  statsVisible && !dataLoading);
+  const aStamps = useCountUp(bookData.stampsCount,  800,  statsVisible && !dataLoading);
+  const aPhotos = useCountUp(bookData.photosCount,  1100, statsVisible && !dataLoading);
 
   useEffect(() => {
     const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setStatsVisible(true); }, { threshold: 0.3 });
@@ -673,8 +987,49 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, onC
           transition={{ delay: 0.45, duration: 1, type: 'spring', damping: 16 }}
           className="relative z-10 flex justify-center px-4 pb-6"
         >
-          <InteractiveBook bookData={bookData} />
+          {dataLoading ? (
+            <div className="flex flex-col items-center gap-6">
+              {/* Skeleton do livro */}
+              <div className="relative animate-pulse"
+                style={{ width: 'clamp(165px,27vw,440px)', height: 'clamp(220px,36vw,587px)' }}>
+                <div className="absolute left-0 top-0 bottom-0 w-[5%] rounded-l-sm bg-[#E8E4D9]/10" />
+                <div className="w-full h-full rounded-r-xl rounded-l-sm bg-[#E8E4D9]/8"
+                  style={{ boxShadow: '-20px 32px 80px rgba(0,0,0,0.8)' }} />
+                <div className="absolute inset-0 flex flex-col justify-end p-8 gap-2">
+                  <div className="h-px w-12 bg-[#E8E4D9]/20 mb-2" />
+                  <div className="h-4 w-3/4 rounded-full bg-[#E8E4D9]/15" />
+                  <div className="h-3 w-1/3 rounded-full bg-[#E8E4D9]/10" />
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-[#E8E4D9]/40 text-xs">
+                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                </svg>
+                <span className="uppercase tracking-widest">A carregar a tua jornada...</span>
+              </div>
+            </div>
+          ) : (
+            <InteractiveBook bookData={bookData} />
+          )}
         </motion.div>
+
+        {/* Aviso: utilizador autenticado mas sem fotos */}
+        {user && !dataLoading && noPhotosWarning && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="relative z-10 flex justify-center px-6 pb-4"
+          >
+            <div className="flex items-start gap-3 bg-[#C8A96E]/10 border border-[#C8A96E]/25 rounded-2xl px-5 py-4 max-w-sm">
+              <Camera size={15} className="text-[#C8A96E]/70 mt-0.5 shrink-0" />
+              <p className="text-[#E8E4D9]/60 text-xs leading-relaxed">
+                Não encontramos fotos na tua jornada. Usa o app para registar os teus momentos.
+              </p>
+            </div>
+          </motion.div>
+        )}
 
         {/* Botão Personalizar — logo abaixo do livro */}
         <motion.div
@@ -855,7 +1210,7 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
                       <span className="text-white/60 text-xs uppercase tracking-widest self-end">Peregrino</span>
                       <div>
                         <p className="text-white font-serif italic text-sm leading-tight">{bookData.title}</p>
-                        <p className="text-white/50 text-xs mt-1.5 uppercase tracking-wider">{DEMO_USER.name}</p>
+                        <p className="text-white/50 text-xs mt-1.5 uppercase tracking-wider">{bookData.userName}</p>
                       </div>
                     </div>
                   </div>
@@ -865,7 +1220,7 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
             <div>
               <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-3">{t('bp.s2.cover_photo')}</p>
               <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-                {DEMO_USER.allPhotos.map((photo, i) => (
+                {bookData.allPhotos.map((photo, i) => (
                   <button key={i} onClick={() => onChange({ coverPhoto: photo })}
                     className={`aspect-square rounded-xl overflow-hidden ring-2 transition-all duration-200 ${bookData.coverPhoto === photo ? 'ring-[#2D3A27] scale-105 shadow-md' : 'ring-transparent hover:ring-[#2D3A27]/30'}`}
                   >
@@ -893,7 +1248,7 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
               <div className="bg-[#F5F2EA] rounded-2xl p-5 mb-3 border border-[#2D3A27]/5">
                 <p className="text-[#2D3A27]/25 text-xs uppercase tracking-widest mb-2">Prévia</p>
                 <p className="font-serif italic text-[#2D3A27] text-base leading-relaxed">"{bookData.openingPhrase}"</p>
-                <p className="text-[#2D3A27]/30 text-xs mt-2">— {DEMO_USER.name}</p>
+                <p className="text-[#2D3A27]/30 text-xs mt-2">— {bookData.userName}</p>
               </div>
               <textarea value={bookData.openingPhrase} maxLength={160} onChange={e => onChange({ openingPhrase: e.target.value })} rows={3}
                 placeholder="Uma frase que resume o que o Caminho significou para você..."
@@ -945,7 +1300,7 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
               <p className="text-xs text-[#2D3A27]/35">Selecione de 4 a 8 fotos favoritas. Serão distribuídas pelos layouts internos do livro.</p>
             </div>
             <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-              {DEMO_USER.allPhotos.map((photo, i) => {
+              {bookData.allPhotos.map((photo, i) => {
                 const selected = bookData.selectedPhotos.includes(photo);
                 const idx = bookData.selectedPhotos.indexOf(photo);
                 return (
@@ -1029,10 +1384,10 @@ function StepOrder({ bookData, selectedModel, onBack }: { bookData: BookData; se
         </div>
         <div className="flex flex-col gap-1.5">
           <p className="font-serif italic text-[#2D3A27] text-lg leading-tight">{bookData.title}</p>
-          <p className="text-xs text-[#2D3A27]/40 uppercase tracking-wider">{DEMO_USER.name}</p>
+          <p className="text-xs text-[#2D3A27]/40 uppercase tracking-wider">{bookData.userName}</p>
           <div className="flex flex-wrap gap-2 mt-2">
-            <span className="text-xs bg-[#2D3A27]/8 text-[#2D3A27]/60 px-2.5 py-1 rounded-full">📸 {DEMO_USER.photos} {t('bp.stat.photos')}</span>
-            <span className="text-xs bg-[#2D3A27]/8 text-[#2D3A27]/60 px-2.5 py-1 rounded-full">🗺️ {DEMO_USER.km} km</span>
+            <span className="text-xs bg-[#2D3A27]/8 text-[#2D3A27]/60 px-2.5 py-1 rounded-full">📸 {bookData.photosCount} {t('bp.stat.photos')}</span>
+            <span className="text-xs bg-[#2D3A27]/8 text-[#2D3A27]/60 px-2.5 py-1 rounded-full">🗺️ {bookData.km} km</span>
           </div>
           <div className="flex flex-wrap gap-1.5 mt-1">
             <span className="text-xs bg-white text-[#2D3A27]/50 px-2 py-0.5 rounded-full border border-[#2D3A27]/8">{t('bp.s3.ondemand')}</span>
