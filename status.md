@@ -84,6 +84,23 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ## 🔄 Histórico de Alterações
 
+### Sessão 18/04/2026 (final) — 3 bugs críticos resolvidos definitivamente
+
+#### Bug 1 — Fotos repetindo no livro (CORRIGIDO)
+**Causa raiz**: `renderBookPage` usava `bookData.selectedPhotos` (máx 8–11 itens). Com o slotMap sequencial, slots acima de ~8 ficavam sem foto real e repetiam a última. Além disso, o pool de 11 era pequeno demais para um livro de 100+ páginas.
+**Fix**: `const photos = bookData.allPhotos` — usa o pool completo incluindo uploads.
+
+#### Bug 2 — Upload não re-perguntava quando gap persistia (CORRIGIDO)
+**Causa raiz 1**: `totalAvailable = bookData.allPhotos.length + uploadedPhotos.length` contava uploads em dobro (allPhotos já os inclui após onChange).
+**Causa raiz 2**: `handleUpload` chamava `setShowGapModal(false); onDone()` incondicionalmente após qualquer upload.
+**Fix**: `totalAvailable = bookData.allPhotos.length`; no `handleUpload`, só avança se `newGap <= 0`; caso contrário mantém modal aberto com contagens atualizadas.
+
+#### Bug 3 — Página de selos em branco para usuários com 0 selos (CORRIGIDO)
+**Causa raiz**: `const total = bookData.stampsCount` → grid vazio quando stampsCount = 0.
+**Fix**: `displayCount = Math.max(realCount, 28)` — renderiza mínimo 28 células; células reais mostram número, células extras mostram mock com cidade/código/dia do Caminho usando `STAMP_PLACES`.
+
+---
+
 ### Sessão 18/04/2026 (noite, cont.) — Assistente de Preenchimento + Fix Jornada Ativa
 
 #### Assistente de Preenchimento (`BookPage.tsx`)

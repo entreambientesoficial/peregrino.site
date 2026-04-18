@@ -257,7 +257,7 @@ function renderBookPage(
   fs: (n: number) => string,
   slotMap: Map<number, number[]>,
 ) {
-  const photos = bookData.selectedPhotos;
+  const photos = bookData.allPhotos;
   const slots = slotMap.get(pageIdx) ?? [];
   const ph = (n: number) => n < photos.length ? photos[n] : `__stamp__:${n}`;
   // Helper: retorna <img> real ou placeholder de carimbo escalado com S
@@ -460,20 +460,33 @@ function renderBookPage(
 
     // ── Selos — grade dinâmica de carimbos da credencial ────────────────────
     case 'stamps': {
-      const total = bookData.stampsCount;
-      const cols = total <= 12 ? 3 : total <= 20 ? 4 : total <= 32 ? 5 : 6;
+      const realCount = bookData.stampsCount;
+      const displayCount = Math.max(realCount, 28);
+      const cols = displayCount <= 12 ? 3 : displayCount <= 20 ? 4 : displayCount <= 32 ? 5 : 6;
       return (
         <div className="w-full h-full bg-[#FDFCF8] flex flex-col" style={{ padding: sp(14) }}>
           <p className="text-[#2D3A27]/25 uppercase tracking-[0.28em] text-center" style={{ fontSize: fs(0.44), marginBottom: sp(10) }}>
             Carimbos da Credencial
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: sp(3), flex: 1 }}>
-            {Array.from({ length: total }).map((_, i) => (
-              <div key={i} className="flex items-center justify-center border border-[#2D3A27]/10 bg-[#F5F2EA]"
-                style={{ borderRadius: sp(2) }}>
-                <p className="font-serif italic text-[#2D3A27]/20" style={{ fontSize: fs(0.5) }}>{i + 1}</p>
-              </div>
-            ))}
+            {Array.from({ length: displayCount }).map((_, i) => {
+              const isReal = i < realCount;
+              const mock = STAMP_PLACES[i % STAMP_PLACES.length];
+              return (
+                <div key={i} className="flex flex-col items-center justify-center border border-[#2D3A27]/10 bg-[#F5F2EA]"
+                  style={{ borderRadius: sp(2), padding: sp(3), gap: sp(1) }}>
+                  {isReal ? (
+                    <p className="font-serif italic text-[#2D3A27]/40" style={{ fontSize: fs(0.5) }}>{i + 1}</p>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: fs(0.28), letterSpacing: '0.14em', color: 'rgba(45,58,39,0.25)', textTransform: 'uppercase' }}>{mock.code}</span>
+                      <span className="font-serif italic" style={{ fontSize: fs(0.32), color: 'rgba(45,58,39,0.35)', textAlign: 'center', lineHeight: 1.1 }}>{mock.city}</span>
+                      <span style={{ fontSize: fs(0.24), color: 'rgba(45,58,39,0.18)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{mock.day}</span>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
           <p className="text-[#2D3A27]/20 text-center" style={{ fontSize: fs(0.42), marginTop: sp(7) }}>
             {bookData.route} · {bookData.startDate} — {bookData.endDate}
@@ -1483,7 +1496,7 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
   const [showGapModal, setShowGapModal] = useState(false);
 
   const model = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
-  const totalAvailable = bookData.allPhotos.length + (bookData.uploadedPhotos?.length ?? 0);
+  const totalAvailable = bookData.allPhotos.length;
   const gap = Math.max(0, model.pages - totalAvailable);
 
   const handleDone = () => {
@@ -1508,8 +1521,8 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
         photosCount: bookData.photosCount + dataUrls.length,
         selectedPhotos: newAllPhotos.slice(0, Math.min(newAllPhotos.length, 11)),
       });
-      setShowGapModal(false);
-      onDone();
+      const newGap = Math.max(0, model.pages - newAllPhotos.length);
+      if (newGap <= 0) { setShowGapModal(false); onDone(); }
     });
   };
 
