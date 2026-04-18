@@ -479,8 +479,8 @@ const SUPABASE_AUTH_CALLBACK = `${import.meta.env.VITE_SUPABASE_URL?.replace(/\/
 
 // URL dinâmica de redirect pós-login — usa window.location.origin para funcionar
 // tanto em dev (localhost:5173) quanto em produção (peregrino-site.pages.dev).
-// O parâmetro auth_type=web bloqueia qualquer interceptação por deep link do app.
-const OAUTH_REDIRECT_URL = `${window.location.origin}/book?auth_type=web`;
+// O parâmetro mode=browser_verify impede interceptação por deep link do app.
+const OAUTH_REDIRECT_URL = `${window.location.origin}/book?mode=browser_verify`;
 
 // ---------------------------------------------------------------------------
 // Auth Modal — intercepta "Personalizar livro" quando user é null
