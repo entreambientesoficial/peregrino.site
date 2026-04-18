@@ -61,8 +61,7 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 | **FeaturesSection** | ✅ Concluído | Grid bento de 7 cards táteis. Texto traduzido. |
 | **JourneySection** | ✅ Concluído | Efeito Baralho. 12 rotas reais. Indicador de progresso. Texto traduzido. |
 | **BookSection** | ✅ Concluído | Vídeo em loop + frases animadas. Botão leva para `/book`. |
-| **Nav Header** | ✅ Concluído | Header fixo com logo centralizada (gradient transparente sobre o hero). |
-| **Footer** | ✅ Concluído | Logo `logo-sf.png` (substituiu texto), seletor de idioma inline (10 idiomas), links legais, copyright. |
+| **Footer** | ✅ Concluído | Logo composta: `vieira.png` + texto "Peregrino" em Playfair Display 700 branco. Seletor de idioma inline (10 idiomas), links legais, copyright. |
 | **Modais Legais** | ✅ Concluído | Termos de Uso, Privacidade (LGPD + GDPR) e Contato em PT-BR. |
 
 ### Editor do Livro (`/book`)
@@ -260,20 +259,28 @@ Autorizar no browser uma última vez após o fix — token fica salvo permanente
 
 ---
 
-### Sessão 18/04/2026 (tarde) — Logo em header e footer
+### Sessão 18/04/2026 (tarde) — Logo final em footer e header do /book
 
-#### Logo `logo-sf.png` aplicada em todo o site
-- `public/img-apoio/logo-sf.png` — arquivo copiado para a pasta pública (estava só em `img-apoio/` raiz)
-- **Footer da Landing**: substituiu `<span>Peregrino</span>` pelo `<img>` com `filter: brightness(0) invert(1) opacity(0.85)` (logo toda branca no fundo escuro)
-- **Header fixo da Landing (novo)**: adicionado `<header>` fixo no topo da LandingPage com logo centralizada sobre gradiente transparente `from-black/50 to-transparent` — visível sobre o vídeo hero
-- **BookPage header**: já usava a logo com o mesmo filtro desde sessão anterior — sem alteração
+#### Solução definitiva da logo
+O `logo-sf.png` (fundo branco + texto vermelho) não permite recolorir só o texto via CSS. Solução adotada: **logo composta por dois elementos independentes**:
 
-#### Nota técnica — logo com concha colorida
-Para ter o texto branco e a concha com as cores originais douradas, seria necessário:
-- SVG vetorial com elementos separados (ideal), ou
-- PNG exportado com fundo transparente e texto já branco
-O PNG atual (fundo branco + texto vermelho-bordô) não permite recolorir elementos individualmente via CSS.
+1. **`vieira.png`** — emblema da concha com fundo transparente, cores e textura originais intactas (dourado/creme + cruz de Santiago vermelho-bordô)
+2. **Texto "Peregrino"** — renderizado em CSS com `font-family: 'Playfair Display'` weight 700, cor `#E8E4D9` (branco-areia) — mesma fonte usada no `logo-sf.png` original, já carregada via Google Fonts no `index.html`
+
+#### Arquivos adicionados ao `public/`
+- `public/img-apoio/vieira.png` — copiado de `img-apoio/` raiz; exceção adicionada no `.gitignore` (padrão `*.png` bloqueia essa pasta)
+- `public/img-apoio/logo-sf.png` — mantido (referência, não mais usado nas telas)
+
+#### Onde a logo aparece
+| Local | Tamanho | Arquivo |
+|---|---|---|
+| Footer da Landing (`/`) | `h-12` vieira + `text-4xl` texto | `LandingPage.tsx` |
+| Header do editor (`/book`) | `h-8` vieira + `text-2xl` texto | `BookPage.tsx` |
+| Landing hero/nav | **Sem logo** — hero limpa conforme decisão de design | — |
+
+#### Outros ajustes desta sessão
+- Texto "Ultreia et Suseia" removido do footer (não faz parte da identidade visual exibida ao público)
 
 ---
 
-*Última atualização: 18/04/2026 — Sessão com Claude Sonnet 4.6*
+*Última atualização: 18/04/2026 (tarde) — Sessão com Claude Sonnet 4.6*

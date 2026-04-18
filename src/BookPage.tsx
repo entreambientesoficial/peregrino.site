@@ -455,7 +455,10 @@ export default function BookPage() {
         <Link to="/" className="flex items-center gap-2 text-[#E8E4D9]/50 hover:text-[#E8E4D9] transition-colors text-sm">
           <ArrowLeft size={15} /><span className="hidden sm:inline">{t('bp.back')}</span>
         </Link>
-        <img src="/img-apoio/logo-sf.png" alt="Peregrino" className="h-8 object-contain" style={{ filter: 'brightness(0) invert(1) opacity(0.85)' }} />
+        <div className="flex items-center gap-2">
+          <img src="/img-apoio/vieira.png" alt="" className="h-8 object-contain" />
+          <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, color: '#E8E4D9' }} className="text-2xl tracking-tight">Peregrino</span>
+        </div>
         <div className="w-24" />
       </header>
 

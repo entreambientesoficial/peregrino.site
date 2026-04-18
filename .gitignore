@@ -25,6 +25,7 @@ video-backups/
 # Imagens originais PNG/JPG dentro de public (apenas WebP vai para o repo)
 public/img-apoio/*.png
 !public/img-apoio/logo-sf.png
+!public/img-apoio/vieira.png
 public/img-apoio/*.jpg
 public/img-apoio/*.jpeg
 
