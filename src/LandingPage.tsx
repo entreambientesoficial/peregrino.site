@@ -21,7 +21,7 @@ const Footer = ({ onOpenLegal }: { onOpenLegal: (page: LegalPage) => void }) => 
 
         {/* Logo / nome */}
         <div className="flex flex-col items-center gap-2">
-          <span className="font-serif text-2xl text-[#E8E4D9] italic tracking-tight">Peregrino</span>
+          <img src="/img-apoio/logo-sf.png" alt="Peregrino" className="h-12 object-contain" style={{ filter: 'brightness(0) invert(1) opacity(0.85)' }} />
           <span className="text-xs uppercase tracking-[0.3em] text-[#E8E4D9]/30">Ultreia et Suseia</span>
         </div>
 
@@ -74,6 +74,9 @@ function LandingPageInner() {
       className="min-h-screen bg-[#FDFCF8] font-sans selection:bg-[#2D3A27] selection:text-[#E8E4D9]"
       style={isCJK ? { fontFamily: "'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', sans-serif" } : {}}
     >
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center px-6 py-4 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
+        <img src="/img-apoio/logo-sf.png" alt="Peregrino" className="h-9 object-contain" style={{ filter: 'brightness(0) invert(1) opacity(0.8)' }} />
+      </header>
       <HeroSection onOpenModal={() => setIsModalOpen(true)} />
       <FeaturesSection />
       <JourneySection />

@@ -61,7 +61,8 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 | **FeaturesSection** | ✅ Concluído | Grid bento de 7 cards táteis. Texto traduzido. |
 | **JourneySection** | ✅ Concluído | Efeito Baralho. 12 rotas reais. Indicador de progresso. Texto traduzido. |
 | **BookSection** | ✅ Concluído | Vídeo em loop + frases animadas. Botão leva para `/book`. |
-| **Footer** | ✅ Concluído | Logo, seletor de idioma inline (10 idiomas), links legais, copyright. |
+| **Nav Header** | ✅ Concluído | Header fixo com logo centralizada (gradient transparente sobre o hero). |
+| **Footer** | ✅ Concluído | Logo `logo-sf.png` (substituiu texto), seletor de idioma inline (10 idiomas), links legais, copyright. |
 | **Modais Legais** | ✅ Concluído | Termos de Uso, Privacidade (LGPD + GDPR) e Contato em PT-BR. |
 
 ### Editor do Livro (`/book`)
@@ -256,6 +257,22 @@ git config --global credential.helper manager
 git config --global --unset credential.usehttppath
 ```
 Autorizar no browser uma última vez após o fix — token fica salvo permanentemente.
+
+---
+
+### Sessão 18/04/2026 (tarde) — Logo em header e footer
+
+#### Logo `logo-sf.png` aplicada em todo o site
+- `public/img-apoio/logo-sf.png` — arquivo copiado para a pasta pública (estava só em `img-apoio/` raiz)
+- **Footer da Landing**: substituiu `<span>Peregrino</span>` pelo `<img>` com `filter: brightness(0) invert(1) opacity(0.85)` (logo toda branca no fundo escuro)
+- **Header fixo da Landing (novo)**: adicionado `<header>` fixo no topo da LandingPage com logo centralizada sobre gradiente transparente `from-black/50 to-transparent` — visível sobre o vídeo hero
+- **BookPage header**: já usava a logo com o mesmo filtro desde sessão anterior — sem alteração
+
+#### Nota técnica — logo com concha colorida
+Para ter o texto branco e a concha com as cores originais douradas, seria necessário:
+- SVG vetorial com elementos separados (ideal), ou
+- PNG exportado com fundo transparente e texto já branco
+O PNG atual (fundo branco + texto vermelho-bordô) não permite recolorir elementos individualmente via CSS.
 
 ---
 
