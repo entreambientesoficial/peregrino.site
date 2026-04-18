@@ -477,10 +477,10 @@ function useBookSize() {
 const SUPABASE_AUTH_CALLBACK = `${import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '')}/auth/v1/callback`
   || 'http://localhost:5173/book';
 
-// URL explícita de redirect pós-login — NÃO usa window.location.origin para
-// evitar variações entre ambientes que possam resolver para o scheme do app.
-// O parâmetro auth_type=web bloqueia qualquer interceptação por deep link.
-const OAUTH_REDIRECT_URL = 'http://localhost:5173/book?auth_type=web';
+// URL dinâmica de redirect pós-login — usa window.location.origin para funcionar
+// tanto em dev (localhost:5173) quanto em produção (peregrino-site.pages.dev).
+// O parâmetro auth_type=web bloqueia qualquer interceptação por deep link do app.
+const OAUTH_REDIRECT_URL = `${window.location.origin}/book?auth_type=web`;
 
 // ---------------------------------------------------------------------------
 // Auth Modal — intercepta "Personalizar livro" quando user é null
