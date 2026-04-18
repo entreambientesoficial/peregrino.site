@@ -67,11 +67,13 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 ### Editor do Livro (`/book`)
 | Componente | Status | Descrição Técnica |
 | :--- | :--- | :--- |
-| **Step 1 — Revelação** | ✅ Concluído | Hero + livro 54 pág. + botão "Personalizar" + cards de modelo clicáveis + botão "Encomendar" condicional |
-| **Step 2 — Personalizar** | ✅ Concluído | Seletor de modelo + abas Capa/Textos/Fotos + "Ver resultado" volta ao Step 1 |
-| **Step 3 — Encomendar** | ✅ Concluído | Resumo dinâmico pelo modelo selecionado + Stripe Checkout |
-| **Livro interativo** | ✅ Concluído | 54 páginas: capa, prefácio, 50 layouts fotográficos, selos dinâmicos, contracapa |
-| **i18n do /book** | ✅ Concluído | 39 keys `bp.*` em 10 idiomas; capa usa nome da rota traduzido; I18nProvider no App raiz |
+| **Header** | ✅ Concluído | Logo composta: `vieira.png` + "Peregrino" Playfair Display 700 branco. Botão voltar à landing. |
+| **Step 1 — Revelação** | ✅ Concluído | Livro interativo 54 pág. + botão "Personalizar" + 3 cards de modelo clicáveis + botão "Encomendar" condicional (aparece após personalizar) |
+| **3 Modelos de Livro** | ✅ Concluído | **Essencial** 50 pág. €49,90 · **Jornada** 100 pág. €74,90 (destaque) · **Legado** 150 pág. €99,90 — definidos em `BOOK_MODELS` no `BookPage.tsx` |
+| **Step 2 — Personalizar** | ✅ Concluído | Seletor de modelo no topo + abas Capa / Textos / Fotos + "Ver resultado" volta ao Step 1 com `hasCustomized=true` |
+| **Step 3 — Encomendar** | ✅ Concluído | Resumo dinâmico com nome, páginas e preço do modelo selecionado + Stripe Checkout |
+| **Livro interativo** | ✅ Concluído | 54 páginas: capa (pág 0), prefácio (pág 1), 50 layouts fotográficos (págs 2–51), selos dinâmicos (pág 52), contracapa (pág 53) |
+| **i18n do /book** | ✅ Concluído | 39 keys `bp.*` em 10 idiomas; capa usa nome da rota traduzido via `t('bp.demo.route')`; `I18nProvider` no `App.tsx` raiz |
 | **Login SSO** | ⚠️ Placeholder | Aguarda domínio + integração Supabase Auth |
 | **Fotos reais** | ⚠️ Demo | Usa fotos das rotas como demo. Substituir por galeria do Supabase após SSO |
 | **Cloudflare Worker** | ⚠️ Parcial | `functions/create-checkout.js` criado. Falta `STRIPE_SECRET_KEY` no painel Cloudflare |
@@ -120,7 +122,7 @@ Adicionadas **~39 keys** com prefixo `bp.*` para os 10 idiomas (PT-BR, PT-PT, EN
 ### Sessão 17/04/2026 (noite) — Revisão do livro interativo
 
 #### Melhorias visuais aplicadas na página `/book`
-- Header: logo `logo-sf.png` substituindo texto; sem preço; sem barra de passos
+- Header: logo composta (`vieira.png` + texto Playfair Display branco); sem preço; sem barra de passos
 - Título hero: "Seu livro está pronto." em linha única, fonte reduzida (`5xl/6xl`), padding superior compacto
 - Subtítulo "Anderson · Caminho Francês" removido (já aparece na capa do livro)
 - "48 páginas com os registros…" movido para abaixo do hint "Clique para abrir o livro"
@@ -160,19 +162,24 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 - Rota `/book` criada com React Router — mesmo repositório e deploy do site principal
 - **Modelo B (automático)**: sistema monta o livro com os dados do app; usuário só aprova
 - **Livro interativo**: `react-pageflip` com animação 3D realista de virada de página
-  - 12 páginas: capa, folha de rosto, stats da jornada (fundo escuro), 8 fotos, contracapa
-  - Responsivo: tamanho ajusta para mobile/tablet/desktop
+  - 54 páginas: capa, prefácio, 50 layouts fotográficos, selos, contracapa *(estrutura evoluída — ver sessão 17/04 noite)*
+  - Responsivo: tamanho 440×587px desktop / proporcional mobile
   - Hint animado "Clique no livro para folhear" some após primeira interação
   - Botões prev/next + contador de páginas
-- **3 etapas**: Revelação → Personalizar capa → Finalizar pedido
+- **3 etapas**: Revelação → Personalizar → Encomendar
+- **3 modelos**: Essencial €49,90 / Jornada €74,90 / Legado €99,90
 - `public/_redirects` adicionado para SPA routing no Cloudflare Pages
-- Preço atual: **€49** (ajustado após análise de margem vs Lulu)
 
 #### Decisões estratégicas do Coffee Table Book
-- **Parceiro gráfico escolhido**: **Lulu.com** — API madura, envio global 140+ países, ~€25-30 custo de produção capa dura 50 pág.
+- **Parceiro gráfico escolhido**: **Lulu.com** — API madura, envio global 140+ países
 - **Modelo de integração**: Modelo B automático — sistema gera PDF com fotos/dados do Supabase, envia via API Lulu, gráfica entrega direto ao cliente
-- **Preço de lançamento**: €49 (margem ~€16-20 sobre custo de produção + frete)
-- **Escalada**: após validar demanda → subir para €69-79 e migrar Stripe para Portugal (taxa 1.5% vs 3.99%)
+- **3 modelos de produto** (preços finais em vigor):
+  | Modelo | Páginas | Preço | Custo estimado Lulu | Margem |
+  |--------|---------|-------|---------------------|--------|
+  | Essencial | 50 | €49,90 | ~€20–25 | ~€25 |
+  | Jornada ⭐ | 100 | €74,90 | ~€30–35 | ~€40 |
+  | Legado | 150 | €99,90 | ~€40–45 | ~€55 |
+- **Escalada**: após validar demanda → migrar Stripe para Portugal (taxa 1.5% vs 3.99%)
 
 #### Plataformas de monetização definidas
 - **Stripe** → loja do site (livro + futuros produtos) — conta criada, modo teste ativo
@@ -199,7 +206,7 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 | 4 | **↳ Deploy no domínio definitivo** | Apontar domínio para Cloudflare Pages | 🔴 Depende do domínio |
 | 5 | **↳ Login SSO no `/book`** | Integrar Supabase Auth — substituir demo data pelos dados reais do peregrino | 🔴 Depende do domínio |
 | 6 | **Configurar Stripe no Cloudflare** | Adicionar `STRIPE_SECRET_KEY` em Settings → Environment Variables no painel Cloudflare Pages | 🟠 Alta |
-| 7 | **Conta Lulu.com** | Criar conta de desenvolvedor, testar API, definir produto (A4, 50 pág, capa dura) | 🟠 Alta |
+| 7 | **Conta Lulu.com** | Criar conta de desenvolvedor, testar API, configurar 3 produtos (A4, 50/100/150 pág, capa dura) | 🟠 Alta |
 | 8 | **Geração do PDF** | Backend que monta o PDF do livro com fotos/dados do Supabase e envia para API Lulu | 🟠 Alta |
 | 9 | **Ko-fi** | Criar conta ko-fi.com para doações no app | 🟡 Média |
 | 10 | **Tradução dos termos legais** | Atualmente só PT-BR. Adicionar EN quando projeto gerar receita | 🟢 Baixa |
@@ -218,6 +225,8 @@ APP-PEREGRINO LANDING/
 ├── public/
 │   ├── img-apoio/
 │   │   ├── card1 a card12 (.webp) ← Fotos das 12 rotas (WebP, otimizadas)
+│   │   ├── vieira.png             ← Emblema da concha (fundo transparente) — componente da logo
+│   │   ├── logo-sf.png            ← Logo completa original (referência, não usada nas telas)
 │   │   └── video-site-peregrino.mp4 ← Vídeo BookSection (2.9 MB)
 │   ├── video-apoio/
 │   │   └── 2.mp4                 ← Vídeo Hero (9.4 MB)
@@ -283,4 +292,4 @@ O `logo-sf.png` (fundo branco + texto vermelho) não permite recolorir só o tex
 
 ---
 
-*Última atualização: 18/04/2026 (tarde) — Sessão com Claude Sonnet 4.6*
+*Última atualização: 18/04/2026 (noite) — Sessão com Claude Sonnet 4.6*
