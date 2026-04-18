@@ -5,7 +5,7 @@ import HTMLFlipBook from 'react-pageflip';
 import {
   ArrowLeft, ArrowRight, MapPin, Camera, Route,
   CreditCard, Check, ChevronLeft, ChevronRight,
-  Shield, Globe, Package, BookOpen, Type, Image, X,
+  Shield, Globe, Package, BookOpen, Type, Image, X, Upload,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { createClient } from '@supabase/supabase-js';
@@ -74,6 +74,7 @@ interface BookData {
   stampsCount: number;
   photosCount: number;
   allPhotos: string[];
+  uploadedPhotos: string[];
 }
 
 const DEFAULT_BOOK_DATA: BookData = {
@@ -93,7 +94,8 @@ const DEFAULT_BOOK_DATA: BookData = {
   days:        DEMO_USER.days,
   stampsCount: DEMO_USER.stamps,
   photosCount: DEMO_USER.photos,
-  allPhotos:   DEMO_USER.allPhotos,
+  allPhotos:      DEMO_USER.allPhotos,
+  uploadedPhotos: [],
 };
 
 type Step = 'reveal' | 'customize' | 'order';
@@ -182,6 +184,28 @@ const PAGE_DEFS: PageDef[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Mock de locais para os espaços de carimbo
+// ---------------------------------------------------------------------------
+const STAMP_PLACES = [
+  { city: 'Saint-Jean-Pied-de-Port', code: 'SJPP', region: 'França',   day: 'Dia 1'  },
+  { city: 'Roncesvalles',            code: 'RVS',  region: 'Navarra',  day: 'Dia 2'  },
+  { city: 'Pamplona',                code: 'PNA',  region: 'Navarra',  day: 'Dia 3'  },
+  { city: 'Puente la Reina',         code: 'PLR',  region: 'Navarra',  day: 'Dia 4'  },
+  { city: 'Logroño',                 code: 'LGN',  region: 'La Rioja', day: 'Dia 7'  },
+  { city: 'Burgos',                  code: 'BRG',  region: 'Castilla', day: 'Dia 12' },
+  { city: 'León',                    code: 'LEN',  region: 'Castilla', day: 'Dia 18' },
+  { city: 'Astorga',                 code: 'AST',  region: 'Castilla', day: 'Dia 20' },
+  { city: 'Ponferrada',              code: 'PNF',  region: 'El Bierzo',day: 'Dia 22' },
+  { city: 'O Cebreiro',              code: 'OCB',  region: 'Galicia',  day: 'Dia 25' },
+  { city: 'Sarria',                  code: 'SAR',  region: 'Galicia',  day: 'Dia 27' },
+  { city: 'Portomarín',              code: 'PTM',  region: 'Galicia',  day: 'Dia 28' },
+  { city: 'Palas de Rei',            code: 'PDR',  region: 'Galicia',  day: 'Dia 29' },
+  { city: 'Arzúa',                   code: 'ARZ',  region: 'Galicia',  day: 'Dia 31' },
+  { city: 'O Pedrouzo',              code: 'OPD',  region: 'Galicia',  day: 'Dia 32' },
+  { city: 'Santiago de Compostela',  code: 'SCQ',  region: 'Galicia',  day: 'Dia 33' },
+];
+
+// ---------------------------------------------------------------------------
 // Renderizador de páginas
 // ---------------------------------------------------------------------------
 function renderBookPage(
@@ -193,8 +217,26 @@ function renderBookPage(
   fs: (n: number) => string,
 ) {
   const photos = bookData.selectedPhotos;
-  const ph = (n: number) => photos[n % photos.length];
+  // Sem modulo — índice além das fotos disponíveis exibe espaço de carimbo
+  const ph = (n: number) => n < photos.length ? photos[n] : `__stamp__:${n}`;
   const arr = def.p as number[];
+  // Helper: retorna <img> real ou placeholder de carimbo escalado com S
+  const img = (n: number, cls: string, sty?: React.CSSProperties) => {
+    const src = ph(n);
+    if (!src.startsWith('__stamp__')) return <img src={src} className={cls} alt="" style={sty} />;
+    const place = STAMP_PLACES[n % STAMP_PLACES.length];
+    return (
+      <div className={cls} style={{ ...sty, background: '#F0EDE4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: sp(3), padding: sp(6) }}>
+        <div style={{ width: sp(68), height: sp(68), border: '1.5px dashed rgba(45,58,39,0.22)', borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: sp(2), flexShrink: 0 }}>
+          <span style={{ fontSize: fs(0.3), letterSpacing: '0.18em', color: 'rgba(45,58,39,0.3)', textTransform: 'uppercase' }}>{place.code}</span>
+          <span className="font-serif italic" style={{ fontSize: fs(0.42), color: 'rgba(45,58,39,0.5)', textAlign: 'center', lineHeight: 1.1, padding: `0 ${sp(3)}` }}>{place.city}</span>
+          <span style={{ fontSize: fs(0.27), color: 'rgba(45,58,39,0.22)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>{place.day}</span>
+        </div>
+        {[0, 1, 2].map(i => <div key={i} style={{ width: '72%', height: '1px', background: `rgba(45,58,39,${0.1 - i * 0.025})`, marginTop: sp(2) }} />)}
+        <span style={{ fontSize: fs(0.24), color: 'rgba(45,58,39,0.18)', letterSpacing: '0.22em', textTransform: 'uppercase', marginTop: sp(1) }}>Espaço para Carimbo</span>
+      </div>
+    );
+  };
 
   switch (def.kind) {
 
@@ -257,7 +299,7 @@ function renderBookPage(
     case 'full-dark':
       return (
         <div className="w-full h-full relative">
-          <img src={ph(def.p as number)} className="w-full h-full object-cover" alt="" />
+          {img(def.p as number, 'w-full h-full object-cover')}
           <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.3) 0%, transparent 40%)' }} />
         </div>
       );
@@ -267,7 +309,7 @@ function renderBookPage(
       return (
         <div className="w-full h-full flex flex-col items-center justify-center" style={{ background: '#161c14', padding: sp(14) }}>
           <div className="w-full overflow-hidden" style={{ height: '65%' }}>
-            <img src={ph(def.p as number)} className="w-full h-full object-cover" alt="" />
+            {img(def.p as number, 'w-full h-full object-cover')}
           </div>
           <p className="text-[#E8E4D9]/30 uppercase tracking-[0.22em] text-center" style={{ fontSize: fs(0.44), marginTop: sp(10) }}>
             {bookData.route} · {new Date().getFullYear()}
@@ -283,7 +325,7 @@ function renderBookPage(
       return (
         <div className="w-full h-full flex flex-col justify-center bg-[#FDFCF8]" style={{ padding: sp(12) }}>
           <div className="w-full overflow-hidden" style={{ flex: caption ? '0 0 68%' : '0 0 80%', boxShadow: `0 ${sp(3)} ${sp(14)} rgba(0,0,0,0.14)` }}>
-            <img src={ph(def.p as number)} className="w-full h-full object-cover" alt="" />
+            {img(def.p as number, 'w-full h-full object-cover')}
           </div>
           {caption ? (
             <p className="font-serif italic text-[#2D3A27]/60 leading-relaxed text-center" style={{ fontSize: fs(0.62), marginTop: sp(9), padding: `0 ${sp(4)}` }}>
@@ -304,7 +346,7 @@ function renderBookPage(
         <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: sp(4), padding: sp(10) }}>
           {arr.map((pi, i) => (
             <div key={i} className="overflow-hidden">
-              <img src={ph(pi)} className="w-full h-full object-cover" alt="" />
+              {img(pi, 'w-full h-full object-cover')}
             </div>
           ))}
         </div>
@@ -316,7 +358,7 @@ function renderBookPage(
         <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
           {arr.map((pi, i) => (
             <div key={i} className="overflow-hidden">
-              <img src={ph(pi)} className="w-full h-full object-cover" alt="" />
+              {img(pi, 'w-full h-full object-cover')}
             </div>
           ))}
         </div>
@@ -327,12 +369,12 @@ function renderBookPage(
       return (
         <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
           <div style={{ display: 'grid', gridTemplateRows: '46% 50%', gap: sp(3) }}>
-            <div className="overflow-hidden"><img src={ph(arr[0])} className="w-full h-full object-cover" alt="" /></div>
-            <div className="overflow-hidden"><img src={ph(arr[2])} className="w-full h-full object-cover" alt="" /></div>
+            <div className="overflow-hidden">{img(arr[0], 'w-full h-full object-cover')}</div>
+            <div className="overflow-hidden">{img(arr[2], 'w-full h-full object-cover')}</div>
           </div>
           <div style={{ display: 'grid', gridTemplateRows: '50% 46%', gap: sp(3), marginTop: sp(10) }}>
-            <div className="overflow-hidden"><img src={ph(arr[1])} className="w-full h-full object-cover" alt="" /></div>
-            <div className="overflow-hidden"><img src={ph(arr[3])} className="w-full h-full object-cover" alt="" /></div>
+            <div className="overflow-hidden">{img(arr[1], 'w-full h-full object-cover')}</div>
+            <div className="overflow-hidden">{img(arr[3], 'w-full h-full object-cover')}</div>
           </div>
         </div>
       );
@@ -341,10 +383,10 @@ function renderBookPage(
     case 'trio-h':
       return (
         <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateRows: '54% 42%', gridTemplateColumns: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
-          <div className="overflow-hidden"><img src={ph(arr[0])} className="w-full h-full object-cover" alt="" /></div>
-          <div className="overflow-hidden"><img src={ph(arr[1])} className="w-full h-full object-cover" alt="" /></div>
+          <div className="overflow-hidden">{img(arr[0], 'w-full h-full object-cover')}</div>
+          <div className="overflow-hidden">{img(arr[1], 'w-full h-full object-cover')}</div>
           <div className="overflow-hidden" style={{ gridColumn: '1 / 3' }}>
-            <img src={ph(arr[2])} className="w-full h-full object-cover" alt="" />
+            {img(arr[2], 'w-full h-full object-cover')}
           </div>
         </div>
       );
@@ -354,10 +396,10 @@ function renderBookPage(
       return (
         <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateColumns: '52% 44%', gridTemplateRows: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
           <div className="overflow-hidden" style={{ gridRow: '1 / 3' }}>
-            <img src={ph(arr[0])} className="w-full h-full object-cover" alt="" />
+            {img(arr[0], 'w-full h-full object-cover')}
           </div>
-          <div className="overflow-hidden"><img src={ph(arr[1])} className="w-full h-full object-cover" alt="" /></div>
-          <div className="overflow-hidden"><img src={ph(arr[2])} className="w-full h-full object-cover" alt="" /></div>
+          <div className="overflow-hidden">{img(arr[1], 'w-full h-full object-cover')}</div>
+          <div className="overflow-hidden">{img(arr[2], 'w-full h-full object-cover')}</div>
         </div>
       );
 
@@ -365,16 +407,14 @@ function renderBookPage(
     case 'panorama-L':
       return (
         <div className="w-full h-full overflow-hidden" style={{ background: '#141a12' }}>
-          <img src={ph(def.p as number)} className="w-full h-full object-cover"
-            style={{ objectPosition: '0% center' }} alt="" />
+          {img(def.p as number, 'w-full h-full object-cover', { objectPosition: '0% center' })}
         </div>
       );
 
     case 'panorama-R':
       return (
         <div className="w-full h-full overflow-hidden" style={{ background: '#141a12' }}>
-          <img src={ph(def.p as number)} className="w-full h-full object-cover"
-            style={{ objectPosition: '100% center' }} alt="" />
+          {img(def.p as number, 'w-full h-full object-cover', { objectPosition: '100% center' })}
         </div>
       );
 
@@ -654,6 +694,127 @@ function EmailPasswordForm({ onError }: { onError: (msg: string) => void }) {
 }
 
 // ---------------------------------------------------------------------------
+// Modal de Gap — aparece ao clicar "Ver resultado" quando fotos < páginas do plano
+// ---------------------------------------------------------------------------
+function GapModal({
+  gap,
+  planName,
+  planPages,
+  currentPhotos,
+  onUpload,
+  onKeepStamps,
+  onClose,
+}: {
+  gap: number;
+  planName: string;
+  planPages: number;
+  currentPhotos: number;
+  onUpload: (files: FileList) => void;
+  onKeepStamps: () => void;
+  onClose: () => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    onUpload(files);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center"
+    >
+      <div className="absolute inset-0 bg-[#1B2616]/75 backdrop-blur-xl" onClick={onClose} />
+      <motion.div
+        initial={{ y: 60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 60, opacity: 0 }}
+        transition={{ type: 'spring', damping: 24, stiffness: 280 }}
+        className="relative z-10 w-full sm:max-w-md bg-[#FDFCF8] rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl px-8 pt-8 pb-10"
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-[#2D3A27]/8 hover:bg-[#2D3A27]/15 transition-colors text-[#2D3A27]/50"
+        >
+          <X size={14} />
+        </button>
+
+        {/* Cabeçalho */}
+        <div className="flex flex-col items-center text-center mb-6">
+          <div className="w-12 h-12 rounded-full bg-[#C8A96E]/15 flex items-center justify-center mb-4">
+            <Camera size={20} className="text-[#C8A96E]" />
+          </div>
+          <h3 className="font-serif text-2xl text-[#2D3A27] italic mb-2">Assistente de Preenchimento</h3>
+          <p className="text-[#2D3A27]/55 text-sm leading-relaxed">
+            O seu plano <span className="font-semibold text-[#2D3A27]">{planName}</span> tem{' '}
+            <span className="font-semibold text-[#2D3A27]">{planPages} páginas</span>, mas você tem{' '}
+            <span className="font-semibold text-[#2D3A27]">{currentPhotos} fotos</span>.
+          </p>
+        </div>
+
+        {/* Destaque do gap */}
+        <div className="bg-[#2D3A27]/6 border border-[#2D3A27]/10 rounded-2xl px-5 py-4 text-center mb-6">
+          <p className="text-[#2D3A27]/40 text-xs uppercase tracking-widest mb-1">Fotos em falta</p>
+          <p className="font-serif italic text-[#2D3A27] text-4xl">{gap}</p>
+          <p className="text-[#2D3A27]/40 text-xs mt-1">para preencher o álbum completo</p>
+        </div>
+
+        {/* Opção 1 — Upload */}
+        <motion.button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          whileHover={!uploading ? { scale: 1.02 } : {}}
+          whileTap={!uploading ? { scale: 0.98 } : {}}
+          className="w-full flex items-center gap-3 bg-[#2D3A27] rounded-2xl py-4 px-5 text-[#E8E4D9] font-semibold text-sm mb-3 hover:bg-[#1B2616] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {uploading ? (
+            <svg className="animate-spin w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+            </svg>
+          ) : (
+            <Upload size={16} className="shrink-0" />
+          )}
+          <div className="text-left">
+            <p className="font-semibold">Upload de Fotos</p>
+            <p className="text-[#E8E4D9]/55 text-xs font-normal">Adicione fotos do PC ou celular</p>
+          </div>
+        </motion.button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/*"
+          className="hidden"
+          onChange={e => handleFiles(e.target.files)}
+        />
+
+        {/* Opção 2 — Espaços para carimbos */}
+        <motion.button
+          onClick={onKeepStamps}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="w-full flex items-center gap-3 bg-[#F5F2EA] border border-[#2D3A27]/12 rounded-2xl py-4 px-5 text-[#2D3A27] hover:bg-[#EDE9DF] transition-all"
+        >
+          <div className="w-8 h-8 rounded-full border-2 border-dashed border-[#2D3A27]/25 flex items-center justify-center shrink-0">
+            <span className="text-[#2D3A27]/40 text-xs font-serif italic">✦</span>
+          </div>
+          <div className="text-left">
+            <p className="font-semibold text-sm">Manter espaços para carimbos</p>
+            <p className="text-[#2D3A27]/45 text-xs">As páginas restantes ficam com layout de Espaço para Carimbo / Notas</p>
+          </div>
+        </motion.button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // BookPage root
 // ---------------------------------------------------------------------------
 export default function BookPage() {
@@ -699,72 +860,97 @@ export default function BookPage() {
   const loadUserData = async (userId: string) => {
     setDataLoading(true);
     try {
-      // Perfil do peregrino
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, route_id')
-        .eq('id', userId)
-        .single();
+      // Todas as queries em paralelo para reduzir latência
+      const [
+        { data: profile },
+        { data: journeyRows },
+        { data: latestStamps, count: stampCount },
+        { data: firstStamps },
+        { data: photos, count: photoCount, error: photosError },
+      ] = await Promise.all([
+        // Perfil — nome e route_id cadastrado
+        supabase.from('profiles').select('full_name, route_id').eq('id', userId).single(),
 
-      // Stamp mais recente (km + data final) + contagem total
-      const { data: latestStamps, count: stampCount } = await supabase
-        .from('stamps')
-        .select('km_accumulated, stamped_at, route_id', { count: 'exact' })
-        .eq('pilgrim_id', userId)
-        .order('stamped_at', { ascending: false })
-        .limit(1);
+        // Jornada ativa — fonte primária de route_id e km total da rota
+        // Tenta `journeys`; se a tabela não existir, retorna [] sem lançar erro
+        supabase
+          .from('journeys')
+          .select('route_id, total_km, started_at, finished_at, status')
+          .eq('pilgrim_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(1),
 
-      // Stamp mais antigo (data de início)
-      const { data: firstStamps } = await supabase
-        .from('stamps')
-        .select('stamped_at')
-        .eq('pilgrim_id', userId)
-        .order('stamped_at', { ascending: true })
-        .limit(1);
+        // Stamp mais recente: km acumulado + data final
+        supabase
+          .from('stamps')
+          .select('km_accumulated, stamped_at, route_id', { count: 'exact' })
+          .eq('pilgrim_id', userId)
+          .order('stamped_at', { ascending: false })
+          .limit(1),
 
-      // Fotos — thumb_url + taken_at para ordenação cronológica
-      const { data: photos, count: photoCount, error: photosError } = await supabase
-        .from('photos')
-        .select('thumb_url, taken_at', { count: 'exact' })
-        .eq('pilgrim_id', userId)
-        .not('thumb_url', 'is', null)
-        .order('taken_at', { ascending: false })
-        .limit(50);
+        // Stamp mais antigo: data de início
+        supabase
+          .from('stamps')
+          .select('stamped_at')
+          .eq('pilgrim_id', userId)
+          .order('stamped_at', { ascending: true })
+          .limit(1),
 
-      // Log principal — mostra o retorno bruto da query (lista vazia [] incluída)
-      console.log('Dados recuperados:', photos);
-      // Log detalhado — diagnóstico completo com contagem e possível erro
-      console.log('[Peregrino/photos]', { photos, photoCount, photosError, userId });
+        // Fotos: thumb_url ordenado cronologicamente
+        supabase
+          .from('photos')
+          .select('thumb_url, taken_at', { count: 'exact' })
+          .eq('pilgrim_id', userId)
+          .not('thumb_url', 'is', null)
+          .order('taken_at', { ascending: false })
+          .limit(50),
+      ]);
 
-      const latestStamp  = latestStamps?.[0] as any;
-      const firstStamp   = firstStamps?.[0] as any;
-      const routeId      = (profile as any)?.route_id ?? latestStamp?.route_id ?? 'frances';
-      const routeKey     = ROUTE_KEY[routeId] ?? 'journey.name.frances';
-      const route        = t(routeKey);
-      const userName     = (profile as any)?.full_name ?? DEMO_USER.name;
-      const km           = Math.round(latestStamp?.km_accumulated ?? DEMO_USER.km);
-      const totalStamps  = stampCount ?? DEMO_USER.stamps;
-      const totalPhotos  = photoCount ?? DEMO_USER.photos;
-      const startDate    = firstStamp  ? fmtDate(firstStamp.stamped_at)  : DEMO_USER.startDate;
-      const endDate      = latestStamp ? fmtDate(latestStamp.stamped_at) : DEMO_USER.endDate;
-      const days         = firstStamp && latestStamp
+      console.log('[Peregrino/data]', { profile, journeyRows, stampCount, photoCount, photosError });
+
+      const journey     = (journeyRows as any)?.[0] ?? null;
+      const latestStamp = (latestStamps as any)?.[0] ?? null;
+      const firstStamp  = (firstStamps as any)?.[0] ?? null;
+
+      // Prioridade de route_id: jornada ativa → perfil → último stamp → fallback 'frances'
+      const routeId  = journey?.route_id ?? (profile as any)?.route_id ?? latestStamp?.route_id ?? 'frances';
+      const routeKey = ROUTE_KEY[routeId] ?? 'journey.name.frances';
+      const route    = t(routeKey);
+
+      const userName = (profile as any)?.full_name ?? DEMO_USER.name;
+
+      // km: distância total da rota (journeys.total_km) → km percorrido (stamps) → 0
+      // NÃO cair em DEMO_USER.km para não exibir 765 de outra rota
+      const km = Math.round(journey?.total_km ?? latestStamp?.km_accumulated ?? 0);
+
+      const totalStamps = stampCount ?? 0;
+      const totalPhotos = photoCount ?? 0;
+
+      // Datas: usa dados reais ou indica que ainda não iniciada
+      const startDate = journey?.started_at
+        ? fmtDate(journey.started_at)
+        : firstStamp ? fmtDate(firstStamp.stamped_at) : '—';
+      const endDate = journey?.finished_at
+        ? fmtDate(journey.finished_at)
+        : latestStamp ? fmtDate(latestStamp.stamped_at) : '—';
+      const days = firstStamp && latestStamp
         ? Math.max(1, Math.round(
             (new Date(latestStamp.stamped_at).getTime() - new Date(firstStamp.stamped_at).getTime())
             / (1000 * 60 * 60 * 24)
           ) + 1)
-        : DEMO_USER.days;
+        : 0;
 
-      const photoUrls: string[] = (photos ?? [])
+      const photoUrls: string[] = ((photos as any[]) ?? [])
         .map((p: any) => p.thumb_url)
         .filter(Boolean);
 
       setNoPhotosWarning(photoUrls.length === 0);
-      const allPhotos  = photoUrls.length >= 4 ? photoUrls : DEFAULT_BOOK_DATA.allPhotos;
+      const allPhotos = photoUrls.length >= 4 ? photoUrls : DEFAULT_BOOK_DATA.allPhotos;
 
       update({
         route,
-        title:       `${route}, ${new Date().getFullYear()}`,
-        coverPhoto:  allPhotos[0] ?? DEFAULT_BOOK_DATA.coverPhoto,
+        title:          `${route}, ${new Date().getFullYear()}`,
+        coverPhoto:     allPhotos[0] ?? DEFAULT_BOOK_DATA.coverPhoto,
         selectedPhotos: allPhotos.slice(0, 8),
         allPhotos,
         userName,
@@ -1250,8 +1436,41 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
 }) {
   const { t } = useT();
   const [tab, setTab] = useState<CustomizeTab>('cover');
+  const [showGapModal, setShowGapModal] = useState(false);
+
+  const model = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
+  const totalAvailable = bookData.allPhotos.length + (bookData.uploadedPhotos?.length ?? 0);
+  const gap = Math.max(0, model.pages - totalAvailable);
+
+  const handleDone = () => {
+    if (gap > 0) { setShowGapModal(true); return; }
+    onDone();
+  };
+
+  const handleUpload = (files: FileList) => {
+    const readers = Array.from(files).map(
+      file => new Promise<string>(res => {
+        const reader = new FileReader();
+        reader.onload = e => res(e.target?.result as string);
+        reader.readAsDataURL(file);
+      })
+    );
+    Promise.all(readers).then(dataUrls => {
+      const newUploaded = [...(bookData.uploadedPhotos ?? []), ...dataUrls];
+      const newAllPhotos = [...bookData.allPhotos, ...dataUrls];
+      onChange({
+        uploadedPhotos: newUploaded,
+        allPhotos: newAllPhotos,
+        photosCount: bookData.photosCount + dataUrls.length,
+        selectedPhotos: newAllPhotos.slice(0, Math.min(newAllPhotos.length, 11)),
+      });
+      setShowGapModal(false);
+      onDone();
+    });
+  };
 
   return (
+    <>
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="max-w-2xl mx-auto px-6 py-10 flex flex-col gap-8">
       <div className="text-center">
         <h2 className="font-serif text-3xl md:text-4xl text-[#2D3A27] italic mb-2">{t('bp.s2.title')}</h2>
@@ -1431,7 +1650,7 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
         <button onClick={onBack} className="flex items-center gap-2 text-sm text-[#2D3A27]/40 hover:text-[#2D3A27] transition-colors">
           <ArrowLeft size={15} /> {t('bp.s2.back')}
         </button>
-        <motion.button onClick={onDone} disabled={bookData.selectedPhotos.length < 4}
+        <motion.button onClick={handleDone} disabled={bookData.selectedPhotos.length < 4}
           whileHover={bookData.selectedPhotos.length >= 4 ? { scale: 1.03 } : {}}
           whileTap={bookData.selectedPhotos.length >= 4 ? { scale: 0.97 } : {}}
           className="bg-[#2D3A27] text-[#E8E4D9] px-8 py-3.5 rounded-full font-semibold flex items-center gap-2 hover:bg-[#1B2616] transition-colors shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
@@ -1440,6 +1659,22 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
         </motion.button>
       </div>
     </motion.div>
+
+    {/* Gap Modal — aparece se fotos < páginas do plano */}
+    <AnimatePresence>
+      {showGapModal && (
+        <GapModal
+          gap={gap}
+          planName={model.label}
+          planPages={model.pages}
+          currentPhotos={totalAvailable}
+          onUpload={handleUpload}
+          onKeepStamps={() => { setShowGapModal(false); onDone(); }}
+          onClose={() => setShowGapModal(false)}
+        />
+      )}
+    </AnimatePresence>
+    </>
   );
 }
 
@@ -1482,7 +1717,7 @@ function StepOrder({ bookData, selectedModel, onBack }: { bookData: BookData; se
           <p className="font-serif italic text-[#2D3A27] text-lg leading-tight">{bookData.title}</p>
           <p className="text-xs text-[#2D3A27]/40 uppercase tracking-wider">{bookData.userName}</p>
           <div className="flex flex-wrap gap-2 mt-2">
-            <span className="text-xs bg-[#2D3A27]/8 text-[#2D3A27]/60 px-2.5 py-1 rounded-full">📸 {bookData.photosCount} {t('bp.stat.photos')}</span>
+            <span className="text-xs bg-[#2D3A27]/8 text-[#2D3A27]/60 px-2.5 py-1 rounded-full">📸 {bookData.photosCount + (bookData.uploadedPhotos?.length ?? 0)} {t('bp.stat.photos')}</span>
             <span className="text-xs bg-[#2D3A27]/8 text-[#2D3A27]/60 px-2.5 py-1 rounded-full">🗺️ {bookData.km} km</span>
           </div>
           <div className="flex flex-wrap gap-1.5 mt-1">

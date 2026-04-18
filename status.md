@@ -75,12 +75,44 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 | **Livro interativo** | ✅ Concluído | 54 páginas: capa (pág 0), prefácio (pág 1), 50 layouts fotográficos (págs 2–51), selos dinâmicos (pág 52), contracapa (pág 53) |
 | **i18n do /book** | ✅ Concluído | 39 keys `bp.*` em 10 idiomas; capa usa nome da rota traduzido via `t('bp.demo.route')`; `I18nProvider` no `App.tsx` raiz |
 | **Auth Gate + SSO** | ✅ Concluído | `AuthModal` com QR code (deep link para o app), botão Google OAuth (Supabase `signInWithOAuth`), bypass de convidado. `onAuthStateChange` detecta login após redirect OAuth e carrega dados automaticamente. |
-| **Dados reais do peregrino** | 🔄 Integrado | `loadUserData` carrega `profiles`, `stamps` e `photos` do Supabase com dados reais. Fallback para DEMO_USER se tabelas vazias. Depuração ativa na query de fotos (`console.log` para diagnóstico no browser). |
+| **Dados reais do peregrino** | ✅ Concluído | `loadUserData` carrega `journeys`, `profiles`, `stamps` e `photos` em paralelo (`Promise.all`). Prioridade de rota: `journeys.route_id` → `profiles.route_id` → `stamps.route_id` → `'frances'`. km exibe `journeys.total_km` ou `stamps.km_accumulated`; **nunca** cai em DEMO_USER.km (bug corrigido). |
+| **Assistente de Preenchimento** | ✅ Concluído | Modal de gap ao clicar "Ver resultado": compara fotos disponíveis vs páginas do plano; oferece upload de fotos (FileReader → Data URL) ou "Manter espaços para carimbos". Contagem de fotos no resumo inclui uploads manuais. |
+| **Espaços para Carimbo (mock)** | ✅ Concluído | `ph()` sem modulo — índices além das fotos reais exibem placeholder elegante com circle tracejado, cidade e dia do Caminho Francês (SJPP→SCQ, 16 locais). Fim da repetição de fotos. |
 | **Cloudflare Worker** | ⚠️ Parcial | `functions/create-checkout.js` criado. Falta `STRIPE_SECRET_KEY` no painel Cloudflare |
 
 ---
 
 ## 🔄 Histórico de Alterações
+
+### Sessão 18/04/2026 (noite, cont.) — Assistente de Preenchimento + Fix Jornada Ativa
+
+#### Assistente de Preenchimento (`BookPage.tsx`)
+
+**Problema**: livro repetia fotos automaticamente via `ph(n) = photos[n % photos.length]` quando o usuário tinha menos fotos do que slots no livro.
+
+**Solução implementada**:
+- `ph(n)` agora retorna `__stamp__:N` para índices além das fotos reais (sem modulo)
+- Helper `img()` dentro de `renderBookPage`: renderiza `<img>` real ou **placeholder de Espaço para Carimbo** escalado com o fator `S` do livro
+- Placeholder contém: cidade + dia do Caminho (lista de 16 locais reais: SJPP → SCQ), circle tracejado estilo credencial, linhas de notas
+- Ao clicar **"Ver resultado"**, verifica gap = `model.pages − (allPhotos.length + uploadedPhotos.length)`
+- Se gap > 0: abre **GapModal** informando quantas fotos faltam, com duas opções:
+  - **Upload de Fotos**: FileReader → Data URL, adiciona a `allPhotos` + `uploadedPhotos`, auto-preenche `selectedPhotos` até 11 slots, avança
+  - **Manter espaços para carimbos**: avança direto
+- `StepOrder` mostra `photosCount + uploadedPhotos.length` no resumo
+
+#### Fix Jornada Ativa — `loadUserData`
+
+**Problema**: km exibia `DEMO_USER.km = 765` quando usuário não tinha stamps; rota ignorava a jornada ativa (tabela `journeys`).
+
+**Solução**:
+- Todas as queries agora em **paralelo** com `Promise.all` (profiles + journeys + stamps×2 + photos)
+- Nova query: `journeys` → `route_id`, `total_km`, `started_at`, `finished_at`, `status`
+- **Prioridade de `route_id`**: `journeys.route_id` → `profiles.route_id` → `stamps.route_id` → `'frances'`
+- **Prioridade de km**: `journeys.total_km` → `stamps.km_accumulated` → `0` (bug do 765 eliminado)
+- Datas mostram `'—'` se jornada não iniciada (em vez de datas fictícias do demo)
+- Contagens de stamps/fotos retornam `0` para novo usuário (não os valores do demo)
+
+---
 
 ### Sessão 18/04/2026 (cont.) — Reestruturação do Login (AuthModal)
 
@@ -387,4 +419,4 @@ O `logo-sf.png` (fundo branco + texto vermelho) não permite recolorir só o tex
 
 ---
 
-*Última atualização: 18/04/2026 (tarde, cont.) — Sessão com Antigravity (Google DeepMind)*
+*Última atualização: 18/04/2026 (noite, cont.) — Sessão com Antigravity (Google DeepMind)*
