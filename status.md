@@ -70,7 +70,8 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 | **Header** | ✅ Concluído | Logo composta: `vieira.png` + "Peregrino" Playfair Display 700 branco. Botão voltar à landing. Botão "Sair" discreto (aparece apenas quando autenticado) que faz logout e reseta para DEMO. |
 | **Step 1 — Revelação** | ✅ Concluído | Livro interativo + botão "Personalizar" + 3 cards de modelo clicáveis + botão "Encomendar" condicional (aparece após personalizar) + aviso de sem fotos (quando autenticado mas galeria vazia) |
 | **3 Modelos de Livro** | ✅ Concluído | **Essencial** 50 pág. €49,90 · **Jornada** 100 pág. €74,90 (destaque) · **Legado** 150 pág. €99,90. Cada modelo gera dinamicamente o número correto de páginas via `generatePageDefs(modelPages)`. |
-| **Step 2 — Personalizar** | ✅ Concluído | Seletor de modelo no topo + abas Capa / Textos / Fotos + "Ver resultado" volta ao Step 1 com `hasCustomized=true` |
+| **Step 2 — Personalizar** | ✅ Concluído | Seletor de modelo no topo + abas Capa / Textos / Fotos + "Ver resultado" volta ao Step 1 com `hasCustomized=true`. Aba Textos inclui seção "Textos das páginas" com editor por página. |
+| **Textos por página** | ✅ Concluído | Campos opcionais de texto nos layouts `large-white`, `stacked-2` e `grid-4-white` (topo e rodapé). Cada campo tem seletor de tipologia (5 fontes) e tamanho (PP/P/M/G/GG). Texto vazio = página renderiza sem texto. |
 | **Step 3 — Encomendar** | ✅ Concluído | Resumo dinâmico com nome, páginas e preço do modelo selecionado + Stripe Checkout |
 | **Livro interativo** | ✅ Concluído | Estrutura dinâmica: capa + prefácio + N layouts fotográficos (50/100/150 conforme modelo) + selos + contracapa. `object-contain` nos layouts emoldurados (large-white, stacked-2, grid-4, stagger-4, trio-h/v) — fotos aparecem inteiras. `object-cover` mantido apenas em full-dark e panoramas (sangria intencional). |
 | **Livro demo (sem login)** | ✅ Concluído | 89 fotos reais do Caminho em `public/img-apoio/img-webp/`. Reordenadas por orientação: landscape → slots panorama/stacked/centered, portrait → demais. Otimizadas: 1200px WebP q82, 22MB total. |
@@ -85,6 +86,58 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 ---
 
 ## 🔄 Histórico de Alterações
+
+### Sessão 19/04/2026 (tarde) — Textos personalizáveis por página
+
+#### Novo modelo de referência (PDF atualizado pelo usuário)
+O usuário revisou o PDF de referência do livro e confirmou que os layouts de foto são os **mesmos do modelo original** — sem mudanças na disposição das fotos. A novidade foram os **espaços de texto opcionais** adicionados a alguns layouts:
+- Layouts afetados: `large-white`, `stacked-2`, `grid-4-white`
+- Cada layout pode ter até 2 campos: **topo** e **rodapé**
+- Campos são opcionais — página sem texto renderiza normalmente
+- O usuário tem controle por página: fonte + tamanho independentes por campo
+
+#### 5 fontes disponíveis (Google Fonts)
+Adicionadas ao `index.html` e disponíveis para seleção na UI:
+
+| ID | Nome | Estilo |
+|---|---|---|
+| `inter` | Inter | Sans-serif — padrão do site |
+| `playfair` | Playfair Display | Serif elegante — fonte da marca |
+| `lora` | Lora | Serif literário |
+| `dancing` | Dancing Script | Manuscrito/cursiva |
+| `montserrat` | Montserrat | Sans-serif geométrico |
+
+#### Tamanhos de fonte (PP/P/M/G/GG)
+Mapeados para o sistema `fs()` escalável do livro:
+
+| Label | ID | fs() multiplier |
+|---|---|---|
+| PP | `xs` | 0.36 |
+| P | `sm` | 0.50 |
+| M | `md` | 0.64 |
+| G | `lg` | 0.80 |
+| GG | `xl` | 1.00 |
+
+#### Estrutura de dados
+- `PageTextEntry`: `{ text: string; fontSize: FontSize; fontFamily: FontFamily }`
+- `BookData.pageTexts: Record<string, PageTextEntry>` — chave: `"${pageIdx}-top"` ou `"${pageIdx}-bottom"`
+- Armazenamento inicia vazio (`{}`); entradas criadas apenas quando o usuário digita
+
+#### UI — Aba Textos (StepCustomize)
+Nova seção "Textos das páginas" ao final da aba:
+- Lista scrollável (`max-h-[34rem]`) de todas as páginas com slots de texto
+- Cada card mostra: `Pág. N` + tipo do layout (ex: "Foto com margem")
+- Por slot (Topo / Rodapé): campo `<textarea>` + 5 botões de tipologia + 5 botões de tamanho
+- Botões mostram a fonte aplicada ao próprio label (preview inline)
+- `updateEntry()` deleta a chave do Record se o texto for vazio (sem poluição de dados)
+
+#### Renderização no livro
+- `renderTextSlot('top' | 'bottom', fallback?)` helper dentro de `renderBookPage`
+- Busca em `bookData.pageTexts[pageIdx-slot]`; aplica `fontFamily` e `fontSize` via style inline
+- Cor: `rgba(45,58,39,0.68)` — verde floresta com transparência (consistente com o restante do livro)
+- `large-white`: mantém lógica do `caption` como fallback para o slot `bottom` quando existe `def.ck`
+
+---
 
 ### Sessão 19/04/2026 — Opção C completa: object-contain + orientação + atribuição manual
 
@@ -473,7 +526,10 @@ APP-PEREGRINO LANDING/
 | `PHOTO_BLOCK` | Array de 50 `PageDef` — template de layouts (single, grid-4, stagger-4, panorama, etc.) |
 | `generatePageDefs(n)` | Repete `PHOTO_BLOCK` até atingir `n` páginas foto; adiciona capa, prefácio, selos, contracapa |
 | `buildPhotoSlotMap(defs)` | Mapeia índice de página → array de índices sequenciais de foto (sem repetição) |
-| `renderBookPage(def, idx, data, S, sp, fs, slotMap)` | Renderiza uma página; usa `data.allPhotos[slotMap[idx][k]]`; além do pool exibe placeholder de carimbo |
+| `renderBookPage(def, idx, data, S, sp, fs, slotMap)` | Renderiza uma página; usa `data.allPhotos[slotMap[idx][k]]`; além do pool exibe placeholder de carimbo; `renderTextSlot()` injeta texto personalizado nos layouts suportados |
+| `PAGE_TEXT_SLOTS` | Record de layouts → slots de texto disponíveis (`'top' \| 'bottom'`): `large-white`, `stacked-2`, `grid-4-white` |
+| `FONT_FAMILIES` | Array com 5 fontes (inter, playfair, lora, dancing, montserrat) com CSS string |
+| `FONT_SIZE_FS` | Mapeamento FontSize → multiplicador `fs()` (0.36 a 1.0) |
 | `InteractiveBook` | Recebe `selectedModel`; computa `pageDefs` + `slotMap` via `useMemo`; renderiza `HTMLFlipBook` |
 | `GapModal` | Modal que aparece quando `allPhotos.length < model.pages`; upload via FileReader; reabre se gap persiste |
 | `loadUserData(userId)` | `Promise.all` para `journeys`, `profiles`, `stamps` (×2) e `photos`; prioridade de rota e km definida |
@@ -528,4 +584,4 @@ O `logo-sf.png` (fundo branco + texto vermelho) não permite recolorir só o tex
 
 ---
 
-*Última atualização: 19/04/2026 — Sessão com Antigravity (Claude Sonnet 4.6)*
+*Última atualização: 19/04/2026 (tarde) — Sessão com Antigravity (Claude Sonnet 4.6)*
