@@ -119,9 +119,11 @@ const FONT_FAMILIES: { id: FontFamily; label: string; css: string }[] = [
 
 // Layouts que suportam slots de texto personalizados
 const PAGE_TEXT_SLOTS: Partial<Record<PageKind, Array<'top' | 'bottom'>>> = {
-  'large-white':  ['top', 'bottom'],
-  'stacked-2':    ['top', 'bottom'],
-  'grid-4-white': ['top', 'bottom'],
+  'large-white':   ['top', 'bottom'],
+  'stacked-2':     ['top', 'bottom'],
+  'grid-4-white':  ['top', 'bottom'],
+  'hero-caption':  ['top'],
+  'wide-strip':    ['bottom'],
 };
 
 const BOOK_MODELS: { id: ModelId; label: string; pages: number; price: string; desc: string; featured?: true }[] = [
@@ -137,63 +139,70 @@ type PageKind =
   | 'cover' | 'preface' | 'back-cover' | 'stamps'
   | 'full-dark' | 'centered-dark' | 'large-white' | 'stacked-2'
   | 'grid-4-white' | 'stagger-4' | 'trio-h' | 'trio-v'
-  | 'panorama-L' | 'panorama-R';
+  | 'panorama-L' | 'panorama-R'
+  | 'side-by-side' | 'hero-caption' | 'wide-strip' | 'triptych'
+  | 'quote-dark' | 'feature-left' | 'feature-right' | 'cinematic' | 'mosaic-5';
 
 interface PageDef { kind: PageKind; p?: number | number[]; ck?: 'c1' | 'c2' | 'c3' }
 
-// Bloco de 50 layouts fotográficos — repetido N vezes conforme o modelo escolhido.
-// Os valores de `p` não importam; apenas o tipo (single vs array) define o nº de slots.
+// Bloco de 50 layouts fotográficos landscape — ritmo editorial com 9 tipos únicos.
+// Total de slots de foto: ~83 (dentro do pool de 89 fotos demo).
 const PHOTO_BLOCK: PageDef[] = [
-  { kind: 'stagger-4',    p: [0,1,2,3] },
-  { kind: 'full-dark',    p: 0 },
-  { kind: 'centered-dark',p: 0 },
-  { kind: 'centered-dark',p: 0 },
-  { kind: 'stacked-2',    p: [0,1] },
-  { kind: 'large-white',  p: 0 },
-  { kind: 'panorama-L',   p: 0 },
-  { kind: 'panorama-R',   p: 0 },
-  { kind: 'grid-4-white', p: [0,1,2,3] },
-  { kind: 'grid-4-white', p: [0,1,2,3] },
-  { kind: 'large-white',  p: 0 },
-  { kind: 'stacked-2',    p: [0,1] },
-  { kind: 'full-dark',    p: 0 },
-  { kind: 'full-dark',    p: 0 },
-  { kind: 'full-dark',    p: 0 },
-  { kind: 'grid-4-white', p: [0,1,2,3] },
-  { kind: 'stagger-4',    p: [0,1,2,3] },
-  { kind: 'full-dark',    p: 0 },
-  { kind: 'full-dark',    p: 0 },
-  { kind: 'full-dark',    p: 0 },
-  { kind: 'stacked-2',    p: [0,1] },
-  { kind: 'large-white',  p: 0 },
-  { kind: 'panorama-L',   p: 0 },
-  { kind: 'panorama-R',   p: 0 },
-  { kind: 'trio-h',       p: [0,1,2] },
-  { kind: 'trio-v',       p: [0,1,2] },
-  { kind: 'large-white',  p: 0 },
-  { kind: 'stacked-2',    p: [0,1] },
-  { kind: 'full-dark',    p: 0 },
-  { kind: 'full-dark',    p: 0 },
-  { kind: 'full-dark',    p: 0 },
-  { kind: 'grid-4-white', p: [0,1,2,3] },
-  { kind: 'grid-4-white', p: [0,1,2,3] },
-  { kind: 'full-dark',    p: 0 },
-  { kind: 'full-dark',    p: 0 },
-  { kind: 'full-dark',    p: 0 },
-  { kind: 'stacked-2',    p: [0,1] },
-  { kind: 'large-white',  p: 0 },
-  { kind: 'panorama-L',   p: 0 },
-  { kind: 'panorama-R',   p: 0 },
-  { kind: 'grid-4-white', p: [0,1,2,3] },
-  { kind: 'grid-4-white', p: [0,1,2,3] },
-  { kind: 'large-white',  p: 0 },
-  { kind: 'stacked-2',    p: [0,1] },
-  { kind: 'full-dark',    p: 0 },
-  { kind: 'full-dark',    p: 0 },
-  { kind: 'full-dark',    p: 0 },
-  { kind: 'grid-4-white', p: [0,1,2,3] },
-  { kind: 'grid-4-white', p: [0,1,2,3] },
-  { kind: 'large-white',  p: 0 },
+  // ── Abertura dramática ────────────────────────────────────────────────────
+  { kind: 'full-dark',     p: 0 },           // 1  — foto impacto, entrada
+  { kind: 'side-by-side',  p: [0,1] },       // 2  — 2 fotos panorâmicas lado a lado
+  { kind: 'hero-caption',  p: 0 },           // 3  — foto + painel de texto lateral
+  { kind: 'full-dark',     p: 0 },           // 4  — momento solitário
+  { kind: 'triptych',      p: [0,1,2] },     // 5  — 3 fragmentos da jornada
+  { kind: 'quote-dark',              ck: 'c1' }, // 6  — frase de abertura (openingPhrase)
+  { kind: 'side-by-side',  p: [0,1] },       // 7  — paisagem e detalhe
+  { kind: 'grid-4-white',  p: [0,1,2,3] },  // 8  — grade editorial 4 fotos
+  { kind: 'full-dark',     p: 0 },           // 9  — close dramático
+  { kind: 'wide-strip',    p: 0 },           // 10 — panorama horizontal com margens
+  // ── Meio do caminho ──────────────────────────────────────────────────────
+  { kind: 'side-by-side',  p: [0,1] },       // 11 — contraste de momentos
+  { kind: 'large-white',   p: 0 },           // 12 — foto editorial com espaço
+  { kind: 'panorama-L',    p: 0 },           // 13 — spread panorâmico (metade L)
+  { kind: 'panorama-R',    p: 0 },           // 14 — spread panorâmico (metade R)
+  { kind: 'feature-right', p: [0,1,2] },     // 15 — 2 pequenas + grande direita
+  { kind: 'stagger-4',     p: [0,1,2,3] },  // 16 — collage assimétrica 4 fotos
+  { kind: 'hero-caption',  p: 0 },           // 17 — foto + cita do peregrino
+  { kind: 'full-dark',     p: 0 },           // 18 — silhueta no horizonte
+  { kind: 'triptych',      p: [0,1,2] },     // 19 — sequência de 3 momentos
+  { kind: 'cinematic',     p: 0 },           // 20 — plano cinemático letterbox
+  // ── Paisagem e contemplação ──────────────────────────────────────────────
+  { kind: 'wide-strip',    p: 0 },           // 21 — vale ou meseta, respirar
+  { kind: 'grid-4-white',  p: [0,1,2,3] },  // 22 — detalhes do caminho, grade
+  { kind: 'side-by-side',  p: [0,1] },       // 23 — antes / depois de um trecho
+  { kind: 'quote-dark',              ck: 'c2' }, // 24 — reflexão (reflectionText)
+  { kind: 'full-dark',     p: 0 },           // 25 — noite, névoa ou chuva
+  { kind: 'feature-left',  p: [0,1,2] },     // 26 — grande esquerda + 2 direita
+  { kind: 'large-white',   p: 0 },           // 27 — foto assinatura com legenda
+  { kind: 'triptych',      p: [0,1,2] },     // 28 — três rostos ou três altares
+  { kind: 'panorama-L',    p: 0 },           // 29 — spread: vale da Galícia
+  { kind: 'panorama-R',    p: 0 },           // 30 — spread (par)
+  // ── Chegada e emoção ─────────────────────────────────────────────────────
+  { kind: 'hero-caption',  p: 0 },           // 31 — foto forte + emoção escrita
+  { kind: 'stagger-4',     p: [0,1,2,3] },  // 32 — collage dos últimos km
+  { kind: 'side-by-side',  p: [0,1] },       // 33 — paralelo: saída × chegada
+  { kind: 'full-dark',     p: 0 },           // 34 — Catedral ao fundo
+  { kind: 'mosaic-5',      p: [0,1,2,3,4] },// 35 — mosaico 5 fotos celebração
+  { kind: 'wide-strip',    p: 0 },           // 36 — praça do Obradoiro
+  { kind: 'feature-right', p: [0,1,2] },     // 37 — chegada e detalhes finais
+  { kind: 'side-by-side',  p: [0,1] },       // 38 — Compostela × beijo na vieira
+  { kind: 'full-dark',     p: 0 },           // 39 — último por do sol
+  { kind: 'large-white',   p: 0 },           // 40 — foto final com legenda pessoal
+  // ── Epílogo ───────────────────────────────────────────────────────────────
+  { kind: 'full-dark',     p: 0 },           // 41 — silêncio pós-chegada
+  { kind: 'side-by-side',  p: [0,1] },       // 42 — memória e detalhe
+  { kind: 'quote-dark',              ck: 'c3' }, // 43 — frase final do Caminho
+  { kind: 'hero-caption',  p: 0 },           // 44 — retrato com painel reflexivo
+  { kind: 'triptych',      p: [0,1,2] },     // 45 — três lembretes visuais
+  { kind: 'panorama-L',    p: 0 },           // 46 — spread final: horizonte
+  { kind: 'panorama-R',    p: 0 },           // 47 — spread (par)
+  { kind: 'feature-left',  p: [0,1,2] },     // 48 — grande foto + detalhes
+  { kind: 'full-dark',     p: 0 },           // 49 — fade-out dramático
+  { kind: 'large-white',   p: 0 },           // 50 — página final assinatura
 ];
 
 // Gera as page defs completas para um dado modelo:
@@ -537,6 +546,148 @@ function renderBookPage(
       return (
         <div className="w-full h-full overflow-hidden" style={{ background: '#141a12' }}>
           {img(slots[0], 'w-full h-full object-cover', { objectPosition: '100% center' })}
+        </div>
+      );
+
+    // ── Side by Side — 2 fotos lado a lado ─────────────────────────────────
+    case 'side-by-side':
+      return (
+        <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
+          <div className="overflow-hidden bg-[#FDFCF8]">
+            {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
+          </div>
+          <div className="overflow-hidden bg-[#FDFCF8]">
+            {img(slots[1], 'w-full h-full object-cover', undefined, 'contain')}
+          </div>
+        </div>
+      );
+
+    // ── Hero Caption — foto grande esquerda + painel de texto direita ────────
+    case 'hero-caption': {
+      const panelText = renderTextSlot('top') ?? (
+        <p className="font-serif italic" style={{ fontSize: fs(0.72), color: 'rgba(45,58,39,0.55)', lineHeight: 1.55 }}>
+          "{CAMINO_QUOTES[pageIdx % CAMINO_QUOTES.length]}"
+        </p>
+      );
+      return (
+        <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateColumns: '63% 37%' }}>
+          <div className="overflow-hidden">
+            {img(slots[0], 'w-full h-full object-cover')}
+          </div>
+          <div className="flex flex-col justify-center" style={{ padding: `${sp(14)} ${sp(16)}`, gap: sp(10) }}>
+            <div style={{ width: sp(22), height: '1px', background: 'rgba(45,58,39,0.18)' }} />
+            {panelText}
+            <p style={{ fontSize: fs(0.40), color: 'rgba(45,58,39,0.28)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+              {bookData.route}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Wide Strip — foto horizontal centrada, margens brancas ──────────────
+    case 'wide-strip': {
+      const botText = renderTextSlot('bottom');
+      return (
+        <div className="w-full h-full bg-[#FDFCF8] flex flex-col justify-center" style={{ padding: sp(14), gap: sp(8) }}>
+          <div className="w-full overflow-hidden" style={{ flex: 1, boxShadow: `0 ${sp(4)} ${sp(18)} rgba(0,0,0,0.18)` }}>
+            {img(slots[0], 'w-full h-full object-cover')}
+          </div>
+          {botText ? (
+            <div style={{ borderTop: `1px solid rgba(45,58,39,0.08)`, paddingTop: sp(6) }}>
+              {botText}
+            </div>
+          ) : (
+            <p className="text-[#2D3A27]/20 text-right font-serif italic" style={{ fontSize: fs(0.46) }}>
+              {bookData.route} · {bookData.startDate}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    // ── Triptych — 3 fotos lado a lado, fundo escuro ────────────────────────
+    case 'triptych':
+      return (
+        <div className="w-full h-full" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: sp(2), padding: sp(6), background: '#1a2118' }}>
+          {[0, 1, 2].map(i => (
+            <div key={i} className="overflow-hidden">
+              {img(slots[i], 'w-full h-full object-cover')}
+            </div>
+          ))}
+        </div>
+      );
+
+    // ── Quote Dark — página de citação/reflexão sem foto ────────────────────
+    case 'quote-dark': {
+      const quoteText =
+        def.ck === 'c1' ? bookData.openingPhrase :
+        def.ck === 'c2' ? bookData.reflectionText :
+        CAMINO_QUOTES[pageIdx % CAMINO_QUOTES.length];
+      return (
+        <div className="w-full h-full flex flex-col justify-center" style={{ background: '#161c14', padding: `${sp(28)} ${sp(32)}`, gap: sp(14) }}>
+          <div style={{ width: sp(26), height: '1px', background: 'rgba(232,228,217,0.2)' }} />
+          <p className="font-serif italic" style={{ fontSize: fs(0.82), color: 'rgba(232,228,217,0.62)', lineHeight: 1.65 }}>
+            "{quoteText}"
+          </p>
+          <p style={{ fontSize: fs(0.42), color: 'rgba(232,228,217,0.28)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+            {bookData.route} · {bookData.endDate}
+          </p>
+        </div>
+      );
+    }
+
+    // ── Feature Left — foto grande esquerda + 2 empilhadas direita ──────────
+    case 'feature-left':
+      return (
+        <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateColumns: '60% 38%', gridTemplateRows: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
+          <div style={{ gridRow: '1 / 3', overflow: 'hidden', background: '#FDFCF8' }}>
+            {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
+          </div>
+          <div className="overflow-hidden bg-[#FDFCF8]">
+            {img(slots[1], 'w-full h-full object-cover', undefined, 'contain')}
+          </div>
+          <div className="overflow-hidden bg-[#FDFCF8]">
+            {img(slots[2], 'w-full h-full object-cover', undefined, 'contain')}
+          </div>
+        </div>
+      );
+
+    // ── Feature Right — 2 empilhadas esquerda + foto grande direita ─────────
+    case 'feature-right':
+      return (
+        <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateColumns: '38% 60%', gridTemplateRows: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
+          <div style={{ gridColumn: 1, gridRow: 1, overflow: 'hidden', background: '#FDFCF8' }}>
+            {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
+          </div>
+          <div style={{ gridColumn: 1, gridRow: 2, overflow: 'hidden', background: '#FDFCF8' }}>
+            {img(slots[1], 'w-full h-full object-cover', undefined, 'contain')}
+          </div>
+          <div style={{ gridColumn: 2, gridRow: '1 / 3', overflow: 'hidden', background: '#FDFCF8' }}>
+            {img(slots[2], 'w-full h-full object-cover', undefined, 'contain')}
+          </div>
+        </div>
+      );
+
+    // ── Cinematic — foto letterbox estilo cinema ─────────────────────────────
+    case 'cinematic':
+      return (
+        <div className="w-full h-full flex flex-col justify-center" style={{ background: '#0d1109' }}>
+          <div style={{ height: '68%', width: '100%', overflow: 'hidden' }}>
+            {img(slots[0], 'w-full h-full object-cover')}
+          </div>
+        </div>
+      );
+
+    // ── Mosaic 5 — 3 fotos cima + 2 fotos baixo, fundo escuro ───────────────
+    case 'mosaic-5':
+      return (
+        <div className="w-full h-full" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: '46% 51%', gap: sp(2), padding: sp(5), background: '#1a2118' }}>
+          <div className="overflow-hidden">{img(slots[0], 'w-full h-full object-cover')}</div>
+          <div className="overflow-hidden">{img(slots[1], 'w-full h-full object-cover')}</div>
+          <div className="overflow-hidden">{img(slots[2], 'w-full h-full object-cover')}</div>
+          <div style={{ gridColumn: '1 / 3', overflow: 'hidden' }}>{img(slots[3], 'w-full h-full object-cover')}</div>
+          <div className="overflow-hidden">{img(slots[4], 'w-full h-full object-cover')}</div>
         </div>
       );
 
@@ -1831,6 +1982,11 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
                     'trio-v': 'Trio V', 'full-dark': 'Foto sangrada', 'centered-dark': 'Foto centrada',
                     'panorama-L': 'Panorama', 'panorama-R': 'Panorama R', 'cover': 'Capa',
                     'preface': 'Prefácio', 'stamps': 'Selos', 'back-cover': 'Contracapa',
+                    'side-by-side': 'Duas fotos', 'hero-caption': 'Foto + texto',
+                    'wide-strip': 'Faixa panorâmica', 'triptych': 'Tríptico',
+                    'quote-dark': 'Citação', 'feature-left': 'Destaque esquerda',
+                    'feature-right': 'Destaque direita', 'cinematic': 'Cinemático',
+                    'mosaic-5': 'Mosaico 5 fotos',
                   };
                   return (
                     <div key={pageIdx} className="bg-[#F5F2EA] rounded-2xl p-4 border border-[#2D3A27]/6">
