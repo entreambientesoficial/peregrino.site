@@ -72,8 +72,9 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 | **3 Modelos de Livro** | ✅ Concluído | **Essencial** 50 pág. €49,90 · **Jornada** 100 pág. €74,90 (destaque) · **Legado** 150 pág. €99,90. Cada modelo gera dinamicamente o número correto de páginas via `generatePageDefs(modelPages)`. |
 | **Step 2 — Personalizar** | ✅ Concluído | Seletor de modelo no topo + abas Capa / Textos / Fotos + "Ver resultado" volta ao Step 1 com `hasCustomized=true` |
 | **Step 3 — Encomendar** | ✅ Concluído | Resumo dinâmico com nome, páginas e preço do modelo selecionado + Stripe Checkout |
-| **Livro interativo** | ✅ Concluído | Estrutura dinâmica: capa + prefácio + N layouts fotográficos (50/100/150 conforme modelo) + selos + contracapa. Layouts definidos em `PHOTO_BLOCK` (50 templates) repetido N vezes por `generatePageDefs()`. Slot map sequencial via `buildPhotoSlotMap()` garante zero repetição de fotos. |
-| **Livro demo (sem login)** | ✅ Concluído | 89 fotos reais do Caminho de Santiago em `public/img-apoio/img-webp/` (1.webp a 90.webp, sem 43). Fotos otimizadas: 1200px, WebP q82, total 22MB (era 178MB, -87%). Pool cobre os 83 slots do modelo de 50 pág. sem nenhuma repetição. |
+| **Livro interativo** | ✅ Concluído | Estrutura dinâmica: capa + prefácio + N layouts fotográficos (50/100/150 conforme modelo) + selos + contracapa. `object-contain` nos layouts emoldurados (large-white, stacked-2, grid-4, stagger-4, trio-h/v) — fotos aparecem inteiras. `object-cover` mantido apenas em full-dark e panoramas (sangria intencional). |
+| **Livro demo (sem login)** | ✅ Concluído | 89 fotos reais do Caminho em `public/img-apoio/img-webp/`. Reordenadas por orientação: landscape → slots panorama/stacked/centered, portrait → demais. Otimizadas: 1200px WebP q82, 22MB total. |
+| **Atribuição manual de fotos** | ✅ Concluído | Aba Fotos do Step 2 redesenhada. Galeria + grid de slots do livro. Fluxo: clique numa foto → clique num slot = atribuição. Badge amarelo = manual; × remove; botão limpa tudo. `BookData.photoAssignments: Record<number,string>` sobrepõe o mapeamento automático. |
 | **i18n do /book** | ✅ Concluído | 39 keys `bp.*` em 10 idiomas; capa usa nome da rota traduzido via `t('bp.demo.route')`; `I18nProvider` no `App.tsx` raiz |
 | **Auth Gate + SSO** | ✅ Concluído | `AuthModal` com botão Google OAuth (Supabase `signInWithOAuth`) + formulário email/senha + bypass convidado. `onAuthStateChange` detecta login após redirect OAuth e carrega dados automaticamente. |
 | **Dados reais do peregrino** | ✅ Concluído | `loadUserData` carrega `journeys`, `profiles`, `stamps` e `photos` em paralelo (`Promise.all`). Prioridade de rota: `journeys.route_id` → `profiles.route_id` → `stamps.route_id` → `'frances'`. km: `journeys.total_km` → `stamps.km_accumulated` → `0`. |
@@ -84,6 +85,34 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 ---
 
 ## 🔄 Histórico de Alterações
+
+### Sessão 19/04/2026 — Opção C completa: object-contain + orientação + atribuição manual
+
+#### Problema reportado
+Fotos do livro apareciam cortadas (pés, rostos, pessoas pela metade) devido ao `object-fit: cover` que preenche o container sacrificando as bordas. Páginas duplas de panorama apareciam corretas mas layouts emoldurados prejudicavam fotos de orientação errada para o slot.
+
+#### A) object-contain nos layouts emoldurados
+- `large-white`, `stacked-2`, `grid-4-white`, `stagger-4`, `trio-h`, `trio-v`: mudado para `object-contain`
+- Fotos aparecem inteiras, sem corte, com fundo neutro da página (creme/branco)
+- Mantido `object-cover` em `full-dark`, `centered-dark`, `panorama-L/R` (sangria intencional)
+- Helper `img()` recebe parâmetro `fit: 'cover' | 'contain'`; containers com `object-contain` recebem `bg-[#FDFCF8]` ou `bg-white` para fundo limpo
+
+#### B) Fotos demo reordenadas por orientação
+- Script Node analisou dimensões das 89 fotos: **57 portrait**, **32 landscape**
+- Mapeou preferência de cada slot do `PHOTO_BLOCK`: panorama-L, centered-dark, stacked-2 = landscape; trio-v slot-0 = portrait; demais = any
+- `DEMO_USER.allPhotos` reordenado para casar orientação foto↔slot sequencialmente
+- Resultado: fotos landscape nos slots 5,6,7,8,10,20,21,36,37,39-42,44,45,47,48,63,64,66,76,77
+
+#### C) Aba Fotos redesenhada — atribuição manual por slot
+- **BookData**: novo campo `photoAssignments: Record<number, string>` (slotIdx → url)
+- **renderBookPage**: `ph(n)` checa `photoAssignments[n]` antes do pool automático
+- **UI — Galeria**: grid scrollável com todas as fotos; clique seleciona (badge ✓); clique duplo deseleciona
+- **UI — Páginas**: grid de todos os slots do modelo atual (83 para Essencial); clique num slot quando foto selecionada = atribui; clique sem seleção = abre picker inline
+- **Badge amarelo**: slots com atribuição manual têm × no canto; botão global "Remover todas" reseta
+- Slots sem foto mostram ícone `Camera` placeholder
+- Contador "X atribuídos" em tempo real
+
+---
 
 ### Sessão 18/04/2026 (madrugada) — Fotos reais do Caminho + Otimização de assets
 
@@ -499,4 +528,4 @@ O `logo-sf.png` (fundo branco + texto vermelho) não permite recolorir só o tex
 
 ---
 
-*Última atualização: 18/04/2026 (madrugada) — Sessão com Antigravity (Claude Sonnet 4.6)*
+*Última atualização: 19/04/2026 — Sessão com Antigravity (Claude Sonnet 4.6)*
