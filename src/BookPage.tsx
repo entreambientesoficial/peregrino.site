@@ -389,12 +389,11 @@ function renderBookPage(
         </div>
       );
 
-    // ── Full dark — foto sangrada, fundo escuro ──────────────────────────────
+    // ── Full dark — foto em fundo escuro, inteira sem corte ─────────────────
     case 'full-dark':
       return (
-        <div className="w-full h-full relative">
-          {img(slots[0], 'w-full h-full object-cover')}
-          <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.3) 0%, transparent 40%)' }} />
+        <div className="w-full h-full flex items-center justify-center" style={{ background: '#161c14' }}>
+          {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
         </div>
       );
 
@@ -403,7 +402,7 @@ function renderBookPage(
       return (
         <div className="w-full h-full flex flex-col items-center justify-center" style={{ background: '#161c14', padding: sp(14) }}>
           <div className="w-full overflow-hidden" style={{ height: '65%' }}>
-            {img(slots[0], 'w-full h-full object-cover')}
+            {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
           </div>
           <p className="text-[#E8E4D9]/30 uppercase tracking-[0.22em] text-center" style={{ fontSize: fs(0.44), marginTop: sp(10) }}>
             {bookData.route} · {new Date().getFullYear()}
@@ -571,8 +570,8 @@ function renderBookPage(
       );
       return (
         <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateColumns: '63% 37%' }}>
-          <div className="overflow-hidden">
-            {img(slots[0], 'w-full h-full object-cover')}
+          <div className="overflow-hidden" style={{ background: '#1a2118' }}>
+            {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
           </div>
           <div className="flex flex-col justify-center" style={{ padding: `${sp(14)} ${sp(16)}`, gap: sp(10) }}>
             <div style={{ width: sp(22), height: '1px', background: 'rgba(45,58,39,0.18)' }} />
@@ -590,8 +589,8 @@ function renderBookPage(
       const botText = renderTextSlot('bottom');
       return (
         <div className="w-full h-full bg-[#FDFCF8] flex flex-col justify-center" style={{ padding: sp(14), gap: sp(8) }}>
-          <div className="w-full overflow-hidden" style={{ flex: 1, boxShadow: `0 ${sp(4)} ${sp(18)} rgba(0,0,0,0.18)` }}>
-            {img(slots[0], 'w-full h-full object-cover')}
+          <div className="w-full overflow-hidden bg-[#FDFCF8]" style={{ flex: 1, boxShadow: `0 ${sp(4)} ${sp(18)} rgba(0,0,0,0.18)` }}>
+            {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
           </div>
           {botText ? (
             <div style={{ borderTop: `1px solid rgba(45,58,39,0.08)`, paddingTop: sp(6) }}>
@@ -611,8 +610,8 @@ function renderBookPage(
       return (
         <div className="w-full h-full" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: sp(2), padding: sp(6), background: '#1a2118' }}>
           {[0, 1, 2].map(i => (
-            <div key={i} className="overflow-hidden">
-              {img(slots[i], 'w-full h-full object-cover')}
+            <div key={i} className="overflow-hidden" style={{ background: '#1a2118' }}>
+              {img(slots[i], 'w-full h-full object-cover', undefined, 'contain')}
             </div>
           ))}
         </div>
@@ -673,8 +672,8 @@ function renderBookPage(
     case 'cinematic':
       return (
         <div className="w-full h-full flex flex-col justify-center" style={{ background: '#0d1109' }}>
-          <div style={{ height: '68%', width: '100%', overflow: 'hidden' }}>
-            {img(slots[0], 'w-full h-full object-cover')}
+          <div style={{ height: '68%', width: '100%', overflow: 'hidden', background: '#0d1109' }}>
+            {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
           </div>
         </div>
       );
@@ -683,11 +682,11 @@ function renderBookPage(
     case 'mosaic-5':
       return (
         <div className="w-full h-full" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: '46% 51%', gap: sp(2), padding: sp(5), background: '#1a2118' }}>
-          <div className="overflow-hidden">{img(slots[0], 'w-full h-full object-cover')}</div>
-          <div className="overflow-hidden">{img(slots[1], 'w-full h-full object-cover')}</div>
-          <div className="overflow-hidden">{img(slots[2], 'w-full h-full object-cover')}</div>
-          <div style={{ gridColumn: '1 / 3', overflow: 'hidden' }}>{img(slots[3], 'w-full h-full object-cover')}</div>
-          <div className="overflow-hidden">{img(slots[4], 'w-full h-full object-cover')}</div>
+          <div className="overflow-hidden" style={{ background: '#1a2118' }}>{img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}</div>
+          <div className="overflow-hidden" style={{ background: '#1a2118' }}>{img(slots[1], 'w-full h-full object-cover', undefined, 'contain')}</div>
+          <div className="overflow-hidden" style={{ background: '#1a2118' }}>{img(slots[2], 'w-full h-full object-cover', undefined, 'contain')}</div>
+          <div style={{ gridColumn: '1 / 3', overflow: 'hidden', background: '#1a2118' }}>{img(slots[3], 'w-full h-full object-cover', undefined, 'contain')}</div>
+          <div className="overflow-hidden" style={{ background: '#1a2118' }}>{img(slots[4], 'w-full h-full object-cover', undefined, 'contain')}</div>
         </div>
       );
 
