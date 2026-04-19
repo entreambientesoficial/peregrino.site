@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import HTMLFlipBook from 'react-pageflip';
@@ -31,8 +31,10 @@ const DEMO_USER = {
   km: 765,
   stamps: 28,
   photos: 89,
-  allPhotos: Array.from({ length: 90 }, (_, i) => i + 1)
-    .filter(n => n !== 43)
+  // Ordem otimizada: fotos landscape nos slots panorama/stacked/centered, portrait nos restantes
+  allPhotos: [3,6,7,8,10,1,4,5,9,11,12,13,14,17,18,21,22,23,24,26,15,16,28,29,30,32,34,36,37,
+    38,41,42,44,46,47,48,19,20,49,25,27,31,33,2,35,39,50,40,45,53,54,55,57,60,62,63,64,65,67,
+    68,69,71,72,51,52,73,56,75,76,77,78,80,81,83,84,86,58,59,89,61,66,70,74,79,82,85,87,88,90]
     .map(n => `/img-apoio/img-webp/${n}.webp`),
 };
 
@@ -65,6 +67,7 @@ interface BookData {
   photosCount: number;
   allPhotos: string[];
   uploadedPhotos: string[];
+  photoAssignments: Record<number, string>;
 }
 
 const DEFAULT_BOOK_DATA: BookData = {
@@ -84,8 +87,9 @@ const DEFAULT_BOOK_DATA: BookData = {
   days:        DEMO_USER.days,
   stampsCount: DEMO_USER.stamps,
   photosCount: DEMO_USER.photos,
-  allPhotos:      DEMO_USER.allPhotos,
-  uploadedPhotos: [],
+  allPhotos:        DEMO_USER.allPhotos,
+  uploadedPhotos:   [],
+  photoAssignments: {},
 };
 
 type Step = 'reveal' | 'customize' | 'order';
@@ -249,11 +253,20 @@ function renderBookPage(
 ) {
   const photos = bookData.allPhotos;
   const slots = slotMap.get(pageIdx) ?? [];
-  const ph = (n: number) => n < photos.length ? photos[n] : `__stamp__:${n}`;
+  const ph = (n: number) => {
+    if (bookData.photoAssignments[n] !== undefined) return bookData.photoAssignments[n];
+    return n < photos.length ? photos[n] : `__stamp__:${n}`;
+  };
   // Helper: retorna <img> real ou placeholder de carimbo escalado com S
-  const img = (n: number, cls: string, sty?: React.CSSProperties) => {
+  // fit='cover' para sangrias full-bleed; fit='contain' para layouts emoldurados
+  const img = (n: number, cls: string, sty?: React.CSSProperties, fit: 'cover' | 'contain' = 'cover') => {
     const src = ph(n);
-    if (!src.startsWith('__stamp__')) return <img src={src} className={cls} alt="" style={sty} />;
+    if (!src.startsWith('__stamp__')) {
+      const fitCls = fit === 'contain'
+        ? cls.replace('object-cover', 'object-contain')
+        : cls;
+      return <img src={src} className={fitCls} alt="" style={sty} />;
+    }
     const place = STAMP_PLACES[n % STAMP_PLACES.length];
     return (
       <div className={cls} style={{ ...sty, background: '#F0EDE4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: sp(3), padding: sp(6) }}>
@@ -354,8 +367,8 @@ function renderBookPage(
                       def.ck === 'c3' ? bookData.caption3 : null;
       return (
         <div className="w-full h-full flex flex-col justify-center bg-[#FDFCF8]" style={{ padding: sp(12) }}>
-          <div className="w-full overflow-hidden" style={{ flex: caption ? '0 0 68%' : '0 0 80%', boxShadow: `0 ${sp(3)} ${sp(14)} rgba(0,0,0,0.14)` }}>
-            {img(slots[0], 'w-full h-full object-cover')}
+          <div className="w-full overflow-hidden bg-[#FDFCF8]" style={{ flex: caption ? '0 0 68%' : '0 0 80%', boxShadow: `0 ${sp(3)} ${sp(14)} rgba(0,0,0,0.14)` }}>
+            {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
           </div>
           {caption ? (
             <p className="font-serif italic text-[#2D3A27]/60 leading-relaxed text-center" style={{ fontSize: fs(0.62), marginTop: sp(9), padding: `0 ${sp(4)}` }}>
@@ -375,8 +388,8 @@ function renderBookPage(
       return (
         <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: sp(4), padding: sp(10) }}>
           {slots.map((s, i) => (
-            <div key={i} className="overflow-hidden">
-              {img(s, 'w-full h-full object-cover')}
+            <div key={i} className="overflow-hidden bg-[#FDFCF8]">
+              {img(s, 'w-full h-full object-cover', undefined, 'contain')}
             </div>
           ))}
         </div>
@@ -387,8 +400,8 @@ function renderBookPage(
       return (
         <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
           {slots.map((s, i) => (
-            <div key={i} className="overflow-hidden">
-              {img(s, 'w-full h-full object-cover')}
+            <div key={i} className="overflow-hidden bg-white">
+              {img(s, 'w-full h-full object-cover', undefined, 'contain')}
             </div>
           ))}
         </div>
@@ -399,12 +412,12 @@ function renderBookPage(
       return (
         <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
           <div style={{ display: 'grid', gridTemplateRows: '46% 50%', gap: sp(3) }}>
-            <div className="overflow-hidden">{img(slots[0], 'w-full h-full object-cover')}</div>
-            <div className="overflow-hidden">{img(slots[2], 'w-full h-full object-cover')}</div>
+            <div className="overflow-hidden bg-[#FDFCF8]">{img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}</div>
+            <div className="overflow-hidden bg-[#FDFCF8]">{img(slots[2], 'w-full h-full object-cover', undefined, 'contain')}</div>
           </div>
           <div style={{ display: 'grid', gridTemplateRows: '50% 46%', gap: sp(3), marginTop: sp(10) }}>
-            <div className="overflow-hidden">{img(slots[1], 'w-full h-full object-cover')}</div>
-            <div className="overflow-hidden">{img(slots[3], 'w-full h-full object-cover')}</div>
+            <div className="overflow-hidden bg-[#FDFCF8]">{img(slots[1], 'w-full h-full object-cover', undefined, 'contain')}</div>
+            <div className="overflow-hidden bg-[#FDFCF8]">{img(slots[3], 'w-full h-full object-cover', undefined, 'contain')}</div>
           </div>
         </div>
       );
@@ -413,10 +426,10 @@ function renderBookPage(
     case 'trio-h':
       return (
         <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateRows: '54% 42%', gridTemplateColumns: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
-          <div className="overflow-hidden">{img(slots[0], 'w-full h-full object-cover')}</div>
-          <div className="overflow-hidden">{img(slots[1], 'w-full h-full object-cover')}</div>
-          <div className="overflow-hidden" style={{ gridColumn: '1 / 3' }}>
-            {img(slots[2], 'w-full h-full object-cover')}
+          <div className="overflow-hidden bg-white">{img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}</div>
+          <div className="overflow-hidden bg-white">{img(slots[1], 'w-full h-full object-cover', undefined, 'contain')}</div>
+          <div className="overflow-hidden bg-white" style={{ gridColumn: '1 / 3' }}>
+            {img(slots[2], 'w-full h-full object-cover', undefined, 'contain')}
           </div>
         </div>
       );
@@ -425,11 +438,11 @@ function renderBookPage(
     case 'trio-v':
       return (
         <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateColumns: '52% 44%', gridTemplateRows: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
-          <div className="overflow-hidden" style={{ gridRow: '1 / 3' }}>
-            {img(slots[0], 'w-full h-full object-cover')}
+          <div className="overflow-hidden bg-white" style={{ gridRow: '1 / 3' }}>
+            {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
           </div>
-          <div className="overflow-hidden">{img(slots[1], 'w-full h-full object-cover')}</div>
-          <div className="overflow-hidden">{img(slots[2], 'w-full h-full object-cover')}</div>
+          <div className="overflow-hidden bg-white">{img(slots[1], 'w-full h-full object-cover', undefined, 'contain')}</div>
+          <div className="overflow-hidden bg-white">{img(slots[2], 'w-full h-full object-cover', undefined, 'contain')}</div>
         </div>
       );
 
@@ -1484,10 +1497,44 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
   const { t } = useT();
   const [tab, setTab] = useState<CustomizeTab>('cover');
   const [showGapModal, setShowGapModal] = useState(false);
+  const [pickedPhoto, setPickedPhoto] = useState<string | null>(null);
+  const [pickedSlot, setPickedSlot] = useState<number | null>(null);
 
   const model = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
   const totalAvailable = bookData.allPhotos.length;
   const gap = Math.max(0, model.pages - totalAvailable);
+
+  // Computa slots de foto para o modelo atual
+  const { pageDefs: customPageDefs, slotMap: customSlotMap, photoSlots } = useMemo(() => {
+    const pageDefs = generatePageDefs(model.pages);
+    const slotMap = buildPhotoSlotMap(pageDefs);
+    const photoSlots: { pageIdx: number; slotIdx: number; slotPos: number }[] = [];
+    pageDefs.forEach((def, pageIdx) => {
+      if (def.p === undefined || def.kind === 'panorama-R') return;
+      const slots = slotMap.get(pageIdx) ?? [];
+      slots.forEach((slotIdx, slotPos) => {
+        photoSlots.push({ pageIdx, slotIdx, slotPos });
+      });
+    });
+    return { pageDefs, slotMap, photoSlots };
+  }, [model.pages]);
+
+  const currentPhotoForSlot = useCallback((slotIdx: number): string | null => {
+    if (bookData.photoAssignments[slotIdx] !== undefined) return bookData.photoAssignments[slotIdx];
+    return slotIdx < bookData.allPhotos.length ? bookData.allPhotos[slotIdx] : null;
+  }, [bookData.photoAssignments, bookData.allPhotos]);
+
+  const assignPhoto = useCallback((slotIdx: number, photoUrl: string) => {
+    onChange({ photoAssignments: { ...bookData.photoAssignments, [slotIdx]: photoUrl } });
+    setPickedPhoto(null);
+    setPickedSlot(null);
+  }, [bookData.photoAssignments, onChange]);
+
+  const removeAssignment = useCallback((slotIdx: number) => {
+    const next = { ...bookData.photoAssignments };
+    delete next[slotIdx];
+    onChange({ photoAssignments: next });
+  }, [bookData.photoAssignments, onChange]);
 
   const handleDone = () => {
     if (gap > 0) { setShowGapModal(true); return; }
@@ -1657,38 +1704,128 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
 
         {tab === 'photos' && (
           <motion.div key="photos" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-6">
+
+            {/* — Galeria ————————————————————————————————————————————— */}
             <div>
-              <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Fotos interiores</p>
-              <p className="text-xs text-[#2D3A27]/35">Selecione de 4 a 8 fotos favoritas. Serão distribuídas pelos layouts internos do livro.</p>
-            </div>
-            <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-              {bookData.allPhotos.map((photo, i) => {
-                const selected = bookData.selectedPhotos.includes(photo);
-                const idx = bookData.selectedPhotos.indexOf(photo);
-                return (
-                  <button key={i} onClick={() => {
-                    if (selected) {
-                      if (bookData.selectedPhotos.length > 4) onChange({ selectedPhotos: bookData.selectedPhotos.filter(p => p !== photo) });
-                    } else if (bookData.selectedPhotos.length < 8) {
-                      onChange({ selectedPhotos: [...bookData.selectedPhotos, photo] });
-                    }
-                  }} className={`relative aspect-square rounded-xl overflow-hidden ring-2 transition-all duration-200 ${selected ? 'ring-[#2D3A27] scale-105' : 'ring-transparent hover:ring-[#2D3A27]/25'}`}>
+              <div className="flex items-baseline justify-between mb-1">
+                <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40">Sua galeria</p>
+                <p className="text-xs text-[#2D3A27]/30">{bookData.allPhotos.length} fotos</p>
+              </div>
+              {pickedPhoto ? (
+                <div className="mb-2 px-3 py-2 bg-[#2D3A27]/8 rounded-xl flex items-center gap-2">
+                  <img src={pickedPhoto} className="w-8 h-8 rounded-lg object-cover shrink-0" alt="" />
+                  <p className="text-xs text-[#2D3A27]/70 flex-1">Foto selecionada — toque em uma página abaixo para atribuir</p>
+                  <button onClick={() => setPickedPhoto(null)} className="text-[#2D3A27]/40 hover:text-[#2D3A27] transition-colors"><X size={14} /></button>
+                </div>
+              ) : (
+                <p className="text-xs text-[#2D3A27]/35 mb-2">Toque em uma foto para selecioná-la, depois toque na página desejada.</p>
+              )}
+              <div className="grid grid-cols-4 md:grid-cols-6 gap-2 max-h-44 overflow-y-auto pr-1">
+                {bookData.allPhotos.map((photo, i) => (
+                  <button key={i}
+                    onClick={() => setPickedPhoto(pickedPhoto === photo ? null : photo)}
+                    className={`relative aspect-square rounded-xl overflow-hidden ring-2 transition-all duration-150 ${pickedPhoto === photo ? 'ring-[#2D3A27] scale-105 shadow-md' : 'ring-transparent hover:ring-[#2D3A27]/30'}`}
+                  >
                     <img src={photo} alt="" className="w-full h-full object-cover" />
-                    {selected && (
-                      <div className="absolute inset-0 bg-[#2D3A27]/40 flex items-center justify-center">
-                        <span className="w-7 h-7 bg-[#2D3A27] rounded-full flex items-center justify-center text-[#E8E4D9] text-xs font-bold">{idx + 1}</span>
+                    {pickedPhoto === photo && (
+                      <div className="absolute inset-0 bg-[#2D3A27]/30 flex items-center justify-center">
+                        <Check size={16} className="text-white" />
                       </div>
                     )}
-                    {!selected && bookData.selectedPhotos.length >= 8 && <div className="absolute inset-0 bg-black/30" />}
                   </button>
-                );
-              })}
+                ))}
+              </div>
             </div>
-            <p className="text-center text-xs text-[#2D3A27]/40">
-              {bookData.selectedPhotos.length} de 8 selecionadas
-              {bookData.selectedPhotos.length >= 8 && <span className="text-[#2D3A27]/60 ml-1">· máximo atingido</span>}
-              {bookData.selectedPhotos.length < 4 && <span className="text-amber-600/70 ml-1">· mínimo 4</span>}
-            </p>
+
+            {/* — Páginas do livro ————————————————————————————————————— */}
+            <div>
+              <div className="flex items-baseline justify-between mb-1">
+                <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40">Páginas do livro</p>
+                <p className="text-xs text-[#2D3A27]/30">{photoSlots.length} slots · {Object.keys(bookData.photoAssignments).length} atribuídos</p>
+              </div>
+              <p className="text-xs text-[#2D3A27]/35 mb-3">
+                {pickedPhoto ? 'Toque em uma página para atribuir a foto selecionada.' : 'Toque em qualquer página para trocar sua foto. Badge amarelo = atribuição manual.'}
+              </p>
+              <div className="grid grid-cols-4 md:grid-cols-6 gap-2 max-h-64 overflow-y-auto pr-1">
+                {photoSlots.map(({ slotIdx, pageIdx }) => {
+                  const currentPhoto = currentPhotoForSlot(slotIdx);
+                  const isManual = bookData.photoAssignments[slotIdx] !== undefined;
+                  const isTarget = pickedSlot === slotIdx;
+                  return (
+                    <div key={slotIdx} className="relative">
+                      <button
+                        onClick={() => {
+                          if (pickedPhoto) {
+                            assignPhoto(slotIdx, pickedPhoto);
+                          } else {
+                            setPickedSlot(isTarget ? null : slotIdx);
+                          }
+                        }}
+                        className={`relative w-full aspect-square rounded-xl overflow-hidden ring-2 transition-all duration-150 ${
+                          isTarget ? 'ring-[#2D3A27] scale-105 shadow-md' :
+                          pickedPhoto ? 'ring-[#2D3A27]/40 hover:ring-[#2D3A27] hover:scale-105' :
+                          'ring-transparent hover:ring-[#2D3A27]/25'
+                        }`}
+                      >
+                        {currentPhoto ? (
+                          <img src={currentPhoto} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-[#F0EDE4] flex items-center justify-center">
+                            <Camera size={14} className="text-[#2D3A27]/20" />
+                          </div>
+                        )}
+                        {pickedPhoto && (
+                          <div className="absolute inset-0 bg-[#2D3A27]/20 flex items-center justify-center">
+                            <div className="w-5 h-5 rounded-full bg-[#2D3A27]/70 flex items-center justify-center">
+                              <Check size={10} className="text-white" />
+                            </div>
+                          </div>
+                        )}
+                        <span className="absolute bottom-1 left-1 text-[0.5rem] text-white/70 bg-black/30 rounded px-1">{slotIdx + 1}</span>
+                      </button>
+                      {isManual && (
+                        <button
+                          onClick={() => removeAssignment(slotIdx)}
+                          className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center shadow-sm hover:bg-red-500 transition-colors z-10"
+                          title="Remover atribuição manual"
+                        >
+                          <X size={8} className="text-white" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {Object.keys(bookData.photoAssignments).length > 0 && (
+                <button
+                  onClick={() => onChange({ photoAssignments: {} })}
+                  className="mt-3 text-xs text-[#2D3A27]/40 hover:text-red-500 transition-colors underline underline-offset-2"
+                >
+                  Remover todas as atribuições manuais
+                </button>
+              )}
+            </div>
+
+            {/* — Picker inline quando slot selecionado sem foto prévia ——— */}
+            {pickedSlot !== null && !pickedPhoto && (
+              <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="border border-[#2D3A27]/10 rounded-2xl p-4 bg-[#F5F2EA]">
+                <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-3">
+                  Escolha uma foto para o slot {pickedSlot + 1}
+                </p>
+                <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+                  {bookData.allPhotos.map((photo, i) => (
+                    <button key={i}
+                      onClick={() => assignPhoto(pickedSlot!, photo)}
+                      className="aspect-square rounded-lg overflow-hidden ring-1 ring-transparent hover:ring-[#2D3A27]/40 transition-all"
+                    >
+                      <img src={photo} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => setPickedSlot(null)} className="mt-3 text-xs text-[#2D3A27]/40 hover:text-[#2D3A27] transition-colors">Cancelar</button>
+              </motion.div>
+            )}
+
           </motion.div>
         )}
       </AnimatePresence>
