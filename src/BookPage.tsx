@@ -74,7 +74,7 @@ interface BookData {
 const DEFAULT_BOOK_DATA: BookData = {
   title: `${DEMO_USER.route}, ${new Date().getFullYear()}`,
   route: DEMO_USER.route,
-  coverPhoto: DEMO_USER.allPhotos[0],
+  coverPhoto: '/img-apoio/img-webp/79.webp',
   openingPhrase: 'Comecei sem saber o que encontraria. Terminei diferente do que era.',
   reflectionText: 'Cada passo foi uma escolha. Cada noite foi um presente. O Caminho me ensinou que o destino não é Santiago — é quem você se torna ao longo dele.',
   selectedPhotos: DEMO_USER.allPhotos.slice(0, 8),
