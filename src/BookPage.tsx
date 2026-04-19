@@ -68,6 +68,7 @@ interface BookData {
   allPhotos: string[];
   uploadedPhotos: string[];
   photoAssignments: Record<number, string>;
+  pageTexts: Record<string, PageTextEntry>;
 }
 
 const DEFAULT_BOOK_DATA: BookData = {
@@ -90,11 +91,38 @@ const DEFAULT_BOOK_DATA: BookData = {
   allPhotos:        DEMO_USER.allPhotos,
   uploadedPhotos:   [],
   photoAssignments: {},
+  pageTexts:        {},
 };
 
 type Step = 'reveal' | 'customize' | 'order';
 type CustomizeTab = 'cover' | 'texts' | 'photos';
 type ModelId = 'essential' | 'journey' | 'legacy';
+type FontSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+type FontFamily = 'inter' | 'playfair' | 'lora' | 'dancing' | 'montserrat';
+
+interface PageTextEntry {
+  text: string;
+  fontSize: FontSize;
+  fontFamily: FontFamily;
+}
+
+const FONT_SIZE_FS: Record<FontSize, number> = { xs: 0.36, sm: 0.50, md: 0.64, lg: 0.80, xl: 1.0 };
+const FONT_SIZE_LABEL: Record<FontSize, string> = { xs: 'PP', sm: 'P', md: 'M', lg: 'G', xl: 'GG' };
+
+const FONT_FAMILIES: { id: FontFamily; label: string; css: string }[] = [
+  { id: 'inter',      label: 'Inter',          css: "'Inter', sans-serif" },
+  { id: 'playfair',   label: 'Playfair',        css: "'Playfair Display', serif" },
+  { id: 'lora',       label: 'Lora',            css: "'Lora', serif" },
+  { id: 'dancing',    label: 'Dancing',         css: "'Dancing Script', cursive" },
+  { id: 'montserrat', label: 'Montserrat',      css: "'Montserrat', sans-serif" },
+];
+
+// Layouts que suportam slots de texto personalizados
+const PAGE_TEXT_SLOTS: Partial<Record<PageKind, Array<'top' | 'bottom'>>> = {
+  'large-white':  ['top', 'bottom'],
+  'stacked-2':    ['top', 'bottom'],
+  'grid-4-white': ['top', 'bottom'],
+};
 
 const BOOK_MODELS: { id: ModelId; label: string; pages: number; price: string; desc: string; featured?: true }[] = [
   { id: 'essential', label: 'Essencial', pages: 50,  price: '€49,90', desc: 'As melhores memórias da sua jornada' },
@@ -257,6 +285,20 @@ function renderBookPage(
     if (bookData.photoAssignments[n] !== undefined) return bookData.photoAssignments[n];
     return n < photos.length ? photos[n] : `__stamp__:${n}`;
   };
+  const getTextEntry = (slot: 'top' | 'bottom'): PageTextEntry | undefined =>
+    bookData.pageTexts[`${pageIdx}-${slot}`];
+  const renderTextSlot = (slot: 'top' | 'bottom', fallback?: string | null) => {
+    const entry = getTextEntry(slot);
+    const text = entry?.text?.trim() || fallback || '';
+    if (!text) return null;
+    const fsNum = FONT_SIZE_FS[entry?.fontSize ?? 'sm'];
+    const fontCss = FONT_FAMILIES.find(f => f.id === entry?.fontFamily)?.css ?? "'Inter', sans-serif";
+    return (
+      <p style={{ fontFamily: fontCss, fontSize: fs(fsNum), color: 'rgba(45,58,39,0.68)', lineHeight: 1.5 }}>
+        {text}
+      </p>
+    );
+  };
   // Helper: retorna <img> real ou placeholder de carimbo escalado com S
   // fit='cover' para sangrias full-bleed; fit='contain' para layouts emoldurados
   const img = (n: number, cls: string, sty?: React.CSSProperties, fit: 'cover' | 'contain' = 'cover') => {
@@ -365,17 +407,24 @@ function renderBookPage(
       const caption = def.ck === 'c1' ? bookData.caption1 :
                       def.ck === 'c2' ? bookData.caption2 :
                       def.ck === 'c3' ? bookData.caption3 : null;
+      const topText = renderTextSlot('top');
+      const botText = renderTextSlot('bottom', caption);
       return (
-        <div className="w-full h-full flex flex-col justify-center bg-[#FDFCF8]" style={{ padding: sp(12) }}>
-          <div className="w-full overflow-hidden bg-[#FDFCF8]" style={{ flex: caption ? '0 0 68%' : '0 0 80%', boxShadow: `0 ${sp(3)} ${sp(14)} rgba(0,0,0,0.14)` }}>
+        <div className="w-full h-full flex flex-col bg-[#FDFCF8]" style={{ padding: sp(12), gap: sp(6) }}>
+          {topText && (
+            <div style={{ borderBottom: `1px solid rgba(45,58,39,0.08)`, paddingBottom: sp(5) }}>
+              {topText}
+            </div>
+          )}
+          <div className="w-full overflow-hidden bg-[#FDFCF8]" style={{ flex: 1, boxShadow: `0 ${sp(3)} ${sp(14)} rgba(0,0,0,0.14)` }}>
             {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
           </div>
-          {caption ? (
-            <p className="font-serif italic text-[#2D3A27]/60 leading-relaxed text-center" style={{ fontSize: fs(0.62), marginTop: sp(9), padding: `0 ${sp(4)}` }}>
-              "{caption}"
-            </p>
+          {botText ? (
+            <div style={{ borderTop: `1px solid rgba(45,58,39,0.08)`, paddingTop: sp(5) }}>
+              {botText}
+            </div>
           ) : (
-            <p className="font-serif italic text-[#2D3A27]/25 text-right" style={{ fontSize: fs(0.48), marginTop: sp(5) }}>
+            <p className="font-serif italic text-[#2D3A27]/25 text-right" style={{ fontSize: fs(0.48) }}>
               {bookData.route}
             </p>
           )}
@@ -384,28 +433,58 @@ function renderBookPage(
     }
 
     // ── Stacked 2 — 2 fotos empilhadas, fundo branco ────────────────────────
-    case 'stacked-2':
+    case 'stacked-2': {
+      const topText = renderTextSlot('top');
+      const botText = renderTextSlot('bottom');
       return (
-        <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: sp(4), padding: sp(10) }}>
-          {slots.map((s, i) => (
-            <div key={i} className="overflow-hidden bg-[#FDFCF8]">
-              {img(s, 'w-full h-full object-cover', undefined, 'contain')}
+        <div className="w-full h-full bg-[#FDFCF8] flex flex-col" style={{ padding: sp(10), gap: sp(5) }}>
+          {topText && (
+            <div style={{ borderBottom: `1px solid rgba(45,58,39,0.08)`, paddingBottom: sp(4) }}>
+              {topText}
             </div>
-          ))}
+          )}
+          <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: sp(4), flex: 1 }}>
+            {slots.map((s, i) => (
+              <div key={i} className="overflow-hidden bg-[#FDFCF8]">
+                {img(s, 'w-full h-full object-cover', undefined, 'contain')}
+              </div>
+            ))}
+          </div>
+          {botText && (
+            <div style={{ borderTop: `1px solid rgba(45,58,39,0.08)`, paddingTop: sp(4) }}>
+              {botText}
+            </div>
+          )}
         </div>
       );
+    }
 
     // ── Grid 4 — 2×2 grade, fundo branco ────────────────────────────────────
-    case 'grid-4-white':
+    case 'grid-4-white': {
+      const topText = renderTextSlot('top');
+      const botText = renderTextSlot('bottom');
       return (
-        <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
-          {slots.map((s, i) => (
-            <div key={i} className="overflow-hidden bg-white">
-              {img(s, 'w-full h-full object-cover', undefined, 'contain')}
+        <div className="w-full h-full bg-white flex flex-col" style={{ padding: sp(8), gap: sp(4) }}>
+          {topText && (
+            <div style={{ borderBottom: `1px solid rgba(45,58,39,0.08)`, paddingBottom: sp(4) }}>
+              {topText}
             </div>
-          ))}
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(3), flex: 1 }}>
+            {slots.map((s, i) => (
+              <div key={i} className="overflow-hidden bg-white">
+                {img(s, 'w-full h-full object-cover', undefined, 'contain')}
+              </div>
+            ))}
+          </div>
+          {botText && (
+            <div style={{ borderTop: `1px solid rgba(45,58,39,0.08)`, paddingTop: sp(4) }}>
+              {botText}
+            </div>
+          )}
         </div>
       );
+    }
 
     // ── Stagger 4 — collage assimétrica com offset vertical ─────────────────
     case 'stagger-4':
@@ -1504,11 +1583,12 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
   const totalAvailable = bookData.allPhotos.length;
   const gap = Math.max(0, model.pages - totalAvailable);
 
-  // Computa slots de foto para o modelo atual
-  const { pageDefs: customPageDefs, slotMap: customSlotMap, photoSlots } = useMemo(() => {
+  // Computa slots de foto e texto para o modelo atual
+  const { pageDefs: customPageDefs, slotMap: customSlotMap, photoSlots, pageTextSlots } = useMemo(() => {
     const pageDefs = generatePageDefs(model.pages);
     const slotMap = buildPhotoSlotMap(pageDefs);
     const photoSlots: { pageIdx: number; slotIdx: number; slotPos: number }[] = [];
+    const pageTextSlots: { pageIdx: number; kind: PageKind; slots: Array<'top' | 'bottom'> }[] = [];
     pageDefs.forEach((def, pageIdx) => {
       if (def.p === undefined || def.kind === 'panorama-R') return;
       const slots = slotMap.get(pageIdx) ?? [];
@@ -1516,7 +1596,11 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
         photoSlots.push({ pageIdx, slotIdx, slotPos });
       });
     });
-    return { pageDefs, slotMap, photoSlots };
+    pageDefs.forEach((def, pageIdx) => {
+      const textSlots = PAGE_TEXT_SLOTS[def.kind];
+      if (textSlots) pageTextSlots.push({ pageIdx, kind: def.kind, slots: textSlots });
+    });
+    return { pageDefs, slotMap, photoSlots, pageTextSlots };
   }, [model.pages]);
 
   const currentPhotoForSlot = useCallback((slotIdx: number): string | null => {
@@ -1698,6 +1782,93 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
                   <p className="text-xs text-[#2D3A27]/25 mt-1 text-right">{val.length}/120</p>
                 </div>
               ))}
+            </div>
+
+            {/* ── Textos por página ─────────────────────────────────────── */}
+            <div className="border-t border-[#2D3A27]/8 pt-6">
+              <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Textos das páginas</p>
+              <p className="text-xs text-[#2D3A27]/35 mb-4">
+                Adicione frases ou textos opcionais por página. Deixe em branco para não exibir. Cada campo permite escolher fonte e tamanho.
+              </p>
+              <div className="flex flex-col gap-4 max-h-[34rem] overflow-y-auto pr-1">
+                {pageTextSlots.map(({ pageIdx, kind, slots: textSlots }) => {
+                  const kindLabel: Record<PageKind, string> = {
+                    'large-white': 'Foto com margem', 'stacked-2': 'Fotos empilhadas',
+                    'grid-4-white': 'Grade 2×2', 'stagger-4': 'Colagem', 'trio-h': 'Trio H',
+                    'trio-v': 'Trio V', 'full-dark': 'Foto sangrada', 'centered-dark': 'Foto centrada',
+                    'panorama-L': 'Panorama', 'panorama-R': 'Panorama R', 'cover': 'Capa',
+                    'preface': 'Prefácio', 'stamps': 'Selos', 'back-cover': 'Contracapa',
+                  };
+                  return (
+                    <div key={pageIdx} className="bg-[#F5F2EA] rounded-2xl p-4 border border-[#2D3A27]/6">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-[0.6rem] uppercase tracking-widest text-[#2D3A27]/30 bg-[#2D3A27]/8 rounded-full px-2 py-0.5">
+                          Pág. {pageIdx + 1}
+                        </span>
+                        <span className="text-xs text-[#2D3A27]/50">{kindLabel[kind]}</span>
+                      </div>
+                      {textSlots.map(slotPos => {
+                        const key = `${pageIdx}-${slotPos}`;
+                        const entry: PageTextEntry = bookData.pageTexts[key] ?? { text: '', fontSize: 'sm', fontFamily: 'inter' };
+                        const updateEntry = (patch: Partial<PageTextEntry>) => {
+                          const next = { ...bookData.pageTexts, [key]: { ...entry, ...patch } };
+                          if (!patch.text && !entry.text) { delete next[key]; }
+                          onChange({ pageTexts: next });
+                        };
+                        return (
+                          <div key={slotPos} className="mb-3 last:mb-0">
+                            <p className="text-[0.6rem] uppercase tracking-widest text-[#2D3A27]/30 mb-1.5">
+                              {slotPos === 'top' ? 'Topo' : 'Rodapé'}
+                            </p>
+                            <textarea
+                              value={entry.text}
+                              maxLength={140}
+                              rows={2}
+                              onChange={e => updateEntry({ text: e.target.value })}
+                              placeholder="Espaço para texto ou frase..."
+                              className="w-full bg-white border border-[#2D3A27]/10 rounded-xl px-4 py-3 text-[#2D3A27] text-sm focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none mb-2"
+                              style={{ fontFamily: FONT_FAMILIES.find(f => f.id === entry.fontFamily)?.css }}
+                            />
+                            <div className="flex gap-2 flex-wrap">
+                              {/* Seletor de tipologia */}
+                              <div className="flex gap-1">
+                                {FONT_FAMILIES.map(f => (
+                                  <button key={f.id}
+                                    onClick={() => updateEntry({ fontFamily: f.id })}
+                                    className={`px-2 py-1 rounded-lg text-[0.6rem] border transition-all ${
+                                      entry.fontFamily === f.id
+                                        ? 'bg-[#2D3A27] text-[#E8E4D9] border-[#2D3A27]'
+                                        : 'bg-white text-[#2D3A27]/50 border-[#2D3A27]/15 hover:border-[#2D3A27]/35'
+                                    }`}
+                                    style={{ fontFamily: f.css }}
+                                  >
+                                    {f.label}
+                                  </button>
+                                ))}
+                              </div>
+                              {/* Seletor de tamanho */}
+                              <div className="flex gap-1">
+                                {(Object.keys(FONT_SIZE_LABEL) as FontSize[]).map(sz => (
+                                  <button key={sz}
+                                    onClick={() => updateEntry({ fontSize: sz })}
+                                    className={`w-7 h-7 rounded-lg text-[0.62rem] font-semibold border transition-all ${
+                                      entry.fontSize === sz
+                                        ? 'bg-[#2D3A27] text-[#E8E4D9] border-[#2D3A27]'
+                                        : 'bg-white text-[#2D3A27]/50 border-[#2D3A27]/15 hover:border-[#2D3A27]/35'
+                                    }`}
+                                  >
+                                    {FONT_SIZE_LABEL[sz]}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </motion.div>
         )}
