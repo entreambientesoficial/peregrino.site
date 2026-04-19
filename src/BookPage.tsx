@@ -836,6 +836,7 @@ function GapModal({
   planName,
   planPages,
   currentPhotos,
+  uploadProgress,
   onUpload,
   onKeepStamps,
   onClose,
@@ -844,16 +845,16 @@ function GapModal({
   planName: string;
   planPages: number;
   currentPhotos: number;
+  uploadProgress: number | null;
   onUpload: (files: FileList) => void;
   onKeepStamps: () => void;
   onClose: () => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const uploading = uploadProgress !== null;
 
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    setUploading(true);
     onUpload(files);
   };
 
@@ -915,11 +916,21 @@ function GapModal({
           ) : (
             <Upload size={16} className="shrink-0" />
           )}
-          <div className="text-left">
+          <div className="text-left flex-1">
             <p className="font-semibold">Upload de Fotos</p>
-            <p className="text-[#E8E4D9]/55 text-xs font-normal">Adicione fotos do PC ou celular</p>
+            <p className="text-[#E8E4D9]/55 text-xs font-normal">
+              {uploading ? `Processando… ${uploadProgress}%` : 'Adicione fotos do PC ou celular'}
+            </p>
           </div>
         </motion.button>
+        {uploading && (
+          <div className="w-full bg-[#2D3A27]/10 rounded-full h-1.5 mb-3">
+            <div
+              className="bg-[#2D3A27] h-1.5 rounded-full transition-all duration-300"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+        )}
         <input
           ref={fileInputRef}
           type="file"
@@ -963,7 +974,7 @@ export default function BookPage() {
       title: `${route}, ${new Date().getFullYear()}`,
     };
   });
-  const [selectedModel, setSelectedModel] = useState<ModelId>('journey');
+  const [selectedModel, setSelectedModel] = useState<ModelId>('essential');
   const [hasCustomized, setHasCustomized] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -1576,6 +1587,7 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
   const { t } = useT();
   const [tab, setTab] = useState<CustomizeTab>('cover');
   const [showGapModal, setShowGapModal] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [pickedPhoto, setPickedPhoto] = useState<string | null>(null);
   const [pickedSlot, setPickedSlot] = useState<number | null>(null);
 
@@ -1625,26 +1637,46 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
     onDone();
   };
 
-  const handleUpload = (files: FileList) => {
-    const readers = Array.from(files).map(
-      file => new Promise<string>(res => {
-        const reader = new FileReader();
-        reader.onload = e => res(e.target?.result as string);
-        reader.readAsDataURL(file);
-      })
-    );
-    Promise.all(readers).then(dataUrls => {
-      const newUploaded = [...(bookData.uploadedPhotos ?? []), ...dataUrls];
-      const newAllPhotos = [...bookData.allPhotos, ...dataUrls];
-      onChange({
-        uploadedPhotos: newUploaded,
-        allPhotos: newAllPhotos,
-        photosCount: bookData.photosCount + dataUrls.length,
-        selectedPhotos: newAllPhotos.slice(0, Math.min(newAllPhotos.length, 11)),
-      });
-      const newGap = Math.max(0, model.pages - newAllPhotos.length);
-      if (newGap <= 0) { setShowGapModal(false); onDone(); }
+  // Redimensiona imagem via Canvas para max 1200px — evita data URLs gigantes que travam o browser
+  const resizeForBook = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const img = document.createElement('img') as HTMLImageElement;
+      const blobUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        const maxW = 1200;
+        const scale = img.width > maxW ? maxW / img.width : 1;
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(blobUrl);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = () => { URL.revokeObjectURL(blobUrl); reject(); };
+      img.src = blobUrl;
     });
+
+  const handleUpload = async (files: FileList) => {
+    const fileArray = Array.from(files);
+    setUploadProgress(0);
+    const dataUrls: string[] = [];
+    for (let i = 0; i < fileArray.length; i++) {
+      try {
+        const url = await resizeForBook(fileArray[i]);
+        dataUrls.push(url);
+      } catch { /* ignora arquivos inválidos */ }
+      setUploadProgress(Math.round(((i + 1) / fileArray.length) * 100));
+    }
+    setUploadProgress(null);
+    const newAllPhotos = [...bookData.allPhotos, ...dataUrls];
+    onChange({
+      uploadedPhotos: [...(bookData.uploadedPhotos ?? []), ...dataUrls],
+      allPhotos: newAllPhotos,
+      photosCount: bookData.photosCount + dataUrls.length,
+      selectedPhotos: newAllPhotos.slice(0, Math.min(newAllPhotos.length, 11)),
+    });
+    const newGap = Math.max(0, model.pages - newAllPhotos.length);
+    if (newGap <= 0) { setShowGapModal(false); onDone(); }
   };
 
   return (
@@ -2023,6 +2055,7 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
           planName={model.label}
           planPages={model.pages}
           currentPhotos={totalAvailable}
+          uploadProgress={uploadProgress}
           onUpload={handleUpload}
           onKeepStamps={() => { setShowGapModal(false); onDone(); }}
           onClose={() => setShowGapModal(false)}
