@@ -617,11 +617,11 @@ APP-PEREGRINO LANDING/
 
 | Função/Componente | Responsabilidade |
 |---|---|
-| `PHOTO_BLOCK` | Array de 50 `PageDef` — template de layouts (single, grid-4, stagger-4, panorama, etc.) |
-| `generatePageDefs(n)` | Repete `PHOTO_BLOCK` até atingir `n` páginas foto; adiciona capa, prefácio, selos, contracapa |
+| `PHOTO_BLOCK` | Array de 48 `PageDef` — template fiel às 52 páginas do modelo Canva do usuário (p3-p50) |
+| `generatePageDefs()` | Retorna as 54 páginas fixas: cover + verso-capa + preface + 48 fotos + stamps + verso-back + back-cover |
 | `buildPhotoSlotMap(defs)` | Mapeia índice de página → array de índices sequenciais de foto (sem repetição) |
-| `renderBookPage(def, idx, data, S, sp, fs, slotMap)` | Renderiza uma página; usa `data.allPhotos[slotMap[idx][k]]`; além do pool exibe placeholder de carimbo; `renderTextSlot()` injeta texto personalizado nos layouts suportados |
-| `PAGE_TEXT_SLOTS` | Record de layouts → slots de texto disponíveis (`'top' \| 'bottom'`): `large-white`, `stacked-2`, `grid-4-white` |
+| `renderBookPage(def, idx, data, S, sp, fs, slotMap)` | Renderiza uma página com `pimg()` helper (object-contain sempre); `renderTextSlot()` injeta texto personalizado |
+| `PAGE_TEXT_SLOTS` | Record de layouts → slots de texto disponíveis (`'top' \| 'bottom'`): `photo-text-r`, `text-photo-r`, `wide-photo-text`, `photo-caption` |
 | `FONT_FAMILIES` | Array com 5 fontes (inter, playfair, lora, dancing, montserrat) com CSS string |
 | `FONT_SIZE_FS` | Mapeamento FontSize → multiplicador `fs()` (0.36 a 1.0) |
 | `InteractiveBook` | Recebe `selectedModel`; computa `pageDefs` + `slotMap` via `useMemo`; renderiza `HTMLFlipBook` |
@@ -678,63 +678,177 @@ O `logo-sf.png` (fundo branco + texto vermelho) não permite recolorir só o tex
 
 ---
 
----
-
 ### Sessão 19/04/2026 (madrugada) — Reescrita completa do livro: 52 páginas baseadas no modelo Canva
 
-#### Contexto
-O usuário criou um modelo de 52 páginas no Canva com as medidas exatas do Lulu.com (US Letter Landscape 11"×8.5"). Cada página foi analisada e implementada fielmente.
+#### Contexto e motivação
+O usuário criou manualmente, no **Canva**, um modelo completo de 52 páginas com as medidas exatas do Lulu.com (US Letter Landscape 11"×8.5"). Motivação declarada pelo usuário:
 
-#### Nova estrutura do livro (54 páginas totais no react-pageflip)
-| Posição | Tipo | Descrição |
-|---|---|---|
-| 0 | `cover` | Capa externa (foto Fisterra Km 0) |
-| 1 | `verso-capa` | Verso da capa: branco + logo Peregrino centralizado |
-| 2 | `preface` | Prefácio: dados da jornada |
-| 3–50 | 48 layouts fotográficos | Ver PHOTO_BLOCK abaixo |
-| 51 | `stamps` | Selos da credencial (4×4 grid) |
-| 52 | `verso-back` | Verso da contracapa: branco + logo Peregrino |
-| 53 | `back-cover` | Contracapa externa (escura) |
+> *"Como teremos credibilidade e confiança num app que tem como objetivo levar para um site que vende o coffee table book, se o book não entrega o prometido?"*
 
-#### Novos 31 PageKinds (substituíram os 23 antigos)
-| Kind | Layout |
-|---|---|
-| `full-bleed` | Foto inteira borda a borda |
-| `duo-margin` | 2 paisagens lado a lado com margens |
-| `photo-text-r` | Retrato esquerda + texto direita |
-| `trio-centered` | 3 retratos centrados com margens |
-| `quote-route` | Texto italic grande + rota/data |
-| `offset-two` | 2 fotos desalinhadas diagonal |
-| `one-centered` | 1 foto centralizada, grandes margens |
-| `one-portrait-margin` | 1 retrato com borda fina |
-| `stagger-2` | 2 fotos escalonadas verticalmente |
-| `one-landscape-margin` | 1 paisagem com margens |
-| `two-left-one-right` | 2 empilhadas esq + 1 alto dir |
-| `grid-2x2` | Grade 2×2 |
-| `duo-portrait-margin` | 2 retratos lado a lado |
-| `duo-stacked` | 2 paisagens empilhadas |
-| `one-left-two-right` | 1 alto esq + 2 empilhadas dir |
-| `trio-stagger` | 3 retratos, central mais alto |
-| `text-photo-r` | Texto esquerda + retrato direita |
-| `one-top-two-bottom` | 1 larga topo + 2 abaixo |
-| `grid-3x2` | Grade 3×2 (6 fotos) |
-| `one-wide-three-below` | 1 larga topo + grande esq + 2 empilhadas dir |
-| `trio-rotated` | 3 fotos, 1 inclinada ~-3° |
-| `wide-photo-text` | Foto larga 65% + texto script 35% |
-| `two-top-one-bottom` | 2 cima + 1 larga baixo |
-| `trio-portrait` | 3 retratos lado a lado |
-| `photo-caption` | Foto + legenda italic abaixo |
-| `text-route` | Texto título + rota/data |
-| `verso-capa` | Branco + logo Peregrino centralizado |
-| `verso-back` | Branco + logo Peregrino centralizado |
+A credibilidade do produto inteiro depende da qualidade visual do livro interativo. Os layouts anteriores (23 PageKinds genéricos) foram descartados e substituídos por 31 novos kinds que reproduzem fielmente cada página do modelo.
 
-#### Princípio crítico: NUNCA cortar fotos
-- Todos os layouts usam `object-fit: contain` (nunca `object-cover`)
-- Fundo de cada célula: `#f0ede6` (creme neutro) para mostrar o espaço vazio sem colidir com a foto
-- Somente o `cover` usa `object-cover` (intencional — é a capa)
+#### Arquivos criados pelo usuário
+Pasta `page-model/` na raiz do projeto com **52 arquivos PNG** (numerados e nomeados com descrição do layout). Criados no Canva com medidas exatas do Lulu.
 
-#### Totais de fotos mapeadas
-88 slots de foto distribuídos pelos 48 layouts fotográficos (pool de 90 fotos no demo).
+#### O que foi feito
+1. Leitura visual de todas as 52 páginas PNG do modelo
+2. Mapeamento completo de cada página → layout kind → número de fotos
+3. Reescrita total do sistema de renderização em `src/BookPage.tsx`:
+   - Novo tipo `PageKind` com 31 kinds
+   - Novo `PHOTO_BLOCK` com 48 entradas (p3–p50 do modelo)
+   - `generatePageDefs()` simplificado: sempre retorna as 54 páginas fixas
+   - `buildPhotoSlotMap()` simplificado (removida lógica especial panorama-R)
+   - `renderBookPage` switch completamente reescrito com todos os novos layouts
+   - `PAGE_TEXT_SLOTS` atualizado
+   - `kindLabel` Record atualizado com todos os 31 kinds
+4. Commit e push para o repositório
+
+---
+
+#### Nova estrutura completa do livro (54 páginas no react-pageflip)
+
+| Pos. | PageKind | Arquivo modelo | Fotos | Descrição |
+|---|---|---|---|---|
+| 0 | `cover` | — | 1 (capa) | Capa externa — foto Fisterra Km 0, gradient + título |
+| 1 | `verso-capa` | `1 Verso da Contracapa.png` | 0 | Branco + logo Peregrino centralizado (vieira + texto bordô) |
+| 2 | `preface` | `2.Prefácio.png` | 0 | Dados da jornada: rota, datas, km, dias, carimbos, fotos |
+| 3 | `full-bleed` | `3 foto inteira.png` | 1 | Foto borda a borda |
+| 4 | `duo-margin` | `4 foto dupla dentro da margem.png` | 2 | 2 paisagens lado a lado com margens |
+| 5 | `photo-text-r` | `5 imagem esquerda + texto direita.png` | 1 | Retrato esq + título/frase dir |
+| 6 | `full-bleed` | `6 foto inteira.png` | 1 | Foto borda a borda |
+| 7 | `trio-centered` | `7- 3 fotos centrais.png` | 3 | 3 retratos centrados com margens brancas |
+| 8 | `quote-route` | `8.Texto e sub-texto (rota).png` | 0 | Texto italic grande + rota/data em pequeno |
+| 9 | `offset-two` | `9. imagens ajustadas dentro da margem.png` | 2 | 2 fotos desalinhadas diagonal (topo-esq + baixo-dir) |
+| 10 | `full-bleed` | `10. imagem inteira.png` | 1 | Foto borda a borda |
+| 11 | `one-centered` | `12. 1 imagem central.png` | 1 | 1 paisagem centralizada, grandes margens + sombra sutil |
+| 12 | `one-portrait-margin` | `12. 1 imagem dentro da margem (2).png` | 1 | 1 retrato com borda fina, centrado |
+| 13 | `stagger-2` | `13. 2 imagens desalinhadas.png` | 2 | 2 retratos com offset vertical (escalonados) |
+| 14 | `one-landscape-margin` | `14. 1 imagem dentro da margem.png` | 1 | 1 paisagem com margens brancas |
+| 15 | `full-bleed` | `15. 1 imagem inteira (5).png` | 1 | Foto borda a borda |
+| 16 | `full-bleed` | `16. 1 imagem inteira.png` | 1 | Foto borda a borda |
+| 17 | `two-left-one-right` | `17. 2 imagens esquerda (cima e baixo) + 1 imagem direita (2).png` | 3 | 2 paisagens empilhadas esq + 1 retrato alto dir |
+| 18 | `grid-2x2` | `18. 4 imagens dentro da margem (3).png` | 4 | Grade 2×2 de paisagens com margens |
+| 19 | `photo-text-r` | `19. 1 imagem + texto.png` | 1 | Retrato esq + título Inter + subtítulo italic dir |
+| 20 | `full-bleed` | `20. 1 imagem inteira.png` | 1 | Foto borda a borda |
+| 21 | `trio-centered` | `21. 2 imagens + 1 imagem dentro da margem.png` | 3 | 3 retratos lado a lado centrados |
+| 22 | `stagger-2` | `22. 2 imagens.png` | 2 | 2 fotos diagonal (sup-esq + inf-dir) |
+| 23 | `one-landscape-margin` | `23. 1 imagen dentro da margem.png` | 1 | 1 paisagem com margens e borda fina |
+| 24 | `duo-portrait-margin` | `24. 2 imagens dentro da margem (3).png` | 2 | 2 retratos lado a lado com margens |
+| 25 | `duo-stacked` | `25. 2 imagens horizontal dentro da margem.png` | 2 | 2 paisagens empilhadas verticalmente |
+| 26 | `duo-portrait-margin` | `26. 2 imagens dentro da margem (4).png` | 2 | 2 retratos lado a lado com margens |
+| 27 | `quote-route` | `27. Texto e sub-texto (rota).png` | 0 | Texto italic grande (Dancing Script) + rota/data |
+| 28 | `full-bleed` | `28. 1 imagem inteira.png` | 1 | Foto borda a borda |
+| 29 | `one-left-two-right` | `29. 1 imagem esquerda + 2 imagens direita (cima e baixo).png` | 3 | 1 retrato alto esq + 2 paisagens empilhadas dir |
+| 30 | `one-landscape-margin` | `30. foto dentro da margem.png` | 1 | 1 paisagem com margens |
+| 31 | `trio-stagger` | `31. 3 imagens (2).png` | 3 | 3 retratos: lados 68% altura, central 88% (destaque) |
+| 32 | `full-bleed` | `32. 1 imagem tela inteira.png` | 1 | Foto borda a borda |
+| 33 | `full-bleed` | `33. 1 imagem total.png` | 1 | Foto borda a borda |
+| 34 | `photo-text-r` | `34. 1 imagem + texto.png` | 1 | Retrato esq + título Inter bold + subtítulo italic |
+| 35 | `text-photo-r` | `35. texto + sub-texto + 1 imagem.png` | 1 | Título Playfair esq + retrato dir |
+| 36 | `duo-portrait-margin` | `36. 2 imagens dentro da margem.png` | 2 | 2 retratos lado a lado |
+| 37 | `one-top-two-bottom` | `37. 1 imagem em cima + 2 imagens em baixo.png` | 3 | 1 paisagem larga topo + 2 paisagens abaixo |
+| 38 | `grid-3x2` | `38. 6 imagens.png` | 6 | Grade 3×2 (6 fotos) com margens |
+| 39 | `text-photo-r` | `39. Texto + 1 imagem dentro da margem.png` | 1 | Título script italic esq + retrato dir |
+| 40 | `two-left-one-right` | `40. 2 imagens esquerda (cima e baixo) + 1 imagem direita.png` | 3 | 2 empilhadas esq + 1 retrato alto dir |
+| 41 | `one-wide-three-below` | `41. 4 imagens dentro da margem (2).png` | 4 | 1 larga topo + 1 grande esq + 2 empilhadas dir |
+| 42 | `full-bleed` | `42. foto inteira.png` | 1 | Foto borda a borda |
+| 43 | `trio-rotated` | `43. 3 imagens 1 desalinhada dentro da margem.png` | 3 | Retrato esq + paisagem inclinada ~-3° dir-cima + paisagem dir-baixo |
+| 44 | `wide-photo-text` | `44. 1 imagem inteira + espaço para texto.png` | 1 | Paisagem larga 65% esq + texto italic dir |
+| 45 | `duo-portrait-margin` | `45. 4.png` | 2 | 2 retratos lado a lado com margens |
+| 46 | `text-route` | `46. Tela texto + sub-texto (rota e data).png` | 0 | Título Playfair bold + rota/data italic (sem foto) |
+| 47 | `two-top-one-bottom` | `47. 2 imagens em cima + 1 imagem em baixo todas dentro da margem.png` | 3 | 2 paisagens topo + 1 paisagem larga abaixo |
+| 48 | `trio-portrait` | `48. 3 imagens.png` | 3 | 3 retratos lado a lado com margens |
+| 49 | `grid-2x2` | `49. 4 imagens dentro da margem.png` | 4 | Grade 2×2 com margens |
+| 50 | `photo-caption` | `50. 1 imagem + um texto.png` | 1 | Paisagem + legenda italic abaixo (Dancing Script) |
+| 51 | `stamps` | `51. Tela selo de acordo com a rota.png` | 0 | Grade 4×4 de selos da credencial |
+| 52 | `verso-back` | `52. 1.verso da capa.png` | 0 | Branco + logo Peregrino centralizado (igual verso-capa) |
+| 53 | `back-cover` | — | 0 | Contracapa externa (fundo escuro `#1B2616` + "peregrino.app") |
+
+**Total de slots fotográficos: 88** (distribuídos pelos 48 layouts fotográficos; pool demo = 90 fotos)
+
+---
+
+#### 31 PageKinds — detalhamento técnico
+
+| Kind | Fotos | CSS layout | Fundo células |
+|---|---|---|---|
+| `cover` | 1 | `object-cover` full | — |
+| `verso-capa` | 0 | flex center | `#ffffff` |
+| `preface` | 0 | flex col justify-between | `#F5F2EA` |
+| `full-bleed` | 1 | flex center contain | `#f0ede6` |
+| `duo-margin` | 2 | grid 1fr 1fr, padding sp(12) | `#f0ede6` |
+| `photo-text-r` | 1 | grid 48%/52%, foto esq + texto dir | `#f0ede6` |
+| `trio-centered` | 3 | grid 1/1/1, 85% height, padding sp(10) | `#f0ede6` |
+| `quote-route` | 0 | flex col justify-end | `#ffffff` |
+| `offset-two` | 2 | absolute position: 55%×52% sup-esq + 55%×58% inf-dir | `#f0ede6` |
+| `one-centered` | 1 | flex center, 80%×75%, sombra sutil | `#f0ede6` |
+| `one-portrait-margin` | 1 | flex center, 58%×84%, border | `#f0ede6` |
+| `stagger-2` | 2 | flex row, 72% height, marginTop ±sp(14) | `#f0ede6` |
+| `one-landscape-margin` | 1 | flex center, 100%×70% | `#f0ede6` |
+| `two-left-one-right` | 3 | grid 1/1 cols, 1/1 rows; dir em gridRow 1/3 | `#f0ede6` |
+| `grid-2x2` | 4 | grid 1/1 × 1/1, padding sp(10) | `#f0ede6` |
+| `duo-portrait-margin` | 2 | grid 1fr 1fr, padding sp(10) | `#f0ede6` |
+| `duo-stacked` | 2 | grid rows 1fr 1fr, padding sp(10) | `#f0ede6` |
+| `one-left-two-right` | 3 | grid 1/1 cols; esq em gridRow 1/3 | `#f0ede6` |
+| `trio-stagger` | 3 | flex row; heights 68%/88%/68% | `#f0ede6` |
+| `text-photo-r` | 1 | grid 45%/55%; texto esq (Playfair+Inter) + foto dir | `#f0ede6` |
+| `one-top-two-bottom` | 3 | grid 2cols/2rows; topo em gridColumn 1/3 | `#f0ede6` |
+| `grid-3x2` | 6 | grid 1/1/1 × 1/1, padding sp(10) | `#f0ede6` |
+| `one-wide-three-below` | 4 | grid 2cols/2rows; topo 1/3; baixo-dir = sub-grid 2 rows | `#f0ede6` |
+| `trio-rotated` | 3 | grid 45%/52% × 2rows; dir-cima rotate(-3deg) | `#f0ede6` |
+| `wide-photo-text` | 1 | grid 65%/35%; foto esq + texto Dancing Script dir | `#f0ede6` |
+| `two-top-one-bottom` | 3 | grid 2cols/2rows; baixo em gridColumn 1/3 | `#f0ede6` |
+| `trio-portrait` | 3 | grid 1/1/1 cols, padding sp(10) | `#f0ede6` |
+| `photo-caption` | 1 | flex col; foto flex:1 + caption borda-topo | `#f0ede6` |
+| `text-route` | 0 | flex col justify-end | `#ffffff` |
+| `stamps` | 0 | grade 4×4 de selos (mock 16 locais reais) | `#FDFCF8` |
+| `verso-back` | 0 | flex center (igual verso-capa) | `#ffffff` |
+| `back-cover` | 0 | flex col justify-between | `#1B2616` |
+
+---
+
+#### Princípio crítico: NUNCA cortar fotos (regra definitiva do projeto)
+- **Todos** os layouts usam `object-fit: contain` via helper `pimg()` — nunca `object-cover`
+- Fundo de cada célula de foto: `#f0ede6` (creme neutro) — visível quando a foto tem bordas vazias
+- **Única exceção**: `cover` usa `object-cover` (intencional — é a capa do livro)
+- Motivação: fotos do Caminho têm orientações variadas; cortar rostos, pés ou paisagens é inadmissível num coffee table book premium
+
+#### Tipografia usada nos layouts de texto
+| Layout | Elemento | Fonte | Peso/Estilo |
+|---|---|---|---|
+| `photo-text-r` / `text-photo-r` | Título | Inter ou Playfair Display | 600–700 |
+| `photo-text-r` / `text-photo-r` | Corpo | Lora | Italic |
+| `quote-route` | Texto principal | Dancing Script | Regular |
+| `quote-route` | Sub-texto (rota) | Inter | Regular, 0.1em tracking |
+| `text-route` | Título | Playfair Display | 700 |
+| `text-route` | Sub-texto (rota) | Dancing Script | Italic |
+| `wide-photo-text` | Texto | Dancing Script | Regular |
+| `photo-caption` | Legenda | Dancing Script | Italic |
+| `verso-capa` / `verso-back` | "Peregrino" | Playfair Display | 700, cor `#7B1515` |
+| `preface` | Dados | Inter | Regular |
+
+#### Mudanças técnicas em `BookPage.tsx`
+```
+ANTES:
+  type PageKind = 23 kinds (full-dark, centered-dark, large-white, etc.)
+  PHOTO_BLOCK = 50 entradas (repetidas para preencher N páginas)
+  generatePageDefs(modelPages) = loop repete PHOTO_BLOCK até atingir N
+  buildPhotoSlotMap = tratamento especial panorama-R
+  renderBookPage = mix de object-cover e object-contain
+
+DEPOIS:
+  type PageKind = 31 kinds (full-bleed, duo-margin, photo-text-r, etc.)
+  PHOTO_BLOCK = 48 entradas exatas (p3–p50 do modelo)
+  generatePageDefs() = sem parâmetro, retorna sempre 54 páginas fixas
+  buildPhotoSlotMap = simplificado, sem casos especiais
+  renderBookPage = pimg() helper, object-contain universal
+```
+
+#### Commit gerado
+```
+feat: reescrita completa do livro — 52 páginas baseadas no modelo Canva
+371 insertions(+), 319 deletions(-)
+```
 
 ---
 
