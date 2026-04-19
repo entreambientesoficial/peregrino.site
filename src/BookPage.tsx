@@ -617,14 +617,15 @@ function useCountUp(target: number, duration = 1200, active = false) {
 // ---------------------------------------------------------------------------
 // Hook — tamanho do livro
 // ---------------------------------------------------------------------------
+// Formato Lulu US Letter Landscape: 11" × 8.5" → ratio w/h = 11/8.5 ≈ 1.294
 function useBookSize() {
-  const [size, setSize] = useState({ w: 340, h: 453 });
+  const [size, setSize] = useState({ w: 440, h: 340 });
   useEffect(() => {
     const upd = () => {
       const vw = window.innerWidth;
-      if (vw < 640)       setSize({ w: 165, h: 220 });
-      else if (vw < 1024) setSize({ w: 270, h: 360 });
-      else                setSize({ w: 440, h: 587 });
+      if (vw < 640)       setSize({ w: 160, h: 124 });
+      else if (vw < 1024) setSize({ w: 280, h: 216 });
+      else                setSize({ w: 440, h: 340 });
     };
     upd();
     window.addEventListener('resize', upd);
@@ -1730,7 +1731,7 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
                 <div className="relative">
                   <div className="absolute left-0 top-0 bottom-0 w-5 z-10 rounded-l-sm" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.55), rgba(0,0,0,0.18) 40%, rgba(255,255,255,0.06) 65%, rgba(0,0,0,0.12))' }} />
                   <div className="relative w-52 md:w-60 rounded-r-lg rounded-l-sm overflow-hidden">
-                    <img src={bookData.coverPhoto} alt="Capa" className="w-full aspect-[3/4] object-cover" />
+                    <img src={bookData.coverPhoto} alt="Capa" className="w-full aspect-[22/17] object-cover" />
                     <div className="absolute inset-0 flex flex-col justify-between p-5" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.08) 55%, rgba(0,0,0,0.2) 100%)' }}>
                       <span className="text-white/60 text-xs uppercase tracking-widest self-end">Peregrino</span>
                       <div>
@@ -2098,8 +2099,8 @@ function StepOrder({ bookData, selectedModel, onBack }: { bookData: BookData; se
       </div>
 
       <div className="bg-[#F5F2EA] rounded-3xl p-6 flex gap-5">
-        <div className="w-20 rounded-xl overflow-hidden shrink-0" style={{ boxShadow: '-4px 6px 20px rgba(0,0,0,0.25)' }}>
-          <img src={bookData.coverPhoto} alt="Capa" className="w-full aspect-[3/4] object-cover" />
+        <div className="w-24 rounded-xl overflow-hidden shrink-0" style={{ boxShadow: '-4px 6px 20px rgba(0,0,0,0.25)' }}>
+          <img src={bookData.coverPhoto} alt="Capa" className="w-full aspect-[22/17] object-cover" />
         </div>
         <div className="flex flex-col gap-1.5">
           <p className="font-serif italic text-[#2D3A27] text-lg leading-tight">{bookData.title}</p>

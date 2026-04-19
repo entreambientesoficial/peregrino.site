@@ -87,6 +87,100 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ## 🔄 Histórico de Alterações
 
+### Sessão 19/04/2026 (noite) — Correção crítica de orientação + Especificações Lulu.com documentadas
+
+#### BUG CRÍTICO CORRIGIDO: Orientação do livro era PORTRAIT, deve ser LANDSCAPE
+
+O formato Lulu.com US Letter Landscape é **11" × 8.5"** (largura > altura). O livro interativo estava
+renderizando em modo PORTRAIT (altura > largura), incompatível com o produto físico real.
+
+**Correção em `useBookSize()` (`BookPage.tsx:620`)**:
+```
+ANTES (portrait — ERRADO):
+  mobile:  { w: 165, h: 220 }
+  tablet:  { w: 270, h: 360 }
+  desktop: { w: 440, h: 587 }
+
+DEPOIS (landscape 11:8.5 — CORRETO):
+  mobile:  { w: 160, h: 124 }
+  tablet:  { w: 280, h: 216 }
+  desktop: { w: 440, h: 340 }
+```
+
+**Correção dos previews de capa** (linhas 1734, 2103):
+- `aspect-[3/4]` (portrait) → `aspect-[22/17]` (landscape 11:8.5 = 22:17)
+- Thumbnail no StepOrder: largura ajustada de `w-20` para `w-24` para melhor proporção
+
+**Como a orientação foi descoberta**:
+- Usuário inseriu a pasta `lulu-book-template-all-us-letter-landscape/` na raiz do projeto
+- Análise das imagens PNG dos templates de capa revelou dimensões: 7200×3075px e 6715×2625px
+- Ambas landscape (mais largas que altas) — confirmam o formato US Letter Landscape
+
+---
+
+#### ESPECIFICAÇÕES TÉCNICAS LULU.COM — US LETTER LANDSCAPE (Registrado definitivamente)
+
+Fonte: pasta `lulu-book-template-all-us-letter-landscape/` (baixada do site oficial lulu.com)
+
+##### Formato do livro (Interior)
+| Parâmetro | Valor |
+|---|---|
+| **Formato** | US Letter Landscape |
+| **Dimensões de impressão** | 11" × 8.5" (279.4mm × 215.9mm) |
+| **Orientação** | Landscape (largura > altura) |
+| **Sangria (bleed)** | 0.125" (3.175mm) em todos os lados |
+| **Zona segura (safe zone)** | 0.5" (12.7mm) da borda de corte |
+| **Resolução mínima de imagens** | 300 DPI |
+| **Resolução de impressão** | 1200 DPI |
+| **Versão PDF** | 1.3 ou superior |
+| **Fontes** | Todas embutidas no PDF |
+| **Espaço de cor (input)** | sRGB IEC61966-2.1 |
+| **Espaço de cor (output/impressão)** | CMYK — U.S. Web Coated (SWOP) v2 |
+| **Perfil CMYK** | Coated GRACoL 2006 (ISO 12647-2:2004) |
+| **Compressão de imagens** | JPEG, qualidade alta (QFactor 0.15) |
+| **Resolução mínima imagens coloridas** | 300 DPI |
+| **Resolução imagens mono** | 1200 DPI |
+
+##### Tipos de encadernação disponíveis
+- **Paperback** (brochura — mais barato)
+- **Hardcover** (capa dura)
+- **Coil** (espiral)
+- **Saddle Stitch** (grampos — para livros finos)
+
+##### Formato da Capa (Cover)
+- Capa entregue como **um único PDF plano (flat spread)**:
+  - Contracapa + Lombada + Capa frontal em um arquivo
+- Espessura da lombada varia com o número de páginas
+- Templates disponíveis em InDesign, PDF, PSD e PNG
+
+##### Arquivos no template fornecido
+```
+lulu-book-template-all-us-letter-landscape/
+├── Adobe PDF Export Presets/
+│   ├── Lulu-Cover-Print-PDF.joboptions    ← Preset para capa (Adobe Distiller)
+│   └── Lulu-Interior-Print-PDF.joboptions ← Preset para miolo (Adobe Distiller)
+├── Book Creation Guide/
+│   └── [PDF com guia completo de criação]
+├── Cover Templates/
+│   ├── Coil/         ← InDesign + PDF + PSD + PNG por tamanho
+│   ├── Hardcover/    ← idem
+│   ├── Paperback/    ← idem
+│   └── Saddle Stitch/← idem
+└── Interior Templates/
+    └── [Templates de miolo por formato]
+```
+
+##### Implicações para a geração do PDF do livro
+Quando implementarmos a geração de PDF (pendência #8 nas tarefas), o backend deve:
+1. Gerar páginas em **landscape 11"×8.5"** (não portrait!)
+2. Adicionar **0.125" de sangria** em cada lado
+3. Manter elementos críticos (texto, rostos) a **0.5" das bordas**
+4. Exportar em **PDF 1.3+** com fontes embutidas
+5. Imagens em **300 DPI mínimo** no PDF final
+6. Espaço de cor **sRGB** (Lulu converte para CMYK)
+
+---
+
 ### Sessão 19/04/2026 (tarde) — Textos personalizáveis por página
 
 #### Novo modelo de referência (PDF atualizado pelo usuário)
@@ -584,4 +678,4 @@ O `logo-sf.png` (fundo branco + texto vermelho) não permite recolorir só o tex
 
 ---
 
-*Última atualização: 19/04/2026 (tarde) — Sessão com Antigravity (Claude Sonnet 4.6)*
+*Última atualização: 19/04/2026 (noite) — Sessão com Antigravity (Claude Sonnet 4.6)*
