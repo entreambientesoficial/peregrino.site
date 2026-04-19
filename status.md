@@ -678,4 +678,64 @@ O `logo-sf.png` (fundo branco + texto vermelho) não permite recolorir só o tex
 
 ---
 
-*Última atualização: 19/04/2026 (noite) — Sessão com Antigravity (Claude Sonnet 4.6)*
+---
+
+### Sessão 19/04/2026 (madrugada) — Reescrita completa do livro: 52 páginas baseadas no modelo Canva
+
+#### Contexto
+O usuário criou um modelo de 52 páginas no Canva com as medidas exatas do Lulu.com (US Letter Landscape 11"×8.5"). Cada página foi analisada e implementada fielmente.
+
+#### Nova estrutura do livro (54 páginas totais no react-pageflip)
+| Posição | Tipo | Descrição |
+|---|---|---|
+| 0 | `cover` | Capa externa (foto Fisterra Km 0) |
+| 1 | `verso-capa` | Verso da capa: branco + logo Peregrino centralizado |
+| 2 | `preface` | Prefácio: dados da jornada |
+| 3–50 | 48 layouts fotográficos | Ver PHOTO_BLOCK abaixo |
+| 51 | `stamps` | Selos da credencial (4×4 grid) |
+| 52 | `verso-back` | Verso da contracapa: branco + logo Peregrino |
+| 53 | `back-cover` | Contracapa externa (escura) |
+
+#### Novos 31 PageKinds (substituíram os 23 antigos)
+| Kind | Layout |
+|---|---|
+| `full-bleed` | Foto inteira borda a borda |
+| `duo-margin` | 2 paisagens lado a lado com margens |
+| `photo-text-r` | Retrato esquerda + texto direita |
+| `trio-centered` | 3 retratos centrados com margens |
+| `quote-route` | Texto italic grande + rota/data |
+| `offset-two` | 2 fotos desalinhadas diagonal |
+| `one-centered` | 1 foto centralizada, grandes margens |
+| `one-portrait-margin` | 1 retrato com borda fina |
+| `stagger-2` | 2 fotos escalonadas verticalmente |
+| `one-landscape-margin` | 1 paisagem com margens |
+| `two-left-one-right` | 2 empilhadas esq + 1 alto dir |
+| `grid-2x2` | Grade 2×2 |
+| `duo-portrait-margin` | 2 retratos lado a lado |
+| `duo-stacked` | 2 paisagens empilhadas |
+| `one-left-two-right` | 1 alto esq + 2 empilhadas dir |
+| `trio-stagger` | 3 retratos, central mais alto |
+| `text-photo-r` | Texto esquerda + retrato direita |
+| `one-top-two-bottom` | 1 larga topo + 2 abaixo |
+| `grid-3x2` | Grade 3×2 (6 fotos) |
+| `one-wide-three-below` | 1 larga topo + grande esq + 2 empilhadas dir |
+| `trio-rotated` | 3 fotos, 1 inclinada ~-3° |
+| `wide-photo-text` | Foto larga 65% + texto script 35% |
+| `two-top-one-bottom` | 2 cima + 1 larga baixo |
+| `trio-portrait` | 3 retratos lado a lado |
+| `photo-caption` | Foto + legenda italic abaixo |
+| `text-route` | Texto título + rota/data |
+| `verso-capa` | Branco + logo Peregrino centralizado |
+| `verso-back` | Branco + logo Peregrino centralizado |
+
+#### Princípio crítico: NUNCA cortar fotos
+- Todos os layouts usam `object-fit: contain` (nunca `object-cover`)
+- Fundo de cada célula: `#f0ede6` (creme neutro) para mostrar o espaço vazio sem colidir com a foto
+- Somente o `cover` usa `object-cover` (intencional — é a capa)
+
+#### Totais de fotos mapeadas
+88 slots de foto distribuídos pelos 48 layouts fotográficos (pool de 90 fotos no demo).
+
+---
+
+*Última atualização: 19/04/2026 (madrugada) — Sessão com Antigravity (Claude Sonnet 4.6)*

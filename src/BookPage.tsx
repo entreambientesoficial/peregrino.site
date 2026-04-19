@@ -119,11 +119,10 @@ const FONT_FAMILIES: { id: FontFamily; label: string; css: string }[] = [
 
 // Layouts que suportam slots de texto personalizados
 const PAGE_TEXT_SLOTS: Partial<Record<PageKind, Array<'top' | 'bottom'>>> = {
-  'large-white':   ['top', 'bottom'],
-  'stacked-2':     ['top', 'bottom'],
-  'grid-4-white':  ['top', 'bottom'],
-  'hero-caption':  ['top'],
-  'wide-strip':    ['bottom'],
+  'photo-text-r':    ['top', 'bottom'],
+  'text-photo-r':    ['top', 'bottom'],
+  'wide-photo-text': ['top'],
+  'photo-caption':   ['bottom'],
 };
 
 const BOOK_MODELS: { id: ModelId; label: string; pages: number; price: string; desc: string; featured?: true }[] = [
@@ -133,105 +132,83 @@ const BOOK_MODELS: { id: ModelId; label: string; pages: number; price: string; d
 ];
 
 // ---------------------------------------------------------------------------
-// Estrutura das 54 páginas — 50 layouts fotográficos + prefácio + selos
+// Estrutura das 54 páginas — 48 layouts fotográficos + especiais + capa
 // ---------------------------------------------------------------------------
 type PageKind =
-  | 'cover' | 'preface' | 'back-cover' | 'stamps'
-  | 'full-dark' | 'centered-dark' | 'large-white' | 'stacked-2'
-  | 'grid-4-white' | 'stagger-4' | 'trio-h' | 'trio-v'
-  | 'panorama-L' | 'panorama-R'
-  | 'side-by-side' | 'hero-caption' | 'wide-strip' | 'triptych'
-  | 'quote-dark' | 'feature-left' | 'feature-right' | 'cinematic' | 'mosaic-5';
+  | 'cover' | 'verso-capa' | 'preface' | 'stamps' | 'verso-back' | 'back-cover'
+  | 'full-bleed' | 'duo-margin' | 'photo-text-r' | 'trio-centered'
+  | 'quote-route' | 'offset-two' | 'one-centered' | 'one-portrait-margin'
+  | 'stagger-2' | 'one-landscape-margin' | 'two-left-one-right' | 'grid-2x2'
+  | 'duo-portrait-margin' | 'duo-stacked' | 'one-left-two-right'
+  | 'trio-stagger' | 'text-photo-r' | 'one-top-two-bottom' | 'grid-3x2'
+  | 'one-wide-three-below' | 'trio-rotated' | 'wide-photo-text'
+  | 'two-top-one-bottom' | 'trio-portrait' | 'photo-caption' | 'text-route';
 
 interface PageDef { kind: PageKind; p?: number | number[]; ck?: 'c1' | 'c2' | 'c3' }
 
-// Bloco de 50 layouts fotográficos landscape — ritmo editorial com 9 tipos únicos.
-// Total de slots de foto: ~83 (dentro do pool de 89 fotos demo).
+// 48 páginas fotográficas (p3–p50 do modelo Canva do usuário)
+// Total: cover + verso-capa + preface + 48 fotos + stamps + verso-back + back-cover = 54 páginas
 const PHOTO_BLOCK: PageDef[] = [
-  // ── Abertura dramática ────────────────────────────────────────────────────
-  { kind: 'full-dark',     p: 0 },           // 1  — foto impacto, entrada
-  { kind: 'side-by-side',  p: [0,1] },       // 2  — 2 fotos panorâmicas lado a lado
-  { kind: 'hero-caption',  p: 0 },           // 3  — foto + painel de texto lateral
-  { kind: 'full-dark',     p: 0 },           // 4  — momento solitário
-  { kind: 'triptych',      p: [0,1,2] },     // 5  — 3 fragmentos da jornada
-  { kind: 'quote-dark',              ck: 'c1' }, // 6  — frase de abertura (openingPhrase)
-  { kind: 'side-by-side',  p: [0,1] },       // 7  — paisagem e detalhe
-  { kind: 'grid-4-white',  p: [0,1,2,3] },  // 8  — grade editorial 4 fotos
-  { kind: 'full-dark',     p: 0 },           // 9  — close dramático
-  { kind: 'wide-strip',    p: 0 },           // 10 — panorama horizontal com margens
-  // ── Meio do caminho ──────────────────────────────────────────────────────
-  { kind: 'side-by-side',  p: [0,1] },       // 11 — contraste de momentos
-  { kind: 'large-white',   p: 0 },           // 12 — foto editorial com espaço
-  { kind: 'panorama-L',    p: 0 },           // 13 — spread panorâmico (metade L)
-  { kind: 'panorama-R',    p: 0 },           // 14 — spread panorâmico (metade R)
-  { kind: 'feature-right', p: [0,1,2] },     // 15 — 2 pequenas + grande direita
-  { kind: 'stagger-4',     p: [0,1,2,3] },  // 16 — collage assimétrica 4 fotos
-  { kind: 'hero-caption',  p: 0 },           // 17 — foto + cita do peregrino
-  { kind: 'full-dark',     p: 0 },           // 18 — silhueta no horizonte
-  { kind: 'triptych',      p: [0,1,2] },     // 19 — sequência de 3 momentos
-  { kind: 'cinematic',     p: 0 },           // 20 — plano cinemático letterbox
-  // ── Paisagem e contemplação ──────────────────────────────────────────────
-  { kind: 'wide-strip',    p: 0 },           // 21 — vale ou meseta, respirar
-  { kind: 'grid-4-white',  p: [0,1,2,3] },  // 22 — detalhes do caminho, grade
-  { kind: 'side-by-side',  p: [0,1] },       // 23 — antes / depois de um trecho
-  { kind: 'quote-dark',              ck: 'c2' }, // 24 — reflexão (reflectionText)
-  { kind: 'full-dark',     p: 0 },           // 25 — noite, névoa ou chuva
-  { kind: 'feature-left',  p: [0,1,2] },     // 26 — grande esquerda + 2 direita
-  { kind: 'large-white',   p: 0 },           // 27 — foto assinatura com legenda
-  { kind: 'triptych',      p: [0,1,2] },     // 28 — três rostos ou três altares
-  { kind: 'panorama-L',    p: 0 },           // 29 — spread: vale da Galícia
-  { kind: 'panorama-R',    p: 0 },           // 30 — spread (par)
-  // ── Chegada e emoção ─────────────────────────────────────────────────────
-  { kind: 'hero-caption',  p: 0 },           // 31 — foto forte + emoção escrita
-  { kind: 'stagger-4',     p: [0,1,2,3] },  // 32 — collage dos últimos km
-  { kind: 'side-by-side',  p: [0,1] },       // 33 — paralelo: saída × chegada
-  { kind: 'full-dark',     p: 0 },           // 34 — Catedral ao fundo
-  { kind: 'mosaic-5',      p: [0,1,2,3,4] },// 35 — mosaico 5 fotos celebração
-  { kind: 'wide-strip',    p: 0 },           // 36 — praça do Obradoiro
-  { kind: 'feature-right', p: [0,1,2] },     // 37 — chegada e detalhes finais
-  { kind: 'side-by-side',  p: [0,1] },       // 38 — Compostela × beijo na vieira
-  { kind: 'full-dark',     p: 0 },           // 39 — último por do sol
-  { kind: 'large-white',   p: 0 },           // 40 — foto final com legenda pessoal
-  // ── Epílogo ───────────────────────────────────────────────────────────────
-  { kind: 'full-dark',     p: 0 },           // 41 — silêncio pós-chegada
-  { kind: 'side-by-side',  p: [0,1] },       // 42 — memória e detalhe
-  { kind: 'quote-dark',              ck: 'c3' }, // 43 — frase final do Caminho
-  { kind: 'hero-caption',  p: 0 },           // 44 — retrato com painel reflexivo
-  { kind: 'triptych',      p: [0,1,2] },     // 45 — três lembretes visuais
-  { kind: 'panorama-L',    p: 0 },           // 46 — spread final: horizonte
-  { kind: 'panorama-R',    p: 0 },           // 47 — spread (par)
-  { kind: 'feature-left',  p: [0,1,2] },     // 48 — grande foto + detalhes
-  { kind: 'full-dark',     p: 0 },           // 49 — fade-out dramático
-  { kind: 'large-white',   p: 0 },           // 50 — página final assinatura
+  { kind: 'full-bleed',           p: 0 },           // p3  — foto inteira
+  { kind: 'duo-margin',           p: [0,1] },        // p4  — 2 fotos paisagem na margem
+  { kind: 'photo-text-r',         p: 0 },            // p5  — retrato esq + texto dir
+  { kind: 'full-bleed',           p: 0 },            // p6  — foto inteira
+  { kind: 'trio-centered',        p: [0,1,2] },      // p7  — 3 retratos centralizados
+  { kind: 'quote-route' },                           // p8  — texto + rota/data
+  { kind: 'offset-two',           p: [0,1] },        // p9  — 2 fotos desalinhadas
+  { kind: 'full-bleed',           p: 0 },            // p10 — foto inteira
+  { kind: 'one-centered',         p: 0 },            // p11 — 1 paisagem centralizada
+  { kind: 'one-portrait-margin',  p: 0 },            // p12 — 1 retrato na margem
+  { kind: 'stagger-2',            p: [0,1] },        // p13 — 2 retratos desalinhados
+  { kind: 'one-landscape-margin', p: 0 },            // p14 — 1 paisagem na margem
+  { kind: 'full-bleed',           p: 0 },            // p15 — foto inteira
+  { kind: 'full-bleed',           p: 0 },            // p16 — foto inteira
+  { kind: 'two-left-one-right',   p: [0,1,2] },      // p17 — 2 esq empilhadas + 1 dir
+  { kind: 'grid-2x2',             p: [0,1,2,3] },    // p18 — grade 2×2
+  { kind: 'photo-text-r',         p: 0 },            // p19 — retrato esq + texto dir
+  { kind: 'full-bleed',           p: 0 },            // p20 — foto inteira
+  { kind: 'trio-centered',        p: [0,1,2] },      // p21 — 3 retratos
+  { kind: 'stagger-2',            p: [0,1] },        // p22 — 2 fotos diagonal
+  { kind: 'one-landscape-margin', p: 0 },            // p23 — 1 paisagem na margem
+  { kind: 'duo-portrait-margin',  p: [0,1] },        // p24 — 2 retratos lado a lado
+  { kind: 'duo-stacked',          p: [0,1] },        // p25 — 2 paisagens empilhadas
+  { kind: 'duo-portrait-margin',  p: [0,1] },        // p26 — 2 retratos lado a lado
+  { kind: 'quote-route' },                           // p27 — texto + rota/data
+  { kind: 'full-bleed',           p: 0 },            // p28 — foto inteira
+  { kind: 'one-left-two-right',   p: [0,1,2] },      // p29 — 1 esq + 2 dir empilhadas
+  { kind: 'one-landscape-margin', p: 0 },            // p30 — 1 paisagem na margem
+  { kind: 'trio-stagger',         p: [0,1,2] },      // p31 — 3 retratos escalonados
+  { kind: 'full-bleed',           p: 0 },            // p32 — foto inteira
+  { kind: 'full-bleed',           p: 0 },            // p33 — foto inteira
+  { kind: 'photo-text-r',         p: 0 },            // p34 — retrato esq + texto dir
+  { kind: 'text-photo-r',         p: 0 },            // p35 — texto esq + retrato dir
+  { kind: 'duo-portrait-margin',  p: [0,1] },        // p36 — 2 retratos lado a lado
+  { kind: 'one-top-two-bottom',   p: [0,1,2] },      // p37 — 1 topo + 2 baixo
+  { kind: 'grid-3x2',             p: [0,1,2,3,4,5] },// p38 — grade 3×2 (6 fotos)
+  { kind: 'text-photo-r',         p: 0 },            // p39 — texto esq + retrato dir
+  { kind: 'two-left-one-right',   p: [0,1,2] },      // p40 — 2 esq + 1 dir
+  { kind: 'one-wide-three-below', p: [0,1,2,3] },    // p41 — 1 larga + 3 abaixo
+  { kind: 'full-bleed',           p: 0 },            // p42 — foto inteira
+  { kind: 'trio-rotated',         p: [0,1,2] },      // p43 — 3 fotos, 1 inclinada
+  { kind: 'wide-photo-text',      p: 0 },            // p44 — foto larga + texto
+  { kind: 'duo-portrait-margin',  p: [0,1] },        // p45 — 2 retratos lado a lado
+  { kind: 'text-route' },                            // p46 — texto + rota/data
+  { kind: 'two-top-one-bottom',   p: [0,1,2] },      // p47 — 2 cima + 1 baixo
+  { kind: 'trio-portrait',        p: [0,1,2] },      // p48 — 3 retratos
+  { kind: 'grid-2x2',             p: [0,1,2,3] },    // p49 — grade 2×2
+  { kind: 'photo-caption',        p: 0 },            // p50 — foto + legenda
 ];
 
-// Gera as page defs completas para um dado modelo:
-// cover + preface + (modelPages foto-layouts repetidos) + stamps + back-cover
-function generatePageDefs(modelPages: number): PageDef[] {
-  const photoDefs: PageDef[] = [];
-  while (photoDefs.length < modelPages) photoDefs.push(...PHOTO_BLOCK);
-
-  // Trim ao tamanho exato; se terminar em panorama-L, remove para não ficar ímpar sem par
-  photoDefs.length = modelPages;
-  if (photoDefs.at(-1)?.kind === 'panorama-L') photoDefs.pop();
-
-  // react-pageflip exige número par de páginas no total
-  const total = photoDefs.length + 4; // +4 = cover, preface, stamps, back-cover
-  if (total % 2 !== 0) photoDefs.push({ kind: 'full-dark', p: 0 });
-
-  // Distribui as 3 legendas (c1, c2, c3) nos large-white distribuídos pelo livro
-  const lwIdx = photoDefs.reduce<number[]>((acc, d, i) =>
-    d.kind === 'large-white' ? [...acc, i] : acc, []);
-  (['c1', 'c2', 'c3'] as const).forEach((ck, ci) => {
-    const pos = lwIdx[Math.floor(lwIdx.length * (ci + 1) / 4)];
-    if (pos !== undefined) photoDefs[pos] = { ...photoDefs[pos], ck };
-  });
-
+// Gera as 54 page defs fixas (modelo 50 páginas do usuário):
+// cover + verso-capa + preface + 48 fotos + stamps + verso-back + back-cover
+function generatePageDefs(_modelPages?: number): PageDef[] {
   return [
     { kind: 'cover' },
+    { kind: 'verso-capa' },
     { kind: 'preface' },
-    ...photoDefs,
+    ...PHOTO_BLOCK,
     { kind: 'stamps' },
+    { kind: 'verso-back' },
     { kind: 'back-cover' },
   ];
 }
@@ -261,7 +238,7 @@ const STAMP_PLACES = [
 // ---------------------------------------------------------------------------
 // Mapeamento sequencial de slots de fotos
 // Cada página recebe slots únicos em ordem — foto 0 nunca repete.
-// panorama-R compartilha o mesmo slot do panorama-L anterior (mesma foto, metades opostas).
+// Cada página recebe slots únicos em ordem — foto 0 nunca repete.
 // ---------------------------------------------------------------------------
 function buildPhotoSlotMap(pageDefs: PageDef[]): Map<number, number[]> {
   let slot = 0;
@@ -269,9 +246,8 @@ function buildPhotoSlotMap(pageDefs: PageDef[]): Map<number, number[]> {
   for (let i = 0; i < pageDefs.length; i++) {
     const def = pageDefs[i];
     if (def.p === undefined) { map.set(i, []); continue; }
-    if (def.kind === 'panorama-R') { map.set(i, map.get(i - 1)!); continue; }
-    const indices = Array.isArray(def.p) ? def.p : [def.p];
-    map.set(i, indices.map(() => slot++));
+    const count = Array.isArray(def.p) ? def.p.length : 1;
+    map.set(i, Array.from({ length: count }, () => slot++));
   }
   return map;
 }
@@ -332,6 +308,14 @@ function renderBookPage(
     );
   };
 
+  // Helper inline para imagem com object-contain
+  const pimg = (slotIdx: number, style?: React.CSSProperties) => {
+    const src = ph(slotIdx);
+    return <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', ...style }} />;
+  };
+  // Cor de fundo neutra para células de foto
+  const cellBg = '#f0ede6';
+
   switch (def.kind) {
 
     // ── Capa ────────────────────────────────────────────────────────────────
@@ -354,7 +338,19 @@ function renderBookPage(
         </div>
       );
 
-    // ── Prefácio (pág 1 — verso da capa + dados da jornada) ─────────────────
+    // ── Verso da capa (p1) — branco + logo Peregrino ────────────────────────
+    case 'verso-capa':
+    case 'verso-back':
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: sp(10) }}>
+            <img src="/img-apoio/vieira.png" alt="" style={{ width: sp(52), height: sp(52), objectFit: 'contain' }} />
+            <span style={{ fontFamily: "'Playfair Display', serif", fontSize: fs(1.05), fontWeight: 700, color: '#7B1515', letterSpacing: '-0.01em' }}>Peregrino</span>
+          </div>
+        </div>
+      );
+
+    // ── Prefácio (pág 2 — dados da jornada) ─────────────────────────────────
     case 'preface':
       return (
         <div className="w-full h-full bg-[#F5F2EA] flex flex-col justify-between" style={{ padding: sp(20) }}>
@@ -389,304 +385,295 @@ function renderBookPage(
         </div>
       );
 
-    // ── Full dark — foto em fundo escuro, inteira sem corte ─────────────────
-    case 'full-dark':
+    // ── Full Bleed — foto borda a borda ─────────────────────────────────────
+    case 'full-bleed':
       return (
-        <div className="w-full h-full flex items-center justify-center" style={{ background: '#161c14' }}>
-          {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
+        <div style={{ width: '100%', height: '100%', background: cellBg, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          {pimg(slots[0])}
         </div>
       );
 
-    // ── Centered dark — 1 foto centralizada em fundo escuro ─────────────────
-    case 'centered-dark':
+    // ── Duo Margin — 2 fotos paisagem lado a lado com margens ───────────────
+    case 'duo-margin':
       return (
-        <div className="w-full h-full flex flex-col items-center justify-center" style={{ background: '#161c14', padding: sp(14) }}>
-          <div className="w-full overflow-hidden" style={{ height: '65%' }}>
-            {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
-          </div>
-          <p className="text-[#E8E4D9]/30 uppercase tracking-[0.22em] text-center" style={{ fontSize: fs(0.44), marginTop: sp(10) }}>
-            {bookData.route} · {new Date().getFullYear()}
-          </p>
-        </div>
-      );
-
-    // ── Large white — 1 foto grande com margens, fundo creme ────────────────
-    case 'large-white': {
-      const caption = def.ck === 'c1' ? bookData.caption1 :
-                      def.ck === 'c2' ? bookData.caption2 :
-                      def.ck === 'c3' ? bookData.caption3 : null;
-      const topText = renderTextSlot('top');
-      const botText = renderTextSlot('bottom', caption);
-      return (
-        <div className="w-full h-full flex flex-col bg-[#FDFCF8]" style={{ padding: sp(12), gap: sp(6) }}>
-          {topText && (
-            <div style={{ borderBottom: `1px solid rgba(45,58,39,0.08)`, paddingBottom: sp(5) }}>
-              {topText}
-            </div>
-          )}
-          <div className="w-full overflow-hidden bg-[#FDFCF8]" style={{ flex: 1, boxShadow: `0 ${sp(3)} ${sp(14)} rgba(0,0,0,0.14)` }}>
-            {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
-          </div>
-          {botText ? (
-            <div style={{ borderTop: `1px solid rgba(45,58,39,0.08)`, paddingTop: sp(5) }}>
-              {botText}
-            </div>
-          ) : (
-            <p className="font-serif italic text-[#2D3A27]/25 text-right" style={{ fontSize: fs(0.48) }}>
-              {bookData.route}
-            </p>
-          )}
-        </div>
-      );
-    }
-
-    // ── Stacked 2 — 2 fotos empilhadas, fundo branco ────────────────────────
-    case 'stacked-2': {
-      const topText = renderTextSlot('top');
-      const botText = renderTextSlot('bottom');
-      return (
-        <div className="w-full h-full bg-[#FDFCF8] flex flex-col" style={{ padding: sp(10), gap: sp(5) }}>
-          {topText && (
-            <div style={{ borderBottom: `1px solid rgba(45,58,39,0.08)`, paddingBottom: sp(4) }}>
-              {topText}
-            </div>
-          )}
-          <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: sp(4), flex: 1 }}>
-            {slots.map((s, i) => (
-              <div key={i} className="overflow-hidden bg-[#FDFCF8]">
-                {img(s, 'w-full h-full object-cover', undefined, 'contain')}
-              </div>
-            ))}
-          </div>
-          {botText && (
-            <div style={{ borderTop: `1px solid rgba(45,58,39,0.08)`, paddingTop: sp(4) }}>
-              {botText}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // ── Grid 4 — 2×2 grade, fundo branco ────────────────────────────────────
-    case 'grid-4-white': {
-      const topText = renderTextSlot('top');
-      const botText = renderTextSlot('bottom');
-      return (
-        <div className="w-full h-full bg-white flex flex-col" style={{ padding: sp(8), gap: sp(4) }}>
-          {topText && (
-            <div style={{ borderBottom: `1px solid rgba(45,58,39,0.08)`, paddingBottom: sp(4) }}>
-              {topText}
-            </div>
-          )}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(3), flex: 1 }}>
-            {slots.map((s, i) => (
-              <div key={i} className="overflow-hidden bg-white">
-                {img(s, 'w-full h-full object-cover', undefined, 'contain')}
-              </div>
-            ))}
-          </div>
-          {botText && (
-            <div style={{ borderTop: `1px solid rgba(45,58,39,0.08)`, paddingTop: sp(4) }}>
-              {botText}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // ── Stagger 4 — collage assimétrica com offset vertical ─────────────────
-    case 'stagger-4':
-      return (
-        <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
-          <div style={{ display: 'grid', gridTemplateRows: '46% 50%', gap: sp(3) }}>
-            <div className="overflow-hidden bg-[#FDFCF8]">{img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}</div>
-            <div className="overflow-hidden bg-[#FDFCF8]">{img(slots[2], 'w-full h-full object-cover', undefined, 'contain')}</div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateRows: '50% 46%', gap: sp(3), marginTop: sp(10) }}>
-            <div className="overflow-hidden bg-[#FDFCF8]">{img(slots[1], 'w-full h-full object-cover', undefined, 'contain')}</div>
-            <div className="overflow-hidden bg-[#FDFCF8]">{img(slots[3], 'w-full h-full object-cover', undefined, 'contain')}</div>
-          </div>
-        </div>
-      );
-
-    // ── Trio H — 2 fotos em cima + 1 larga embaixo ──────────────────────────
-    case 'trio-h':
-      return (
-        <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateRows: '54% 42%', gridTemplateColumns: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
-          <div className="overflow-hidden bg-white">{img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}</div>
-          <div className="overflow-hidden bg-white">{img(slots[1], 'w-full h-full object-cover', undefined, 'contain')}</div>
-          <div className="overflow-hidden bg-white" style={{ gridColumn: '1 / 3' }}>
-            {img(slots[2], 'w-full h-full object-cover', undefined, 'contain')}
-          </div>
-        </div>
-      );
-
-    // ── Trio V — 1 foto coluna esquerda + 2 empilhadas à direita ────────────
-    case 'trio-v':
-      return (
-        <div className="w-full h-full bg-white" style={{ display: 'grid', gridTemplateColumns: '52% 44%', gridTemplateRows: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
-          <div className="overflow-hidden bg-white" style={{ gridRow: '1 / 3' }}>
-            {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
-          </div>
-          <div className="overflow-hidden bg-white">{img(slots[1], 'w-full h-full object-cover', undefined, 'contain')}</div>
-          <div className="overflow-hidden bg-white">{img(slots[2], 'w-full h-full object-cover', undefined, 'contain')}</div>
-        </div>
-      );
-
-    // ── Panorama — foto contínua cruzando a lombada (metade L e R) ──────────
-    case 'panorama-L':
-      return (
-        <div className="w-full h-full overflow-hidden" style={{ background: '#141a12' }}>
-          {img(slots[0], 'w-full h-full object-cover', { objectPosition: '0% center' })}
-        </div>
-      );
-
-    case 'panorama-R':
-      return (
-        <div className="w-full h-full overflow-hidden" style={{ background: '#141a12' }}>
-          {img(slots[0], 'w-full h-full object-cover', { objectPosition: '100% center' })}
-        </div>
-      );
-
-    // ── Side by Side — 2 fotos lado a lado ─────────────────────────────────
-    case 'side-by-side':
-      return (
-        <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
-          <div className="overflow-hidden bg-[#FDFCF8]">
-            {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
-          </div>
-          <div className="overflow-hidden bg-[#FDFCF8]">
-            {img(slots[1], 'w-full h-full object-cover', undefined, 'contain')}
-          </div>
-        </div>
-      );
-
-    // ── Hero Caption — foto grande esquerda + painel de texto direita ────────
-    case 'hero-caption': {
-      const panelText = renderTextSlot('top') ?? (
-        <p className="font-serif italic" style={{ fontSize: fs(0.72), color: 'rgba(45,58,39,0.55)', lineHeight: 1.55 }}>
-          "{CAMINO_QUOTES[pageIdx % CAMINO_QUOTES.length]}"
-        </p>
-      );
-      return (
-        <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateColumns: '63% 37%' }}>
-          <div className="overflow-hidden" style={{ background: '#1a2118' }}>
-            {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
-          </div>
-          <div className="flex flex-col justify-center" style={{ padding: `${sp(14)} ${sp(16)}`, gap: sp(10) }}>
-            <div style={{ width: sp(22), height: '1px', background: 'rgba(45,58,39,0.18)' }} />
-            {panelText}
-            <p style={{ fontSize: fs(0.40), color: 'rgba(45,58,39,0.28)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-              {bookData.route}
-            </p>
-          </div>
-        </div>
-      );
-    }
-
-    // ── Wide Strip — foto horizontal centrada, margens brancas ──────────────
-    case 'wide-strip': {
-      const botText = renderTextSlot('bottom');
-      return (
-        <div className="w-full h-full bg-[#FDFCF8] flex flex-col justify-center" style={{ padding: sp(14), gap: sp(8) }}>
-          <div className="w-full overflow-hidden bg-[#FDFCF8]" style={{ flex: 1, boxShadow: `0 ${sp(4)} ${sp(18)} rgba(0,0,0,0.18)` }}>
-            {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
-          </div>
-          {botText ? (
-            <div style={{ borderTop: `1px solid rgba(45,58,39,0.08)`, paddingTop: sp(6) }}>
-              {botText}
-            </div>
-          ) : (
-            <p className="text-[#2D3A27]/20 text-right font-serif italic" style={{ fontSize: fs(0.46) }}>
-              {bookData.route} · {bookData.startDate}
-            </p>
-          )}
-        </div>
-      );
-    }
-
-    // ── Triptych — 3 fotos lado a lado, fundo escuro ────────────────────────
-    case 'triptych':
-      return (
-        <div className="w-full h-full" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: sp(2), padding: sp(6), background: '#1a2118' }}>
-          {[0, 1, 2].map(i => (
-            <div key={i} className="overflow-hidden" style={{ background: '#1a2118' }}>
-              {img(slots[i], 'w-full h-full object-cover', undefined, 'contain')}
-            </div>
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: sp(5), padding: sp(12) }}>
+          {[0,1].map(i => (
+            <div key={i} style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[i])}</div>
           ))}
         </div>
       );
 
-    // ── Quote Dark — página de citação/reflexão sem foto ────────────────────
-    case 'quote-dark': {
-      const quoteText =
-        def.ck === 'c1' ? bookData.openingPhrase :
-        def.ck === 'c2' ? bookData.reflectionText :
-        CAMINO_QUOTES[pageIdx % CAMINO_QUOTES.length];
+    // ── Photo Text R — retrato esquerda + texto direita ──────────────────────
+    case 'photo-text-r': {
+      const topText = renderTextSlot('top', bookData.title);
+      const botText = renderTextSlot('bottom', bookData.openingPhrase);
       return (
-        <div className="w-full h-full flex flex-col justify-center" style={{ background: '#161c14', padding: `${sp(28)} ${sp(32)}`, gap: sp(14) }}>
-          <div style={{ width: sp(26), height: '1px', background: 'rgba(232,228,217,0.2)' }} />
-          <p className="font-serif italic" style={{ fontSize: fs(0.82), color: 'rgba(232,228,217,0.62)', lineHeight: 1.65 }}>
-            "{quoteText}"
-          </p>
-          <p style={{ fontSize: fs(0.42), color: 'rgba(232,228,217,0.28)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-            {bookData.route} · {bookData.endDate}
-          </p>
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '48% 52%' }}>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(16)}`, gap: sp(8) }}>
+            <div style={{ width: sp(24), height: '1px', background: 'rgba(45,58,39,0.2)' }} />
+            {topText ?? <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: fs(0.78), color: '#1B2616', lineHeight: 1.25 }}>{bookData.title}</p>}
+            {botText ?? <p style={{ fontFamily: "'Lora', serif", fontStyle: 'italic', fontSize: fs(0.52), color: 'rgba(45,58,39,0.55)', lineHeight: 1.6 }}>{bookData.openingPhrase}</p>}
+          </div>
         </div>
       );
     }
 
-    // ── Feature Left — foto grande esquerda + 2 empilhadas direita ──────────
-    case 'feature-left':
+    // ── Trio Centered — 3 retratos centrados com margens brancas ────────────
+    case 'trio-centered':
       return (
-        <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateColumns: '60% 38%', gridTemplateRows: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
-          <div style={{ gridRow: '1 / 3', overflow: 'hidden', background: '#FDFCF8' }}>
-            {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
-          </div>
-          <div className="overflow-hidden bg-[#FDFCF8]">
-            {img(slots[1], 'w-full h-full object-cover', undefined, 'contain')}
-          </div>
-          <div className="overflow-hidden bg-[#FDFCF8]">
-            {img(slots[2], 'w-full h-full object-cover', undefined, 'contain')}
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: sp(10) }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: sp(5), width: '100%', height: '85%' }}>
+            {[0,1,2].map(i => (
+              <div key={i} style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[i])}</div>
+            ))}
           </div>
         </div>
       );
 
-    // ── Feature Right — 2 empilhadas esquerda + foto grande direita ─────────
-    case 'feature-right':
+    // ── Quote Route — texto grande italic + rota/data (sem foto) ────────────
+    case 'quote-route':
       return (
-        <div className="w-full h-full bg-[#FDFCF8]" style={{ display: 'grid', gridTemplateColumns: '38% 60%', gridTemplateRows: '1fr 1fr', gap: sp(3), padding: sp(8) }}>
-          <div style={{ gridColumn: 1, gridRow: 1, overflow: 'hidden', background: '#FDFCF8' }}>
-            {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: `${sp(14)} ${sp(18)} ${sp(22)}` }}>
+          <p style={{ fontFamily: "'Dancing Script', cursive", fontSize: fs(1.05), color: '#1B2616', lineHeight: 1.4, marginBottom: sp(10) }}>
+            {bookData.openingPhrase}
+          </p>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: fs(0.46), color: 'rgba(45,58,39,0.4)', letterSpacing: '0.1em' }}>
+            {bookData.route} · {bookData.startDate}
+          </p>
+        </div>
+      );
+
+    // ── Offset Two — 2 fotos desalinhadas (diagonal) ─────────────────────────
+    case 'offset-two':
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', position: 'relative' }}>
+          <div style={{ position: 'absolute', top: sp(10), left: sp(10), width: '55%', height: '52%', overflow: 'hidden', background: cellBg }}>
+            {pimg(slots[0])}
           </div>
-          <div style={{ gridColumn: 1, gridRow: 2, overflow: 'hidden', background: '#FDFCF8' }}>
-            {img(slots[1], 'w-full h-full object-cover', undefined, 'contain')}
-          </div>
-          <div style={{ gridColumn: 2, gridRow: '1 / 3', overflow: 'hidden', background: '#FDFCF8' }}>
-            {img(slots[2], 'w-full h-full object-cover', undefined, 'contain')}
+          <div style={{ position: 'absolute', bottom: sp(10), right: sp(10), width: '55%', height: '58%', overflow: 'hidden', background: cellBg }}>
+            {pimg(slots[1])}
           </div>
         </div>
       );
 
-    // ── Cinematic — foto letterbox estilo cinema ─────────────────────────────
-    case 'cinematic':
+    // ── One Centered — 1 foto centralizada com grandes margens ──────────────
+    case 'one-centered':
       return (
-        <div className="w-full h-full flex flex-col justify-center" style={{ background: '#0d1109' }}>
-          <div style={{ height: '68%', width: '100%', overflow: 'hidden', background: '#0d1109' }}>
-            {img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: sp(18) }}>
+          <div style={{ width: '80%', height: '75%', overflow: 'hidden', background: cellBg, boxShadow: `0 ${sp(4)} ${sp(16)} rgba(0,0,0,0.1)` }}>
+            {pimg(slots[0])}
           </div>
         </div>
       );
 
-    // ── Mosaic 5 — 3 fotos cima + 2 fotos baixo, fundo escuro ───────────────
-    case 'mosaic-5':
+    // ── One Portrait Margin — 1 retrato com margens e borda ─────────────────
+    case 'one-portrait-margin':
       return (
-        <div className="w-full h-full" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: '46% 51%', gap: sp(2), padding: sp(5), background: '#1a2118' }}>
-          <div className="overflow-hidden" style={{ background: '#1a2118' }}>{img(slots[0], 'w-full h-full object-cover', undefined, 'contain')}</div>
-          <div className="overflow-hidden" style={{ background: '#1a2118' }}>{img(slots[1], 'w-full h-full object-cover', undefined, 'contain')}</div>
-          <div className="overflow-hidden" style={{ background: '#1a2118' }}>{img(slots[2], 'w-full h-full object-cover', undefined, 'contain')}</div>
-          <div style={{ gridColumn: '1 / 3', overflow: 'hidden', background: '#1a2118' }}>{img(slots[3], 'w-full h-full object-cover', undefined, 'contain')}</div>
-          <div className="overflow-hidden" style={{ background: '#1a2118' }}>{img(slots[4], 'w-full h-full object-cover', undefined, 'contain')}</div>
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: sp(16) }}>
+          <div style={{ width: '58%', height: '84%', overflow: 'hidden', background: cellBg, border: `${sp(1)}px solid rgba(45,58,39,0.12)` }}>
+            {pimg(slots[0])}
+          </div>
+        </div>
+      );
+
+    // ── Stagger 2 — 2 fotos desalinhadas verticalmente ──────────────────────
+    case 'stagger-2':
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', alignItems: 'center', padding: sp(10), gap: sp(5) }}>
+          <div style={{ flex: 1, height: '72%', overflow: 'hidden', background: cellBg, marginTop: `-${sp(14)}` }}>
+            {pimg(slots[0])}
+          </div>
+          <div style={{ flex: 1, height: '72%', overflow: 'hidden', background: cellBg, marginTop: sp(14) }}>
+            {pimg(slots[1])}
+          </div>
+        </div>
+      );
+
+    // ── One Landscape Margin — 1 foto paisagem com margens ──────────────────
+    case 'one-landscape-margin':
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: sp(14) }}>
+          <div style={{ width: '100%', height: '70%', overflow: 'hidden', background: cellBg }}>
+            {pimg(slots[0])}
+          </div>
+        </div>
+      );
+
+    // ── Two Left One Right — 2 paisagens empilhadas esq + 1 retrato dir ─────
+    case 'two-left-one-right':
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(5), padding: sp(10) }}>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
+          <div style={{ gridRow: '1 / 3', overflow: 'hidden', background: cellBg }}>{pimg(slots[2])}</div>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[1])}</div>
+        </div>
+      );
+
+    // ── Grid 2x2 — grade 2×2 ────────────────────────────────────────────────
+    case 'grid-2x2':
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(5), padding: sp(10) }}>
+          {[0,1,2,3].map(i => (
+            <div key={i} style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[i])}</div>
+          ))}
+        </div>
+      );
+
+    // ── Duo Portrait Margin — 2 retratos lado a lado com margem ─────────────
+    case 'duo-portrait-margin':
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: sp(5), padding: sp(10) }}>
+          {[0,1].map(i => (
+            <div key={i} style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[i])}</div>
+          ))}
+        </div>
+      );
+
+    // ── Duo Stacked — 2 paisagens empilhadas verticalmente ──────────────────
+    case 'duo-stacked':
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateRows: '1fr 1fr', gap: sp(5), padding: sp(10) }}>
+          {[0,1].map(i => (
+            <div key={i} style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[i])}</div>
+          ))}
+        </div>
+      );
+
+    // ── One Left Two Right — 1 retrato esq + 2 paisagens empilhadas dir ─────
+    case 'one-left-two-right':
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(5), padding: sp(10) }}>
+          <div style={{ gridRow: '1 / 3', overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[1])}</div>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[2])}</div>
+        </div>
+      );
+
+    // ── Trio Stagger — 3 retratos escalonados, central mais alto ─────────────
+    case 'trio-stagger':
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', alignItems: 'center', padding: sp(10), gap: sp(5) }}>
+          <div style={{ flex: 1, height: '68%', overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
+          <div style={{ flex: 1, height: '88%', overflow: 'hidden', background: cellBg }}>{pimg(slots[1])}</div>
+          <div style={{ flex: 1, height: '68%', overflow: 'hidden', background: cellBg }}>{pimg(slots[2])}</div>
+        </div>
+      );
+
+    // ── Text Photo R — texto esquerda + retrato direita ──────────────────────
+    case 'text-photo-r': {
+      const topText = renderTextSlot('top', bookData.title);
+      const botText = renderTextSlot('bottom', bookData.reflectionText);
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '45% 55%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(16)}`, gap: sp(8) }}>
+            {topText ?? <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: fs(0.82), color: '#1B2616', lineHeight: 1.2 }}>{bookData.title}</p>}
+            {botText ?? <p style={{ fontFamily: "'Inter', sans-serif", fontSize: fs(0.5), color: 'rgba(45,58,39,0.55)', lineHeight: 1.6 }}>{bookData.reflectionText.slice(0, 80)}</p>}
+          </div>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
+        </div>
+      );
+    }
+
+    // ── One Top Two Bottom — 1 larga topo + 2 abaixo ────────────────────────
+    case 'one-top-two-bottom':
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(5), padding: sp(10) }}>
+          <div style={{ gridColumn: '1 / 3', overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[1])}</div>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[2])}</div>
+        </div>
+      );
+
+    // ── Grid 3x2 — grade 3×2 (6 fotos) ──────────────────────────────────────
+    case 'grid-3x2':
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(4), padding: sp(10) }}>
+          {[0,1,2,3,4,5].map(i => (
+            <div key={i} style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[i])}</div>
+          ))}
+        </div>
+      );
+
+    // ── One Wide Three Below — 1 larga topo + grande esq + 2 empilhadas dir ─
+    case 'one-wide-three-below':
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '50% 50%', gap: sp(5), padding: sp(10) }}>
+          <div style={{ gridColumn: '1 / 3', overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[1])}</div>
+          <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: sp(5) }}>
+            <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[2])}</div>
+            <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[3])}</div>
+          </div>
+        </div>
+      );
+
+    // ── Trio Rotated — 1 retrato esq + 1 foto inclinada dir-cima + 1 dir-baixo
+    case 'trio-rotated':
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '45% 52%', gridTemplateRows: '1fr 1fr', gap: sp(5), padding: sp(10) }}>
+          <div style={{ gridRow: '1 / 3', overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
+          <div style={{ overflow: 'hidden', background: cellBg, transform: 'rotate(-3deg)', transformOrigin: 'center' }}>{pimg(slots[1])}</div>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[2])}</div>
+        </div>
+      );
+
+    // ── Wide Photo Text — foto larga esq (~65%) + texto script dir ──────────
+    case 'wide-photo-text': {
+      const topText = renderTextSlot('top', bookData.reflectionText);
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '65% 35%' }}>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(16)}`, gap: sp(8) }}>
+            {topText ?? <p style={{ fontFamily: "'Dancing Script', cursive", fontSize: fs(0.7), color: '#1B2616', lineHeight: 1.5 }}>{bookData.reflectionText.slice(0, 60)}</p>}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Two Top One Bottom — 2 cima + 1 larga baixo ──────────────────────────
+    case 'two-top-one-bottom':
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(5), padding: sp(10) }}>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[1])}</div>
+          <div style={{ gridColumn: '1 / 3', overflow: 'hidden', background: cellBg }}>{pimg(slots[2])}</div>
+        </div>
+      );
+
+    // ── Trio Portrait — 3 retratos lado a lado ──────────────────────────────
+    case 'trio-portrait':
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: sp(5), padding: sp(10) }}>
+          {[0,1,2].map(i => (
+            <div key={i} style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[i])}</div>
+          ))}
+        </div>
+      );
+
+    // ── Photo Caption — foto paisagem + legenda italic abaixo ───────────────
+    case 'photo-caption': {
+      const botText = renderTextSlot('bottom', bookData.caption3);
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', padding: sp(14), gap: sp(8) }}>
+          <div style={{ flex: 1, overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
+          <div style={{ borderTop: '1px solid rgba(45,58,39,0.1)', paddingTop: sp(6) }}>
+            {botText ?? <p style={{ fontFamily: "'Dancing Script', cursive", fontStyle: 'italic', fontSize: fs(0.56), color: 'rgba(45,58,39,0.55)', lineHeight: 1.5 }}>{bookData.caption3}</p>}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Text Route — texto título + rota/data (sem foto) ────────────────────
+    case 'text-route':
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: `${sp(14)} ${sp(18)} ${sp(20)}` }}>
+          <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: fs(1.05), color: '#1B2616', lineHeight: 1.2, marginBottom: sp(8) }}>
+            {bookData.title}
+          </p>
+          <p style={{ fontFamily: "'Dancing Script', cursive", fontStyle: 'italic', fontSize: fs(0.6), color: 'rgba(45,58,39,0.45)' }}>
+            {bookData.route} · {bookData.startDate}
+          </p>
         </div>
       );
 
@@ -1753,7 +1740,7 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
     const photoSlots: { pageIdx: number; slotIdx: number; slotPos: number }[] = [];
     const pageTextSlots: { pageIdx: number; kind: PageKind; slots: Array<'top' | 'bottom'> }[] = [];
     pageDefs.forEach((def, pageIdx) => {
-      if (def.p === undefined || def.kind === 'panorama-R') return;
+      if (def.p === undefined) return;
       const slots = slotMap.get(pageIdx) ?? [];
       slots.forEach((slotIdx, slotPos) => {
         photoSlots.push({ pageIdx, slotIdx, slotPos });
@@ -1976,16 +1963,21 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
               <div className="flex flex-col gap-4 max-h-[34rem] overflow-y-auto pr-1">
                 {pageTextSlots.map(({ pageIdx, kind, slots: textSlots }) => {
                   const kindLabel: Record<PageKind, string> = {
-                    'large-white': 'Foto com margem', 'stacked-2': 'Fotos empilhadas',
-                    'grid-4-white': 'Grade 2×2', 'stagger-4': 'Colagem', 'trio-h': 'Trio H',
-                    'trio-v': 'Trio V', 'full-dark': 'Foto sangrada', 'centered-dark': 'Foto centrada',
-                    'panorama-L': 'Panorama', 'panorama-R': 'Panorama R', 'cover': 'Capa',
-                    'preface': 'Prefácio', 'stamps': 'Selos', 'back-cover': 'Contracapa',
-                    'side-by-side': 'Duas fotos', 'hero-caption': 'Foto + texto',
-                    'wide-strip': 'Faixa panorâmica', 'triptych': 'Tríptico',
-                    'quote-dark': 'Citação', 'feature-left': 'Destaque esquerda',
-                    'feature-right': 'Destaque direita', 'cinematic': 'Cinemático',
-                    'mosaic-5': 'Mosaico 5 fotos',
+                    'cover': 'Capa', 'verso-capa': 'Verso da capa', 'preface': 'Prefácio',
+                    'stamps': 'Selos', 'verso-back': 'Verso contracapa', 'back-cover': 'Contracapa',
+                    'full-bleed': 'Foto inteira', 'duo-margin': '2 fotos na margem',
+                    'photo-text-r': 'Foto + texto', 'trio-centered': '3 retratos',
+                    'quote-route': 'Texto + rota', 'offset-two': '2 fotos desalinhadas',
+                    'one-centered': '1 foto centralizada', 'one-portrait-margin': '1 retrato na margem',
+                    'stagger-2': '2 fotos escalonadas', 'one-landscape-margin': '1 paisagem na margem',
+                    'two-left-one-right': '2 esq + 1 dir', 'grid-2x2': 'Grade 2×2',
+                    'duo-portrait-margin': '2 retratos', 'duo-stacked': '2 empilhadas',
+                    'one-left-two-right': '1 esq + 2 dir', 'trio-stagger': '3 escalonados',
+                    'text-photo-r': 'Texto + foto', 'one-top-two-bottom': '1 cima + 2 baixo',
+                    'grid-3x2': 'Grade 3×2 (6 fotos)', 'one-wide-three-below': '1 larga + 3',
+                    'trio-rotated': '3 fotos (1 inclinada)', 'wide-photo-text': 'Foto larga + texto',
+                    'two-top-one-bottom': '2 cima + 1 baixo', 'trio-portrait': '3 retratos',
+                    'photo-caption': 'Foto + legenda', 'text-route': 'Texto + rota',
                   };
                   return (
                     <div key={pageIdx} className="bg-[#F5F2EA] rounded-2xl p-4 border border-[#2D3A27]/6">
