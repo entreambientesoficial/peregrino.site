@@ -462,9 +462,14 @@ const DownloadModal = ({ onClose }: { onClose: () => void }) => {
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.2 }}
               >
-                <p className="text-xs text-[#2D3A27]/50 uppercase tracking-widest mb-4 font-sans">
+                <p className="text-xs text-[#2D3A27]/50 uppercase tracking-widest mb-2 font-sans">
                   {t(`modal.pwa.${tab}.hint`)}
                 </p>
+                {tab === 'ios' && (
+                  <p className="text-xs text-amber-700/70 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-4 font-sans leading-snug">
+                    {t('modal.pwa.ios.safari_note')}
+                  </p>
+                )}
                 <ol className="flex flex-col gap-3">
                   {(tab === 'ios' ? iosSteps : droidSteps).map((key, i) => (
                     <li key={key} className="flex items-start gap-3">
