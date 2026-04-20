@@ -87,6 +87,60 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ## 🔄 Histórico de Alterações
 
+### Sessão 20/04/2026 (cont.) — Step de endereço de entrega + decisão de frete
+
+#### Novo step: Endereço de entrega (`StepShipping`)
+
+Fluxo de compra reestruturado em 4 etapas dentro do site:
+
+```
+Step 1 — Revelar livro
+Step 2 — Personalizar
+Step 3 — Resumo do pedido  (StepOrder)
+Step 4 — Endereço de entrega  (StepShipping) ← NOVO
+    ↓
+Stripe Checkout — apenas dados do cartão
+```
+
+**Motivação**: endereço de entrega e dados de pagamento são coisas distintas. O livro pode ser presente para outra pessoa em outro endereço. Separar os dois passos é a UX correta e é o padrão de e-commerces como Amazon.
+
+**`StepShipping` — campos do formulário:**
+- Nome completo do destinatário (obrigatório)
+- País — dropdown com 16 países suportados (obrigatório)
+- Endereço / linha 1 (obrigatório)
+- Complemento / linha 2 (opcional)
+- Cidade (obrigatório)
+- Código Postal (obrigatório)
+- Estado / Região (opcional)
+
+**Comportamento:**
+- Botão "Continuar para pagamento" desativado até campos obrigatórios preenchidos
+- Estado `shippingAddress: ShippingAddress` no root do `BookPage`, preservado entre steps
+- Ao submeter, chama `/create-checkout` com `shippingAddress` no body
+
+**Worker `create-checkout.js`:**
+- Recebe `shippingAddress` e passa para Stripe via `payment_intent_data.shipping`
+- `shipping_address_collection` removido — Stripe não pede endereço (já coletado no site)
+- Stripe Checkout exibe apenas formulário de cartão de crédito
+
+**`StepOrder` simplificado:**
+- Removida lógica de checkout (movida para `StepShipping`)
+- Botão agora navega para step `shipping` em vez de ir ao Stripe diretamente
+
+#### Decisão: frete provisório vs. API Lulu
+
+**Problema identificado**: o resumo do pedido exibe "Frete: calculado no checkout" mas o Stripe não coleta mais endereço — o frete real precisa vir da API Lulu.com.
+
+**Fluxo correto (a implementar após conta Lulu):**
+```
+Usuário preenche endereço → Worker consulta API Lulu → retorna custo de frete →
+Site exibe total real (livro + frete) → Stripe cobra com 2 line items
+```
+
+**Decisão tomada**: não implementar valor fake/estimado. Manter "Frete calculado após confirmação do endereço" até termos a conta Lulu e os valores reais da API. Honesto com o utilizador e sem retrabalho.
+
+---
+
 ### Sessão 20/04/2026 (cont.) — Checkout testado e validado end-to-end
 
 #### Fluxo de pagamento 100% validado em produção (modo teste)
@@ -699,8 +753,9 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 | # | Item | Detalhe |
 |---|---|---|
 | 6 | ~~**Configurar Stripe no Cloudflare**~~ | ✅ **20/04/2026** — Stripe configurado, webhook validado, checkout testado end-to-end em modo teste. |
-| 7 | **Conta Lulu.com** | Criar conta de desenvolvedor em lulu.com. Configurar 3 produtos (formato A4, 50/100/150 páginas, capa dura). Testar API de criação de pedido. |
-| 8 | **Geração do PDF do livro** | Backend (Cloudflare Worker ou função serverless) que: (1) recebe pedido pós-Stripe, (2) busca fotos do Supabase, (3) monta PDF com os layouts do livro, (4) envia para API Lulu, (5) Lulu entrega direto ao cliente. Maior tarefa técnica do projeto. |
+| 7 | **Conta Lulu.com** | Criar conta de desenvolvedor em lulu.com. Configurar 3 produtos (US Letter Landscape, 50/100/150 páginas, capa dura). Obter API key. Desbloqueia o cálculo de frete real e a geração do PDF. |
+| 7a | **↳ Cálculo de frete real** | Após conta Lulu: após step de endereço, Worker consulta API Lulu com endereço + specs do livro → retorna custo → site exibe total real (livro + frete) → Stripe cobra 2 line items. Atualmente exibe "Frete calculado após confirmação do endereço". |
+| 8 | **Geração do PDF do livro** | Backend (Cloudflare Worker) que: (1) recebe evento pós-Stripe `checkout.session.completed`, (2) busca fotos do Supabase, (3) monta PDF landscape 11×8.5" com os layouts do livro, (4) envia para API Lulu, (5) Lulu imprime e entrega ao cliente. Maior tarefa técnica do projeto. |
 
 ### 🟡 Média prioridade
 
