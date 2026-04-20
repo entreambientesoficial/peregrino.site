@@ -2229,7 +2229,13 @@ function StepOrder({ bookData, selectedModel, onBack }: { bookData: BookData; se
       const res = await fetch('/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ successUrl: `${window.location.origin}/sucesso`, cancelUrl: `${window.location.origin}/book` }),
+        body: JSON.stringify({
+          successUrl: `${window.location.origin}/sucesso`,
+          cancelUrl: `${window.location.origin}/book`,
+          modelId: selectedModel,
+          modelLabel: model.label,
+          modelPages: model.pages,
+        }),
       });
       const data = await res.json();
       if (data.url) { window.location.href = data.url; }

@@ -87,6 +87,44 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ## 🔄 Histórico de Alterações
 
+### Sessão 20/04/2026 (cont.) — Stripe configurado + preços dinâmicos por modelo
+
+#### Variáveis de ambiente Stripe configuradas no Cloudflare Pages
+
+| Variável | Tipo | Status |
+|---|---|---|
+| `STRIPE_SECRET_KEY` | Secret (criptografado) | ✅ Configurado |
+| `STRIPE_PUBLIC_KEY` | Secret (criptografado) | ✅ Configurado |
+
+Modo atual: **teste** (`sk_test_` / `pk_test_`). Migrar para `sk_live_` quando pronto para produção real.
+
+#### Bug corrigido: preço fixo no Stripe Worker
+
+O Worker `functions/create-checkout.js` tinha preço hardcoded `7900` (€79,00) independente do modelo selecionado.
+
+**Correção**: Worker agora recebe `modelId`, `modelLabel` e `modelPages` do frontend e usa tabela de preços:
+
+| modelId | Preço (cents) | Valor |
+|---|---|---|
+| `essential` | 4990 | €49,90 |
+| `journey` | 7490 | €74,90 |
+| `legacy` | 9990 | €99,90 |
+
+**`BookPage.tsx` — `handleCheckout()`**: payload do POST enriquecido com `modelId`, `modelLabel`, `modelPages`.
+**`functions/create-checkout.js`**: lê modelo recebido, aplica preço correto, nome e descrição dinâmicos no produto Stripe.
+
+#### Email profissional configurado (Cloudflare Email Routing)
+
+| Endereço | Destino |
+|---|---|
+| `support@meuperegrino.com` | Gmail pessoal |
+| `contact@meuperegrino.com` | Gmail pessoal |
+
+Emails recebidos chegam ao Gmail. Sem custo adicional (Cloudflare Email Routing é gratuito).
+Conta Stripe usa Gmail como login; `support@meuperegrino.com` configurado como email de suporte ao cliente.
+
+---
+
 ### Sessão 20/04/2026 — Domínio definitivo + Supabase + Cloudflare configurados
 
 #### Domínio definitivo registrado: meuperegrino.com

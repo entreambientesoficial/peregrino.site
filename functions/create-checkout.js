@@ -5,8 +5,14 @@ export async function onRequestPost(context) {
 
   try {
     const body = await request.json().catch(() => ({}));
-    const successUrl = body.successUrl || `${origin}/sucesso`;
-    const cancelUrl  = body.cancelUrl  || `${origin}/#livro`;
+    const successUrl  = body.successUrl  || `${origin}/sucesso`;
+    const cancelUrl   = body.cancelUrl   || `${origin}/#livro`;
+    const modelId     = body.modelId     || 'journey';
+    const modelLabel  = body.modelLabel  || 'Jornada';
+    const modelPages  = body.modelPages  || 100;
+
+    const PRICES = { essential: 4990, journey: 7490, legacy: 9990 };
+    const unitAmount = PRICES[modelId] ?? 7490;
 
     const payload = {
       payment_method_types: ['card'],
@@ -14,10 +20,10 @@ export async function onRequestPost(context) {
         {
           price_data: {
             currency: 'eur',
-            unit_amount: 7900, // €79.00 — atualizar quando preço for definido
+            unit_amount: unitAmount,
             product_data: {
-              name: 'Coffee Table Book — Peregrino',
-              description: 'Livro fotográfico personalizado com sua jornada no Caminho de Santiago.',
+              name: `Coffee Table Book — Peregrino (${modelLabel})`,
+              description: `Livro fotográfico personalizado com sua jornada no Caminho de Santiago. ${modelPages} páginas.`,
               images: ['https://meuperegrino.com/img-apoio/card1-St-Jean-Pied-de-Port.webp'],
             },
           },
