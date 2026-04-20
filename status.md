@@ -87,6 +87,50 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ## 🔄 Histórico de Alterações
 
+### Sessão 20/04/2026 (cont.) — Modal PWA: fluxo corrigido + aviso Safari iOS
+
+#### Correção do fluxo de instalação PWA (todos os 10 idiomas)
+
+**Problema identificado 1:** Step 1 dizia "Acesse app.meuperegrino.com no Safari/Chrome" — o botão "Abrir o App" já faz exatamente isso. Instrução redundante e confusa.
+
+**Problema identificado 2:** O botão "Instalar agora" (Android tab) chamava `beforeinstallprompt` da **landing page** (`meuperegrino.com`), não do app (`app.meuperegrino.com`). Instalaria o site de marketing como PWA, não o app. Bug grave.
+
+**Correções aplicadas:**
+
+Android — novo fluxo:
+1. Clique em «Abrir o App» abaixo
+2. Aguarde o banner de instalação do Chrome
+3. Toque em «Instalar» quando aparecer
+4. Sem banner? Toque em ⋮ → Adicionar à tela inicial *(fallback)*
+
+iOS — novo fluxo:
+1. Clique em «Abrir o App» abaixo (no Safari)
+2. Toque no botão Compartilhar (□↑)
+3. Toque em «Adicionar à Tela Início»
+4. Confirme tocando em «Adicionar»
+
+**Código removido de `LandingPage.tsx`:**
+- `useState<any>(null)` para `installPrompt`
+- `useEffect` com listener `beforeinstallprompt`
+- `handleNativeInstall()` que chamava `installPrompt.prompt()`
+- Botão "Instalar agora" condicional `{tab === 'android' && installPrompt && ...}`
+
+**Nota técnica:** O banner de instalação no Android é gerenciado pelo `vite-plugin-pwa` de `app.meuperegrino.com`, não pela landing page. A landing page não deve capturar nem usar `beforeinstallprompt`.
+
+#### Aviso Safari obrigatório — tab iOS
+
+Adicionado alerta âmbar discreto no tab iOS, abaixo do hint "Siga os passos no Safari:":
+
+> ⚠︎ A instalação só funciona pelo Safari. Se estiver no Chrome, abra o Safari primeiro.
+
+- Aplicado em **10 idiomas** via nova chave `modal.pwa.ios.safari_note`
+- Estilo: `bg-amber-50 border border-amber-200 text-amber-700/70` — visível mas não intrusivo
+- Motivação: usuários iPhone frequentemente usam Chrome como browser padrão; a instalação de PWA no iOS é exclusiva do Safari (limitação da Apple)
+
+**Commits:** `05eb1c8` (fluxo PWA) · `7dd60b8` (aviso Safari)
+
+---
+
 ### Sessão 20/04/2026 (cont.) — CTA livro no app + Modal PWA corrigido e simplificado
 
 #### Deep link app → site (item 5 ✅)
@@ -1086,4 +1130,4 @@ feat: reescrita completa do livro — 52 páginas baseadas no modelo Canva
 
 ---
 
-*Última atualização: 19/04/2026 (madrugada) — Sessão com Antigravity (Claude Sonnet 4.6)*
+*Última atualização: 20/04/2026 (noite) — Sessão com Antigravity (Claude Sonnet 4.6)*
