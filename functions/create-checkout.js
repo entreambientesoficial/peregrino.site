@@ -7,9 +7,11 @@ export async function onRequestPost(context) {
     const body = await request.json().catch(() => ({}));
     const successUrl  = body.successUrl  || `${origin}/sucesso`;
     const cancelUrl   = body.cancelUrl   || `${origin}/#livro`;
-    const modelId     = body.modelId     || 'journey';
-    const modelLabel  = body.modelLabel  || 'Jornada';
-    const modelPages  = body.modelPages  || 100;
+    const modelId       = body.modelId       || 'journey';
+    const modelLabel    = body.modelLabel    || 'Jornada';
+    const modelPages    = body.modelPages    || 100;
+    const customerEmail = body.customerEmail || null;
+    const customerName  = body.customerName  || null;
 
     const PRICES = { essential: 4990, journey: 7490, legacy: 9990 };
     const unitAmount = PRICES[modelId] ?? 7490;
@@ -33,6 +35,7 @@ export async function onRequestPost(context) {
       mode: 'payment',
       success_url: successUrl,
       cancel_url: cancelUrl,
+      ...(customerEmail && { customer_email: customerEmail }),
       custom_text: {
         submit: { message: 'Dúvidas? support@meuperegrino.com · Peregrino' },
         after_submit: { message: 'O seu livro será impresso e enviado para a morada indicada. Prazo estimado: 10–15 dias úteis.' },
@@ -43,6 +46,7 @@ export async function onRequestPost(context) {
         model_id: modelId,
         model_label: modelLabel,
         model_pages: String(modelPages),
+        ...(customerName && { customer_name: customerName }),
       },
       shipping_address_collection: {
         allowed_countries: [

@@ -1347,6 +1347,7 @@ export default function BookPage() {
           {step === 'order' && (
             <StepOrder key="o" bookData={bookData}
               selectedModel={selectedModel}
+              userEmail={user?.email ?? ''}
               onBack={() => setStep('reveal')} />
           )}
         </AnimatePresence>
@@ -2217,7 +2218,7 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
 // ---------------------------------------------------------------------------
 // Step 3 — Resumo e checkout
 // ---------------------------------------------------------------------------
-function StepOrder({ bookData, selectedModel, onBack }: { bookData: BookData; selectedModel: ModelId; onBack: () => void }) {
+function StepOrder({ bookData, selectedModel, userEmail, onBack }: { bookData: BookData; selectedModel: ModelId; userEmail: string; onBack: () => void }) {
   const { t } = useT();
   const model = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
   const [loading, setLoading] = useState(false);
@@ -2235,6 +2236,8 @@ function StepOrder({ bookData, selectedModel, onBack }: { bookData: BookData; se
           modelId: selectedModel,
           modelLabel: model.label,
           modelPages: model.pages,
+          customerEmail: userEmail,
+          customerName: bookData.userName,
         }),
       });
       const data = await res.json();
