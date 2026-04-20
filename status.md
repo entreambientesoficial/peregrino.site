@@ -87,6 +87,44 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ## 🔄 Histórico de Alterações
 
+### Sessão 20/04/2026 (cont.) — CTA livro no app + Modal PWA corrigido e simplificado
+
+#### Deep link app → site (item 5 ✅)
+
+CTA "Transforme sua jornada num livro" adicionado ao **modal de chegada** do app (`PilgrimsPath.js`).
+
+- Aparece entre a Credencial Digital e o botão Fechar
+- Link: `https://meuperegrino.com/book?lang=${getLocale()}` — idioma do app transmitido via query string
+- Estilo: botão verde escuro (`#343c0a → #4b5320`) com ícone `auto_stories` e seta
+- Ativado automaticamente quando o peregrino completa todos os estágios da rota
+- `getLocale()` importado de `src/i18n/index.js` — já existia no app, zero dependência nova
+
+**Repo afetado:** `entreambientesoficial/Peregrino` — commit `f064c33`
+
+#### Modal PWA — correção de lógica + simplificação
+
+**Problema identificado**: passo 1 do modal dizia "Abra esta página" — instalaria o site de marketing (`meuperegrino.com`) e não o app (`app.meuperegrino.com`).
+
+**Correções aplicadas (`src/i18n.ts`):**
+Passo 1 atualizado nos **10 idiomas** para referenciar `app.meuperegrino.com` explicitamente:
+- PT-BR: `Acesse app.meuperegrino.com no Safari/Chrome`
+- PT-PT: `Acede a app.meuperegrino.com no Safari/Chrome`
+- EN: `Open app.meuperegrino.com in Safari/Chrome`
+- ES/FR/DE/IT/JA/KO/ZH-CN: idem, traduzido
+
+**Simplificação do modal (`src/LandingPage.tsx`):**
+
+| Dispositivo | Antes | Depois |
+|---|---|---|
+| Mobile | 4 passos manuais + botão "Abrir o App" | Só botão grande "Abrir o App" → `app.meuperegrino.com` |
+| Desktop | 4 passos + QR Code | Igual (passos + QR Code — necessário para quem está no PC) |
+
+Lógica: utilizador no celular não precisa de passos — um toque no botão abre o app diretamente.
+QR Code (desktop) e passos (desktop) mantidos para quem acessa o site no computador.
+TODO do QR Code removido — domínio definitivo já configurado.
+
+---
+
 ### Sessão 20/04/2026 (cont.) — Step de endereço de entrega + decisão de frete
 
 #### Novo step: Endereço de entrega (`StepShipping`)
@@ -746,7 +784,7 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 | 2 | ~~**↳ Atualizar URLs definitivas**~~ | ✅ **20/04/2026** — `functions/create-checkout.js` atualizado. `OAUTH_REDIRECT_URL` usa `window.location.origin` (dinâmico — funciona em dev e prod) |
 | 3 | ~~**↳ Registar Redirect URL no Supabase**~~ | ✅ **20/04/2026** — Site URL: `https://meuperegrino.com`. Redirect URLs: `meuperegrino.com/**` e `app.meuperegrino.com/**` adicionadas (total: 6 URLs) |
 | 4 | ~~**↳ Deploy no domínio definitivo**~~ | ✅ **20/04/2026** — Custom domain conectado no Cloudflare Pages |
-| 5 | **↳ Deep link App → Site** | No app Peregrino, ao fim da jornada exibir botão com URL `https://meuperegrino.com/book?lang=xx` |
+| 5 | ~~**↳ Deep link App → Site**~~ | ✅ **20/04/2026** — CTA "Transforme sua jornada num livro" no modal de chegada do app. Link: `https://meuperegrino.com/book?lang=${getLocale()}`. Repo: entreambientesoficial/Peregrino commit f064c33 |
 
 ### 🟠 Alta prioridade (funcionalidade de venda)
 
