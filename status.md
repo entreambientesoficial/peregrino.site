@@ -87,6 +87,42 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ## 🔄 Histórico de Alterações
 
+### Sessão 20/04/2026 (cont.) — Checkout testado e validado end-to-end
+
+#### Fluxo de pagamento 100% validado em produção (modo teste)
+
+| Etapa | Status |
+|---|---|
+| Checkout abre com preço correto por modelo | ✅ |
+| Email e nome do usuário pré-preenchidos | ✅ |
+| `support@meuperegrino.com` visível no rodapé do checkout | ✅ |
+| Pagamento processado (cartão teste `4242...`) | ✅ |
+| Redirect para `/sucesso` após pagamento | ✅ |
+| Webhook `checkout.session.completed` recebido com status 200 | ✅ |
+
+#### Pré-preenchimento do Stripe Checkout
+- `StepOrder` recebe `userEmail` (do `supabase.auth` — `user?.email`) e `bookData.userName`
+- Worker envia `customer_email` ao Stripe → campo email aparece preenchido
+- `customer_name` salvo em `metadata` para referência no painel Stripe
+- Usuário não autenticado (demo): campos ficam em branco
+
+#### Webhook handler (`functions/stripe-webhook.js`)
+- Valida assinatura HMAC-SHA256 via `STRIPE_WEBHOOK_SECRET` (Cloudflare env)
+- Loga pedido completo: `stripeSessionId`, `customerEmail`, `customerName`, `amountTotal`, `modelId`, `shippingAddress`
+- Próximos passos mapeados em TODO: gravar Supabase → gerar PDF → enviar Lulu
+
+#### Variáveis de ambiente finais no Cloudflare Pages
+| Variável | Tipo |
+|---|---|
+| `STRIPE_SECRET_KEY` | Secret |
+| `STRIPE_PUBLIC_KEY` | Secret |
+| `STRIPE_WEBHOOK_SECRET` | Secret |
+| `VITE_SUPABASE_URL` | Plaintext |
+| `VITE_SUPABASE_ANON_KEY` | Plaintext |
+| `NODE_VERSION` | Plaintext (20) |
+
+---
+
 ### Sessão 20/04/2026 (cont.) — PWA manifest + URLs definitivas
 
 #### manifest.json criado (`public/manifest.json`)
@@ -662,7 +698,7 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 
 | # | Item | Detalhe |
 |---|---|---|
-| 6 | **Configurar Stripe no Cloudflare** | Adicionar `STRIPE_SECRET_KEY` em Cloudflare Pages → Settings → Environment Variables. Worker `functions/create-checkout.js` já criado e aguarda a key. |
+| 6 | ~~**Configurar Stripe no Cloudflare**~~ | ✅ **20/04/2026** — Stripe configurado, webhook validado, checkout testado end-to-end em modo teste. |
 | 7 | **Conta Lulu.com** | Criar conta de desenvolvedor em lulu.com. Configurar 3 produtos (formato A4, 50/100/150 páginas, capa dura). Testar API de criação de pedido. |
 | 8 | **Geração do PDF do livro** | Backend (Cloudflare Worker ou função serverless) que: (1) recebe pedido pós-Stripe, (2) busca fotos do Supabase, (3) monta PDF com os layouts do livro, (4) envia para API Lulu, (5) Lulu entrega direto ao cliente. Maior tarefa técnica do projeto. |
 
