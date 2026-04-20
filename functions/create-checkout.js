@@ -10,8 +10,9 @@ export async function onRequestPost(context) {
     const modelId       = body.modelId       || 'journey';
     const modelLabel    = body.modelLabel    || 'Jornada';
     const modelPages    = body.modelPages    || 100;
-    const customerEmail = body.customerEmail || null;
-    const customerName  = body.customerName  || null;
+    const customerEmail   = body.customerEmail   || null;
+    const customerName    = body.customerName    || null;
+    const shippingAddress = body.shippingAddress || null;
 
     const PRICES = { essential: 4990, journey: 7490, legacy: 9990 };
     const unitAmount = PRICES[modelId] ?? 7490;
@@ -36,6 +37,21 @@ export async function onRequestPost(context) {
       success_url: successUrl,
       cancel_url: cancelUrl,
       ...(customerEmail && { customer_email: customerEmail }),
+      ...(shippingAddress && {
+        payment_intent_data: {
+          shipping: {
+            name: shippingAddress.name,
+            address: {
+              line1:       shippingAddress.line1,
+              line2:       shippingAddress.line2 || undefined,
+              city:        shippingAddress.city,
+              state:       shippingAddress.state || undefined,
+              postal_code: shippingAddress.postal_code,
+              country:     shippingAddress.country,
+            },
+          },
+        },
+      }),
       custom_text: {
         submit: { message: 'Dúvidas? support@meuperegrino.com · Peregrino' },
         after_submit: { message: 'O seu livro será impresso e enviado para a morada indicada. Prazo estimado: 10–15 dias úteis.' },
@@ -47,12 +63,6 @@ export async function onRequestPost(context) {
         model_label: modelLabel,
         model_pages: String(modelPages),
         ...(customerName && { customer_name: customerName }),
-      },
-      shipping_address_collection: {
-        allowed_countries: [
-          'PT', 'ES', 'FR', 'DE', 'IT', 'BR', 'US', 'GB',
-          'NL', 'BE', 'AT', 'CH', 'PL', 'JP', 'KR', 'AU',
-        ],
       },
       phone_number_collection: { enabled: false },
       locale: 'auto',

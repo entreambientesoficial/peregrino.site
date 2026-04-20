@@ -94,7 +94,17 @@ const DEFAULT_BOOK_DATA: BookData = {
   pageTexts:        {},
 };
 
-type Step = 'reveal' | 'customize' | 'order';
+type Step = 'reveal' | 'customize' | 'order' | 'shipping';
+
+interface ShippingAddress {
+  name: string;
+  line1: string;
+  line2: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+}
 type CustomizeTab = 'cover' | 'texts' | 'photos';
 type ModelId = 'essential' | 'journey' | 'legacy';
 type FontSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -1115,6 +1125,9 @@ export default function BookPage() {
   const [selectedModel, setSelectedModel] = useState<ModelId>('essential');
   const [hasCustomized, setHasCustomized] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
+    name: '', line1: '', line2: '', city: '', state: '', postal_code: '', country: 'PT',
+  });
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [noPhotosWarning, setNoPhotosWarning] = useState(false);
@@ -1347,8 +1360,17 @@ export default function BookPage() {
           {step === 'order' && (
             <StepOrder key="o" bookData={bookData}
               selectedModel={selectedModel}
-              userEmail={user?.email ?? ''}
+              onNext={() => setStep('shipping')}
               onBack={() => setStep('reveal')} />
+          )}
+          {step === 'shipping' && (
+            <StepShipping key="s"
+              bookData={bookData}
+              selectedModel={selectedModel}
+              userEmail={user?.email ?? ''}
+              address={shippingAddress}
+              onChange={setShippingAddress}
+              onBack={() => setStep('order')} />
           )}
         </AnimatePresence>
       </div>
@@ -2218,34 +2240,9 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
 // ---------------------------------------------------------------------------
 // Step 3 — Resumo e checkout
 // ---------------------------------------------------------------------------
-function StepOrder({ bookData, selectedModel, userEmail, onBack }: { bookData: BookData; selectedModel: ModelId; userEmail: string; onBack: () => void }) {
+function StepOrder({ bookData, selectedModel, onNext, onBack }: { bookData: BookData; selectedModel: ModelId; onNext: () => void; onBack: () => void }) {
   const { t } = useT();
   const model = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleCheckout = async () => {
-    setLoading(true); setError(null);
-    try {
-      const res = await fetch('/create-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          successUrl: `${window.location.origin}/sucesso`,
-          cancelUrl: `${window.location.origin}/book`,
-          modelId: selectedModel,
-          modelLabel: model.label,
-          modelPages: model.pages,
-          customerEmail: userEmail,
-          customerName: bookData.userName,
-        }),
-      });
-      const data = await res.json();
-      if (data.url) { window.location.href = data.url; }
-      else { setError(t('bp.s3.error')); }
-    } catch { setError(t('bp.s3.error_conn')); }
-    finally { setLoading(false); }
-  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="max-w-lg mx-auto px-6 py-12 flex flex-col gap-7">
@@ -2296,19 +2293,150 @@ function StepOrder({ bookData, selectedModel, userEmail, onBack }: { bookData: B
         ))}
       </div>
 
-      {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-
-      <motion.button onClick={handleCheckout} disabled={loading}
-        whileHover={loading ? {} : { scale: 1.02 }} whileTap={loading ? {} : { scale: 0.98 }}
-        className="w-full bg-[#2D3A27] text-[#E8E4D9] py-4 rounded-full font-semibold flex items-center justify-center gap-3 hover:bg-[#1B2616] transition-colors disabled:opacity-60 disabled:cursor-not-allowed shadow-lg text-base"
+      <motion.button onClick={onNext}
+        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+        className="w-full bg-[#2D3A27] text-[#E8E4D9] py-4 rounded-full font-semibold flex items-center justify-center gap-3 hover:bg-[#1B2616] transition-colors shadow-lg text-base"
       >
-        {loading
-          ? <><svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>{t('bp.s3.preparing')}</>
-          : <><CreditCard size={18} />{t('bp.s3.confirm')}</>
-        }
+        <MapPin size={18} />Informar endereço de entrega
       </motion.button>
 
       <button onClick={onBack} className="text-sm text-[#2D3A27]/40 hover:text-[#2D3A27] transition-colors text-center">{t('bp.s3.back')}</button>
+    </motion.div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// StepShipping — endereço de entrega + disparo do Stripe
+// ---------------------------------------------------------------------------
+const SHIPPING_COUNTRIES: { code: string; label: string }[] = [
+  { code: 'PT', label: 'Portugal' },
+  { code: 'ES', label: 'Espanha' },
+  { code: 'FR', label: 'França' },
+  { code: 'DE', label: 'Alemanha' },
+  { code: 'IT', label: 'Itália' },
+  { code: 'BR', label: 'Brasil' },
+  { code: 'US', label: 'Estados Unidos' },
+  { code: 'GB', label: 'Reino Unido' },
+  { code: 'NL', label: 'Países Baixos' },
+  { code: 'BE', label: 'Bélgica' },
+  { code: 'AT', label: 'Áustria' },
+  { code: 'CH', label: 'Suíça' },
+  { code: 'PL', label: 'Polónia' },
+  { code: 'JP', label: 'Japão' },
+  { code: 'KR', label: 'Coreia do Sul' },
+  { code: 'AU', label: 'Austrália' },
+];
+
+function StepShipping({ bookData, selectedModel, userEmail, address, onChange, onBack }: {
+  bookData: BookData;
+  selectedModel: ModelId;
+  userEmail: string;
+  address: ShippingAddress;
+  onChange: (a: ShippingAddress) => void;
+  onBack: () => void;
+}) {
+  const { t } = useT();
+  const model = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const set = (field: keyof ShippingAddress) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    onChange({ ...address, [field]: e.target.value });
+
+  const isValid = address.name.trim() && address.line1.trim() && address.city.trim() && address.postal_code.trim();
+
+  const handlePay = async () => {
+    if (!isValid) return;
+    setLoading(true); setError(null);
+    try {
+      const res = await fetch('/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          successUrl: `${window.location.origin}/sucesso`,
+          cancelUrl: `${window.location.origin}/book`,
+          modelId: selectedModel,
+          modelLabel: model.label,
+          modelPages: model.pages,
+          customerEmail: userEmail,
+          customerName: bookData.userName,
+          shippingAddress: address,
+        }),
+      });
+      const data = await res.json();
+      if (data.url) { window.location.href = data.url; }
+      else { setError(t('bp.s3.error')); }
+    } catch { setError(t('bp.s3.error_conn')); }
+    finally { setLoading(false); }
+  };
+
+  const inputClass = "w-full bg-white border border-[#2D3A27]/12 rounded-2xl px-4 py-3 text-sm text-[#2D3A27] placeholder-[#2D3A27]/30 focus:outline-none focus:border-[#2D3A27]/40 transition-colors";
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="max-w-lg mx-auto px-6 py-12 flex flex-col gap-6">
+      <div className="text-center">
+        <h2 className="font-serif text-3xl md:text-4xl text-[#2D3A27] italic mb-2">Endereço de entrega</h2>
+        <p className="text-[#2D3A27]/50 text-sm">Para quem e onde vai o livro?</p>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div>
+          <label className="text-xs text-[#2D3A27]/50 uppercase tracking-widest mb-1.5 block">Nome completo do destinatário *</label>
+          <input className={inputClass} placeholder="Ex: Maria Silva" value={address.name} onChange={set('name')} />
+        </div>
+
+        <div>
+          <label className="text-xs text-[#2D3A27]/50 uppercase tracking-widest mb-1.5 block">País *</label>
+          <select className={inputClass} value={address.country} onChange={set('country')}>
+            {SHIPPING_COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs text-[#2D3A27]/50 uppercase tracking-widest mb-1.5 block">Endereço *</label>
+          <input className={inputClass} placeholder="Rua, número" value={address.line1} onChange={set('line1')} />
+        </div>
+
+        <div>
+          <label className="text-xs text-[#2D3A27]/50 uppercase tracking-widest mb-1.5 block">Complemento</label>
+          <input className={inputClass} placeholder="Apartamento, bloco, andar (opcional)" value={address.line2} onChange={set('line2')} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-[#2D3A27]/50 uppercase tracking-widest mb-1.5 block">Cidade *</label>
+            <input className={inputClass} placeholder="Lisboa" value={address.city} onChange={set('city')} />
+          </div>
+          <div>
+            <label className="text-xs text-[#2D3A27]/50 uppercase tracking-widest mb-1.5 block">Código Postal *</label>
+            <input className={inputClass} placeholder="1000-001" value={address.postal_code} onChange={set('postal_code')} />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs text-[#2D3A27]/50 uppercase tracking-widest mb-1.5 block">Estado / Região</label>
+          <input className={inputClass} placeholder="Opcional" value={address.state} onChange={set('state')} />
+        </div>
+      </div>
+
+      <div className="bg-[#F5F2EA] rounded-2xl p-4 flex justify-between items-center">
+        <span className="text-sm text-[#2D3A27]/60">Coffee Table Book — {model.label}</span>
+        <span className="font-serif italic text-[#2D3A27] text-lg">{model.price}</span>
+      </div>
+
+      {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+
+      <motion.button onClick={handlePay} disabled={loading || !isValid}
+        whileHover={loading || !isValid ? {} : { scale: 1.02 }} whileTap={loading || !isValid ? {} : { scale: 0.98 }}
+        className="w-full bg-[#2D3A27] text-[#E8E4D9] py-4 rounded-full font-semibold flex items-center justify-center gap-3 hover:bg-[#1B2616] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg text-base"
+      >
+        {loading
+          ? <><svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>{t('bp.s3.preparing')}</>
+          : <><CreditCard size={18} />Continuar para pagamento</>
+        }
+      </motion.button>
+
+      <button onClick={onBack} className="text-sm text-[#2D3A27]/40 hover:text-[#2D3A27] transition-colors text-center">← Voltar ao resumo</button>
     </motion.div>
   );
 }
