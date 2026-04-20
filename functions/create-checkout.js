@@ -33,6 +33,17 @@ export async function onRequestPost(context) {
       mode: 'payment',
       success_url: successUrl,
       cancel_url: cancelUrl,
+      custom_text: {
+        submit: { message: 'Dúvidas? support@meuperegrino.com · Peregrino' },
+        after_submit: { message: 'O seu livro será impresso e enviado para a morada indicada. Prazo estimado: 10–15 dias úteis.' },
+      },
+      metadata: {
+        business_name: 'Peregrino',
+        support_email: 'support@meuperegrino.com',
+        model_id: modelId,
+        model_label: modelLabel,
+        model_pages: String(modelPages),
+      },
       shipping_address_collection: {
         allowed_countries: [
           'PT', 'ES', 'FR', 'DE', 'IT', 'BR', 'US', 'GB',
