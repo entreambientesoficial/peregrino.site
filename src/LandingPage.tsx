@@ -504,6 +504,17 @@ const DownloadModal = ({ onClose }: { onClose: () => void }) => {
                     <ArrowRight className="w-4 h-4" />
                   </motion.button>
                 )}
+
+                {/* Botão direto para o app — sempre visível no mobile */}
+                <a
+                  href="https://app.meuperegrino.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 w-full border border-[#2D3A27]/20 text-[#2D3A27] py-3.5 rounded-2xl font-sans font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#2D3A27]/5 transition-colors"
+                >
+                  Abrir o App
+                  <ArrowRight className="w-4 h-4" />
+                </a>
               </motion.div>
             </AnimatePresence>
           </div>
@@ -511,7 +522,6 @@ const DownloadModal = ({ onClose }: { onClose: () => void }) => {
           {/* Lado direito — QR Code (desktop only) */}
           <div className="hidden md:flex w-[220px] bg-[#2D3A27] p-10 flex-col items-center justify-center text-center border-l border-black/5 shrink-0">
             <div className="p-4 bg-white rounded-3xl shadow-xl mb-5">
-              {/* TODO: trocar URL quando domínio for definido */}
               <QRCodeSVG
                 value="https://app.meuperegrino.com"
                 size={112}
