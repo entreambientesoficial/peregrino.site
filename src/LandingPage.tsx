@@ -399,22 +399,6 @@ const DownloadModal = ({ onClose }: { onClose: () => void }) => {
   const [tab, setTab] = useState<'ios' | 'android'>(
     platform === 'android' ? 'android' : 'ios'
   );
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
-
-  useEffect(() => {
-    const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e); };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
-
-  const handleNativeInstall = async () => {
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    await installPrompt.userChoice;
-    setInstallPrompt(null);
-    onClose();
-  };
-
   const iosSteps  = ['modal.pwa.ios.s1',  'modal.pwa.ios.s2',  'modal.pwa.ios.s3',  'modal.pwa.ios.s4'];
   const droidSteps = ['modal.pwa.android.s1','modal.pwa.android.s2','modal.pwa.android.s3','modal.pwa.android.s4'];
 
@@ -491,19 +475,6 @@ const DownloadModal = ({ onClose }: { onClose: () => void }) => {
                     </li>
                   ))}
                 </ol>
-
-                {/* Botão nativo Android */}
-                {tab === 'android' && installPrompt && (
-                  <motion.button
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    onClick={handleNativeInstall}
-                    className="mt-6 w-full bg-[#2D3A27] text-[#E8E4D9] py-3.5 rounded-2xl font-sans font-semibold text-sm flex items-center justify-center gap-2 shadow-lg"
-                  >
-                    {t('modal.pwa.android.btn')}
-                    <ArrowRight className="w-4 h-4" />
-                  </motion.button>
-                )}
 
                 {/* Botão direto — todas as telas */}
                 <a
