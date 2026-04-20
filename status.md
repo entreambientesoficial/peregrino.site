@@ -87,6 +87,31 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ## 🔄 Histórico de Alterações
 
+### Sessão 20/04/2026 (cont.) — PWA manifest + URLs definitivas
+
+#### manifest.json criado (`public/manifest.json`)
+Habilita instalação nativa do site como PWA no Android/Chrome (botão "Adicionar à tela inicial" nativo).
+Campos: `name`, `short_name`, `start_url: "/"`, `display: standalone`, `theme_color: #2D3A27`, ícone `vieira.png`.
+
+#### index.html — meta tags PWA adicionadas
+- `<link rel="manifest" href="/manifest.json" />`
+- `<meta name="theme-color" content="#2D3A27" />`
+- Meta tags Apple (`apple-mobile-web-app-capable`, `status-bar-style`, `title`) para iOS add-to-homescreen
+
+#### LandingPage.tsx — URLs definitivas
+- QR Code do DownloadModal: `https://peregrino.app` → `https://app.meuperegrino.com`
+- Todos os `peregrino.app` no texto dos modais legais → `meuperegrino.com`
+- Emails de contato atualizados: `contato@` → `contact@meuperegrino.com`, `pedidos@` e `privacidade@` → `support@meuperegrino.com`
+- Aviso "emails serão ativados quando domínio for definido" removido — domínio já está ativo
+
+#### Emails operacionais (via Cloudflare Email Routing → Gmail)
+| Endereço | Uso |
+|---|---|
+| `contact@meuperegrino.com` | Contato geral + DPO/LGPD |
+| `support@meuperegrino.com` | Suporte a pedidos + privacidade |
+
+---
+
 ### Sessão 20/04/2026 (cont.) — Stripe configurado + preços dinâmicos por modelo
 
 #### Variáveis de ambiente Stripe configuradas no Cloudflare Pages
