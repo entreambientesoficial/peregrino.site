@@ -87,6 +87,48 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ## 🔄 Histórico de Alterações
 
+### Sessão 20/04/2026 — Domínio definitivo + Supabase + Cloudflare configurados
+
+#### Domínio definitivo registrado: meuperegrino.com
+
+Domínio **meuperegrino.com** registrado via Cloudflare Registrar em 20/04/2026.
+Estrutura de subdomínios definida:
+- **Site (landing + /book):** `https://meuperegrino.com`
+- **App (Flutter PWA):** `https://app.meuperegrino.com`
+
+#### Supabase Auth — URL Configuration atualizada
+
+| Campo | Valor anterior | Valor novo |
+|---|---|---|
+| Site URL | `https://peregrino.pages.dev` | `https://meuperegrino.com` |
+
+Redirect URLs — lista final (6 URLs):
+
+| URL | Finalidade |
+|---|---|
+| `https://meuperegrino.com/**` | Site produção — OAuth do `/book` |
+| `https://app.meuperegrino.com/**` | App produção — OAuth do login |
+| `http://localhost:5173/**` | Dev local do site |
+| `https://peregrino-site.pages.dev/**` | Backup legado do site |
+| `https://peregrino.pages.dev/**` | Backup legado do app |
+| `https://peregrino.pages.dev/estabelecimento` | Rota específica legada |
+
+#### Cloudflare Pages — Custom Domain conectado
+
+Custom domain `meuperegrino.com` vinculado ao projeto do site no Cloudflare Pages.
+DNS configurado automaticamente (domínio é da própria Cloudflare — zero propagação necessária).
+
+#### Código atualizado
+
+- **`functions/create-checkout.js` linha 21**: URL da imagem do produto Stripe atualizada de `peregrino-site.pages.dev` → `meuperegrino.com`
+- **`src/BookPage.tsx` linha 777**: Comentário de instrução do `OAUTH_REDIRECT_URL` atualizado para referenciar `meuperegrino.com`. A constante em si usa `window.location.origin` (dinâmico — funciona em dev e produção sem alteração)
+
+#### Arquitetura de banco de dados esclarecida
+
+O Supabase é um serviço independente — não pertence nem ao deploy do site nem ao do app. Ambos os deploys (`meuperegrino.com` e `app.meuperegrino.com`) são clientes do mesmo banco usando as mesmas credenciais. O `user_id` do Google OAuth é o elo: dados gravados pelo app (fotos, stamps, jornadas) são lidos pelo site com o mesmo usuário autenticado. Nenhuma configuração adicional de banco necessária.
+
+---
+
 ### Sessão 19/04/2026 (noite) — Correção crítica de orientação + Especificações Lulu.com documentadas
 
 #### BUG CRÍTICO CORRIGIDO: Orientação do livro era PORTRAIT, deve ser LANDSCAPE
@@ -547,11 +589,11 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 
 | # | Item | Detalhe |
 |---|---|---|
-| 1 | **Definir domínio definitivo** | Desbloqueia todos os itens abaixo. Opções: `peregrino.app`, `peregrino.pt`, etc. |
-| 2 | **↳ Atualizar URLs definitivas** | Após domínio: atualizar URL no modal PWA, no Stripe Worker (`create-checkout.js`) e no `OAUTH_REDIRECT_URL` do `BookPage.tsx` (atualmente usa `window.location.origin`) |
-| 3 | **↳ Registar Redirect URL no Supabase** | Auth → URL Configuration → adicionar `https://[dominio]/book` na lista de Redirect URLs permitidas |
-| 4 | **↳ Deploy no domínio definitivo** | Apontar DNS do domínio para Cloudflare Pages |
-| 5 | **↳ Deep link App → Site** | No app Peregrino, ao fim da jornada exibir botão com URL `https://[dominio]/book?lang=xx` |
+| 1 | ~~**Definir domínio definitivo**~~ | ✅ **20/04/2026** — Domínio **meuperegrino.com** registrado via Cloudflare. Site: `meuperegrino.com` · App: `app.meuperegrino.com` |
+| 2 | ~~**↳ Atualizar URLs definitivas**~~ | ✅ **20/04/2026** — `functions/create-checkout.js` atualizado. `OAUTH_REDIRECT_URL` usa `window.location.origin` (dinâmico — funciona em dev e prod) |
+| 3 | ~~**↳ Registar Redirect URL no Supabase**~~ | ✅ **20/04/2026** — Site URL: `https://meuperegrino.com`. Redirect URLs: `meuperegrino.com/**` e `app.meuperegrino.com/**` adicionadas (total: 6 URLs) |
+| 4 | ~~**↳ Deploy no domínio definitivo**~~ | ✅ **20/04/2026** — Custom domain conectado no Cloudflare Pages |
+| 5 | **↳ Deep link App → Site** | No app Peregrino, ao fim da jornada exibir botão com URL `https://meuperegrino.com/book?lang=xx` |
 
 ### 🟠 Alta prioridade (funcionalidade de venda)
 

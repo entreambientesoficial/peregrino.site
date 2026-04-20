@@ -774,7 +774,7 @@ function useBookSize() {
 // ---------------------------------------------------------------------------
 // URL de redirect OAuth — dinâmica, funciona em dev e produção
 // ⚠️  Deve estar cadastrada em: Supabase → Auth → URL Configuration → Redirect URLs
-//     Adicione: http://localhost:5173/** (dev) e https://peregrino-site.pages.dev/** (prod)
+//     Adicione: http://localhost:5173/** (dev) e https://meuperegrino.com/** (prod)
 // ---------------------------------------------------------------------------
 const OAUTH_REDIRECT_URL = `${window.location.origin}/book`;
 

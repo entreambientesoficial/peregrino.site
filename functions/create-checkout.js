@@ -18,7 +18,7 @@ export async function onRequestPost(context) {
             product_data: {
               name: 'Coffee Table Book — Peregrino',
               description: 'Livro fotográfico personalizado com sua jornada no Caminho de Santiago.',
-              images: ['https://peregrino-site.pages.dev/img-apoio/card1-St-Jean-Pied-de-Port.webp'],
+              images: ['https://meuperegrino.com/img-apoio/card1-St-Jean-Pied-de-Port.webp'],
             },
           },
           quantity: 1,
