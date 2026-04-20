@@ -452,75 +452,71 @@ const DownloadModal = ({ onClose }: { onClose: () => void }) => {
             </h2>
             <p className="text-xs text-[#2D3A27]/40 font-sans mb-7">{t('modal.pwa.free')}</p>
 
-            {/* Mobile — botão direto, sem passos */}
-            <div className="md:hidden flex flex-col gap-4">
-              <a
-                href="https://app.meuperegrino.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full bg-[#2D3A27] text-[#E8E4D9] py-4 rounded-2xl font-sans font-semibold text-base flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"
-              >
-                Abrir o App
-                <ArrowRight className="w-5 h-5" />
-              </a>
-              <p className="text-xs text-[#2D3A27]/40 text-center">
-                Toque para abrir · adicione à tela inicial para instalar
-              </p>
-            </div>
-
-            {/* Desktop — passos detalhados (QR Code no lado direito) */}
-            <div className="hidden md:block">
-              <div className="flex gap-2 mb-6">
-                {(['ios', 'android'] as const).map(p => (
-                  <button
-                    key={p}
-                    onClick={() => setTab(p)}
-                    className={`px-4 py-1.5 rounded-full text-xs font-sans font-semibold transition-colors border ${
-                      tab === p
-                        ? 'bg-[#2D3A27] text-[#E8E4D9] border-[#2D3A27]'
-                        : 'text-[#2D3A27]/50 border-[#2D3A27]/20 hover:border-[#2D3A27]/40'
-                    }`}
-                  >
-                    {t(`modal.pwa.${p}.tab`)}
-                  </button>
-                ))}
-              </div>
-
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={tab}
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.2 }}
+            {/* Tabs iOS / Android */}
+            <div className="flex gap-2 mb-6">
+              {(['ios', 'android'] as const).map(p => (
+                <button
+                  key={p}
+                  onClick={() => setTab(p)}
+                  className={`px-4 py-1.5 rounded-full text-xs font-sans font-semibold transition-colors border ${
+                    tab === p
+                      ? 'bg-[#2D3A27] text-[#E8E4D9] border-[#2D3A27]'
+                      : 'text-[#2D3A27]/50 border-[#2D3A27]/20 hover:border-[#2D3A27]/40'
+                  }`}
                 >
-                  <p className="text-xs text-[#2D3A27]/50 uppercase tracking-widest mb-4 font-sans">
-                    {t(`modal.pwa.${tab}.hint`)}
-                  </p>
-                  <ol className="flex flex-col gap-3">
-                    {(tab === 'ios' ? iosSteps : droidSteps).map((key, i) => (
-                      <li key={key} className="flex items-start gap-3">
-                        <span className="shrink-0 w-6 h-6 rounded-full bg-[#2D3A27]/10 text-[#2D3A27] text-xs font-bold flex items-center justify-center mt-0.5">
-                          {i + 1}
-                        </span>
-                        <span className="text-sm text-[#2D3A27]/80 font-sans leading-relaxed">{t(key)}</span>
-                      </li>
-                    ))}
-                  </ol>
-                  {tab === 'android' && installPrompt && (
-                    <motion.button
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      onClick={handleNativeInstall}
-                      className="mt-6 w-full bg-[#2D3A27] text-[#E8E4D9] py-3.5 rounded-2xl font-sans font-semibold text-sm flex items-center justify-center gap-2 shadow-lg"
-                    >
-                      {t('modal.pwa.android.btn')}
-                      <ArrowRight className="w-4 h-4" />
-                    </motion.button>
-                  )}
-                </motion.div>
-              </AnimatePresence>
+                  {t(`modal.pwa.${p}.tab`)}
+                </button>
+              ))}
             </div>
+
+            {/* Passos */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={tab}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <p className="text-xs text-[#2D3A27]/50 uppercase tracking-widest mb-4 font-sans">
+                  {t(`modal.pwa.${tab}.hint`)}
+                </p>
+                <ol className="flex flex-col gap-3">
+                  {(tab === 'ios' ? iosSteps : droidSteps).map((key, i) => (
+                    <li key={key} className="flex items-start gap-3">
+                      <span className="shrink-0 w-6 h-6 rounded-full bg-[#2D3A27]/10 text-[#2D3A27] text-xs font-bold flex items-center justify-center mt-0.5">
+                        {i + 1}
+                      </span>
+                      <span className="text-sm text-[#2D3A27]/80 font-sans leading-relaxed">{t(key)}</span>
+                    </li>
+                  ))}
+                </ol>
+
+                {/* Botão nativo Android */}
+                {tab === 'android' && installPrompt && (
+                  <motion.button
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    onClick={handleNativeInstall}
+                    className="mt-6 w-full bg-[#2D3A27] text-[#E8E4D9] py-3.5 rounded-2xl font-sans font-semibold text-sm flex items-center justify-center gap-2 shadow-lg"
+                  >
+                    {t('modal.pwa.android.btn')}
+                    <ArrowRight className="w-4 h-4" />
+                  </motion.button>
+                )}
+
+                {/* Botão direto — todas as telas */}
+                <a
+                  href="https://app.meuperegrino.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 w-full border border-[#2D3A27]/20 text-[#2D3A27] py-3.5 rounded-2xl font-sans font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#2D3A27]/5 transition-colors"
+                >
+                  Abrir o App
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           {/* Lado direito — QR Code (desktop only) */}
