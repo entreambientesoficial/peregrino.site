@@ -110,7 +110,7 @@ const LEGAL_CONTENT: Record<NonNullable<LegalPage>, { title: string; body: React
 
         <section>
           <h3 className="font-semibold text-[#2D3A27] mb-2">1. Aceitação dos Termos</h3>
-          <p>Ao acessar ou utilizar o site <strong>peregrino.app</strong> ("Site") e seus serviços, incluindo a compra de produtos físicos como o Coffee Table Book, você declara ter lido, compreendido e concordado com estes Termos de Uso. Caso não concorde, não utilize o Site.</p>
+          <p>Ao acessar ou utilizar o site <strong>meuperegrino.com</strong> ("Site") e seus serviços, incluindo a compra de produtos físicos como o Coffee Table Book, você declara ter lido, compreendido e concordado com estes Termos de Uso. Caso não concorde, não utilize o Site.</p>
         </section>
 
         <section>
@@ -178,7 +178,7 @@ const LEGAL_CONTENT: Record<NonNullable<LegalPage>, { title: string; body: React
         <section>
           <h3 className="font-semibold text-[#2D3A27] mb-2">1. Controlador dos Dados</h3>
           <p>O Peregrino é o controlador dos dados pessoais coletados neste Site, conforme a Lei Geral de Proteção de Dados (LGPD — Lei 13.709/2018) e o Regulamento Geral de Proteção de Dados da União Europeia (GDPR — Regulamento 2016/679).</p>
-          <p className="mt-2">Contato do encarregado (DPO): <strong>contato@peregrino.app</strong></p>
+          <p className="mt-2">Contato do encarregado (DPO): <strong>contact@meuperegrino.com</strong></p>
         </section>
 
         <section>
@@ -233,7 +233,7 @@ const LEGAL_CONTENT: Record<NonNullable<LegalPage>, { title: string; body: React
             <li><strong>Oposição</strong> — opor-se ao tratamento baseado em legítimo interesse;</li>
             <li><strong>Revogação do consentimento</strong> — a qualquer momento, sem prejuízo da legalidade do tratamento anterior.</li>
           </ul>
-          <p className="mt-2">Para exercer seus direitos: <strong>contato@peregrino.app</strong>. Respondemos em até 15 dias úteis.</p>
+          <p className="mt-2">Para exercer seus direitos: <strong>contact@meuperegrino.com</strong>. Respondemos em até 15 dias úteis.</p>
         </section>
 
         <section>
@@ -263,25 +263,24 @@ const LEGAL_CONTENT: Record<NonNullable<LegalPage>, { title: string; body: React
         <div className="space-y-4">
           <div className="bg-[#F5F2EA] rounded-2xl p-5">
             <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">E-mail geral</p>
-            <a href="mailto:contato@peregrino.app" className="text-[#2D3A27] font-medium hover:underline">contato@peregrino.app</a>
+            <a href="mailto:contact@meuperegrino.com" className="text-[#2D3A27] font-medium hover:underline">contact@meuperegrino.com</a>
           </div>
 
           <div className="bg-[#F5F2EA] rounded-2xl p-5">
             <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Suporte a pedidos</p>
-            <a href="mailto:pedidos@peregrino.app" className="text-[#2D3A27] font-medium hover:underline">pedidos@peregrino.app</a>
+            <a href="mailto:support@meuperegrino.com" className="text-[#2D3A27] font-medium hover:underline">support@meuperegrino.com</a>
             <p className="text-xs text-[#2D3A27]/40 mt-1">Para dúvidas sobre seu Coffee Table Book</p>
           </div>
 
           <div className="bg-[#F5F2EA] rounded-2xl p-5">
             <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Privacidade & LGPD / GDPR</p>
-            <a href="mailto:privacidade@peregrino.app" className="text-[#2D3A27] font-medium hover:underline">privacidade@peregrino.app</a>
+            <a href="mailto:support@meuperegrino.com" className="text-[#2D3A27] font-medium hover:underline">support@meuperegrino.com</a>
             <p className="text-xs text-[#2D3A27]/40 mt-1">Para solicitações de acesso, exclusão ou portabilidade de dados</p>
           </div>
         </div>
 
         <p className="text-xs text-[#2D3A27]/40">
-          Os endereços de e-mail acima serão ativados assim que o domínio definitivo for configurado.
-          Por enquanto, utilize o canal de suporte disponível no aplicativo Peregrino.
+          Respondemos em até 2 dias úteis em português, inglês e espanhol.
         </p>
       </div>
     ),
@@ -514,7 +513,7 @@ const DownloadModal = ({ onClose }: { onClose: () => void }) => {
             <div className="p-4 bg-white rounded-3xl shadow-xl mb-5">
               {/* TODO: trocar URL quando domínio for definido */}
               <QRCodeSVG
-                value="https://peregrino.app"
+                value="https://app.meuperegrino.com"
                 size={112}
                 bgColor="#ffffff"
                 fgColor="#1B2616"

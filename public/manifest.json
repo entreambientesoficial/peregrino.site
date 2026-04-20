@@ -1,0 +1,18 @@
+{
+  "name": "Peregrino — Caminho de Santiago",
+  "short_name": "Peregrino",
+  "description": "Seu guia digital para o Caminho de Santiago. Registe a sua jornada, carimbos e momentos.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1B2616",
+  "theme_color": "#2D3A27",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/img-apoio/vieira.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
