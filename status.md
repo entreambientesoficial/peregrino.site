@@ -846,6 +846,7 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 | 9 | **Foto de capa do demo** | A capa do livro demo usa `DEMO_USER.allPhotos[0]` = `1.webp`. Verificar se é uma foto de impacto suficiente; se não, reordenar as fotos ou apontar para uma mais representativa. |
 | 10 | **Teste do fluxo completo pós-login** | Logar com conta real do app → verificar se fotos carregam, rota e km exibem corretos, livro monta sem erros no console. |
 | 11 | **Ko-fi** | Criar conta ko-fi.com para sistema de doações dentro do app Peregrino. Zero taxa, zero mensalidade. |
+| 12 | **Conta Nomad** | Abrir conta internacional Nomad (nomadglobal.com) no CPF do Anderson. Gratuita, sem mensalidade. Após abertura: configurar como conta de saque no Stripe (IBAN em EUR → recebe diretamente em euros, sem conversão). Esposa já tem conta Nomad como referência. |
 
 ### 🟢 Baixa prioridade
 
