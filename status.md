@@ -846,7 +846,9 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 |---|---|---|
 | 9 | **Foto de capa do demo** | A capa do livro demo usa `DEMO_USER.allPhotos[0]` = `1.webp`. Verificar se é uma foto de impacto suficiente; se não, reordenar as fotos ou apontar para uma mais representativa. |
 | 10 | **Teste do fluxo completo pós-login** | Logar com conta real do app → verificar se fotos carregam, rota e km exibem corretos, livro monta sem erros no console. |
-| 11 | ~~**Ko-fi**~~ | ✅ **21/04/2026** — Conta criada em ko-fi.com/meuperegrino. Stripe conectado (Ko-fi). Moeda: EUR. Valores sugeridos: €3/€5/€10. Mínimo: €3. Wording: Donate. Mensagem: "Thank you for your support! Every contribution helps keep Peregrino free for all pilgrims on the Camino." Falta: integrar botão no app + remover telefone dos dados públicos do Stripe (após aprovação da conta). |
+| 11 | ~~**Ko-fi — conta**~~ | ✅ **21/04/2026** — Conta criada em ko-fi.com/meuperegrino. Stripe conectado. Moeda: EUR. Valores sugeridos: €3/€5/€10. Mínimo: €3. Wording: Donate. Mensagem: "Thank you for your support! Every contribution helps keep Peregrino free for all pilgrims on the Camino." |
+| 11a | **↳ Integrar Ko-fi no app** | Adicionar botão de doação no app (`entreambientesoficial/Peregrino`) que abre `https://ko-fi.com/meuperegrino`. Local sugerido: tela principal ou menu lateral. Tarefa rápida — só um botão com link externo. |
+| 11b | **↳ Remover telefone dos dados públicos Stripe** | Após aprovação da conta Stripe: Configurações → Dados da empresa → remover telefone +55 11 99617 0706 dos dados públicos para não aparecer nas faturas dos clientes. |
 | 12 | **Conta Nomad** | Abrir conta internacional Nomad (nomadglobal.com) no CPF do Anderson. Gratuita, sem mensalidade. Após abertura: configurar como conta de saque no Stripe (IBAN em EUR → recebe diretamente em euros, sem conversão). Esposa já tem conta Nomad como referência. |
 
 ### 🟢 Baixa prioridade
