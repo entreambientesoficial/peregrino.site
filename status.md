@@ -835,6 +835,7 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 | # | Item | Detalhe |
 |---|---|---|
 | 6 | ~~**Configurar Stripe no Cloudflare**~~ | ✅ **20/04/2026** — Stripe configurado, webhook validado, checkout testado end-to-end em modo teste. |
+| 6a | **⚠️ Migrar chaves Stripe para produção** | Após Stripe aprovar verificação de identidade (prazo 2-3 dias úteis a partir de 21/04/2026): substituir `STRIPE_SECRET_KEY` (sk_test_ → sk_live_) e `STRIPE_PUBLIC_KEY` (pk_test_ → pk_live_) no Cloudflare Pages → Settings → Environment Variables. Sem isso o site opera em modo teste e não processa pagamentos reais. Verificação de identidade enviada em 21/04/2026 — conta suspensa até aprovação. |
 | 7 | **Conta Lulu.com** | Criar conta de desenvolvedor em lulu.com. Configurar 3 produtos (US Letter Landscape, 50/100/150 páginas, capa dura). Obter API key. Desbloqueia o cálculo de frete real e a geração do PDF. |
 | 7a | **↳ Cálculo de frete real** | Após conta Lulu: após step de endereço, Worker consulta API Lulu com endereço + specs do livro → retorna custo → site exibe total real (livro + frete) → Stripe cobra 2 line items. Atualmente exibe "Frete calculado após confirmação do endereço". |
 | 8 | **Geração do PDF do livro** | Backend (Cloudflare Worker) que: (1) recebe evento pós-Stripe `checkout.session.completed`, (2) busca fotos do Supabase, (3) monta PDF landscape 11×8.5" com os layouts do livro, (4) envia para API Lulu, (5) Lulu imprime e entrega ao cliente. Maior tarefa técnica do projeto. |
@@ -845,7 +846,7 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 |---|---|---|
 | 9 | **Foto de capa do demo** | A capa do livro demo usa `DEMO_USER.allPhotos[0]` = `1.webp`. Verificar se é uma foto de impacto suficiente; se não, reordenar as fotos ou apontar para uma mais representativa. |
 | 10 | **Teste do fluxo completo pós-login** | Logar com conta real do app → verificar se fotos carregam, rota e km exibem corretos, livro monta sem erros no console. |
-| 11 | **Ko-fi** | Criar conta ko-fi.com para sistema de doações dentro do app Peregrino. Zero taxa, zero mensalidade. |
+| 11 | ~~**Ko-fi**~~ | ✅ **21/04/2026** — Conta criada em ko-fi.com/meuperegrino. Stripe conectado (Ko-fi). Moeda: EUR. Valores sugeridos: €3/€5/€10. Mínimo: €3. Wording: Donate. Mensagem: "Thank you for your support! Every contribution helps keep Peregrino free for all pilgrims on the Camino." Falta: integrar botão no app + remover telefone dos dados públicos do Stripe (após aprovação da conta). |
 | 12 | **Conta Nomad** | Abrir conta internacional Nomad (nomadglobal.com) no CPF do Anderson. Gratuita, sem mensalidade. Após abertura: configurar como conta de saque no Stripe (IBAN em EUR → recebe diretamente em euros, sem conversão). Esposa já tem conta Nomad como referência. |
 
 ### 🟢 Baixa prioridade
