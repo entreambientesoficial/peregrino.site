@@ -87,6 +87,113 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ## 🔄 Histórico de Alterações
 
+### Sessão 22/04/2026 — Frete Lulu + Correções livro interativo
+
+#### Credenciais Lulu.com configuradas
+
+- Conta Lulu: `entreambientes.oficial@gmail.com` (tipo: Business) — mantida (email interno, clientes não veem)
+- API Keys geradas em `developers.lulu.com` → Client Key + Client Secret
+- Variáveis adicionadas no Cloudflare Pages → Settings → Variables and Secrets:
+  - `LULU_CLIENT_KEY` (Secret)
+  - `LULU_CLIENT_SECRET` (Secret)
+- Método de pagamento Lulu ainda **não cadastrado** — necessário para que a Lulu possa cobrar pela impressão quando pedidos chegarem
+
+#### Novo Worker: `functions/lulu-shipping.js`
+
+Cloudflare Pages Function que:
+1. Autentica na API Lulu via OAuth2 Client Credentials (`grant_type=client_credentials`)
+2. Consulta `POST https://api.lulu.com/shipping-options/` com `country_code` e `page_count`
+3. Retorna opções de frete ordenadas por preço (mais barata primeiro)
+
+- `POD_PACKAGE_ID = '1100X0850FCSTDCW060UW444MNG'` — US Letter Landscape, Full Color, Hardcover
+  - **⚠️ Nota crítica:** verificar este código em `developers.lulu.com/products` na primeira execução real. Se a API retornar erro 400, o código precisa ser corrigido.
+- Falha silenciosa: se a API Lulu falhar, o frontend continua sem frete (não bloqueia o checkout)
+
+#### Atualização: `StepShipping` (`BookPage.tsx`)
+
+- Novo estado: `shippingOpts`, `shippingLoading`, `selectedShipping`
+- `useEffect` com debounce de 600ms: busca frete ao mudar o país
+- Caixa de resumo atualizada:
+  - Spinner enquanto carrega
+  - Se API retornar 1 opção: exibe label + preço
+  - Se retornar 2+: radio buttons para o usuário escolher (Standard / Express)
+  - Linha de **Total** aparece quando frete está calculado (livro + frete)
+- `handlePay` passa `shippingCostCents` e `shippingLabel` para o Worker de checkout
+
+#### Atualização: `functions/create-checkout.js`
+
+- Aceita novos campos: `shippingCostCents` e `shippingLabel`
+- Se `shippingCostCents > 0`: adiciona segundo `line_item` no Stripe Checkout com o custo do frete
+- Stripe exibe dois itens separados na tela de pagamento: "Coffee Table Book" + "Frete"
+
+#### Fluxo completo após implementação
+
+```
+Usuário seleciona país → Worker consulta Lulu API → exibe frete real + total
+Usuário clica "Continuar para pagamento" →
+  Worker cria sessão Stripe com 2 line items (livro + frete) →
+  Stripe cobra valor correto
+```
+
+---
+
+#### Análise dos modelos de página (`/page-model/`)
+
+Pasta `page-model/` adicionada à raiz do projeto com 54 imagens PNG exportadas do Canva pelo usuário. Representam o layout visual desejado para cada página do livro.
+
+**Diagnóstico das imagens:**
+- Dimensões: 2000×1545px — proporção 1.294 = exatamente 11÷8.5" ✅
+- Orientação landscape ✅
+- Resolução: ~182 DPI — abaixo do mínimo Lulu (300 DPI), mas adequado como referência de layout
+- Para o PDF final: páginas precisam ser geradas em 3300×2550px (300 DPI)
+
+**Layouts identificados:** 54 modelos cobrindo capa, verso da capa, prefácio, foto inteira, foto dupla, foto + texto, texto + sub-texto, selos, contracapa, verso da contracapa e variações diversas.
+
+---
+
+#### Correção: Página de selos — grade dinâmica (`BookPage.tsx`)
+
+**Problema:** Mínimo fixo de 28 slots não refletia a realidade. Rotas curtas (Camino Inglês) têm ~20 selos; rotas longas (Camino Francês) têm 60-80+.
+
+**Correção aplicada:**
+- Mínimo reduzido de 28 → **16** (alinhado com modelo Canva)
+- Grade de colunas ajustada:
+
+| Selos | Colunas | Rotas típicas |
+|---|---|---|
+| até 16 | 4 | Inglês, Aragonês, Sanabres |
+| até 30 | 5 | Português, Costa, Interior |
+| acima de 30 | 6 | Francês, Plata, Primitivo |
+
+- Slots em proporção landscape com `gridTemplateRows` explícito — preenchem a altura uniformemente
+- Fundo branco limpo conforme modelo Canva
+- Slots reais: mostram número do carimbo
+- Slots vazios (demo/completados): mostram mock de código + cidade + data
+
+**Nota:** Quando a geração de PDF (pendência #8) for implementada, a query do Supabase precisará buscar os detalhes reais de cada selo (local, data, código), não apenas a contagem.
+
+---
+
+#### Correção crítica: Livro interativo — capa duplicada ao abrir (`BookPage.tsx`)
+
+**Problema:** Ao clicar para abrir o livro interativo, a capa aparecia duas vezes:
+1. No preview do livro fechado (correto)
+2. Como página 0 do flipbook (errado)
+
+O que deveria aparecer ao abrir: **verso da capa** (esquerda) + **prefácio** (direita)
+
+**Correção:** `startPage={0}` → `startPage={1}` no `HTMLFlipBook`
+
+- O flipbook agora abre direto na página 1 (verso da capa + prefácio como primeiro spread)
+- A capa (índice 0) permanece no array mas nunca é exibida no flipbook
+- Botão ← na primeira página fecha o livro (volta ao preview fechado)
+- Indicador de página atualizado:
+  - Páginas 0-1: "Verso da capa"
+  - Páginas intermediárias: "pág. X / Y" (contagem corrigida descontando páginas especiais)
+  - Última página: "Contracapa"
+
+---
+
 ### Sessão 20/04/2026 (cont.) — Modal PWA: fluxo corrigido + aviso Safari iOS
 
 #### Correção do fluxo de instalação PWA (todos os 10 idiomas)
@@ -836,28 +943,31 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 |---|---|---|
 | 6 | ~~**Configurar Stripe no Cloudflare**~~ | ✅ **20/04/2026** — Stripe configurado, webhook validado, checkout testado end-to-end em modo teste. |
 | 6a | **⚠️ Migrar chaves Stripe para produção** | Após Stripe aprovar verificação de identidade (prazo 2-3 dias úteis a partir de 21/04/2026): substituir `STRIPE_SECRET_KEY` (sk_test_ → sk_live_) e `STRIPE_PUBLIC_KEY` (pk_test_ → pk_live_) no Cloudflare Pages → Settings → Environment Variables. Sem isso o site opera em modo teste e não processa pagamentos reais. Verificação de identidade enviada em 21/04/2026 — conta suspensa até aprovação. |
-| 7 | **Conta Lulu.com** | Criar conta de desenvolvedor em lulu.com. Configurar 3 produtos (US Letter Landscape, 50/100/150 páginas, capa dura). Obter API key. Desbloqueia o cálculo de frete real e a geração do PDF. |
-| 7a | **↳ Cálculo de frete real** | Após conta Lulu: após step de endereço, Worker consulta API Lulu com endereço + specs do livro → retorna custo → site exibe total real (livro + frete) → Stripe cobra 2 line items. Atualmente exibe "Frete calculado após confirmação do endereço". |
+| 7 | ~~**Conta Lulu.com**~~ | ✅ **22/04/2026** — Conta `entreambientes.oficial@gmail.com` (Business). API Keys geradas e salvas no Cloudflare Pages (`LULU_CLIENT_KEY` + `LULU_CLIENT_SECRET`). |
+| 7a | ~~**↳ Cálculo de frete real**~~ | ✅ **22/04/2026** — Worker `functions/lulu-shipping.js` criado. StepShipping busca frete ao selecionar país, exibe opções e total. Stripe cobra 2 line items (livro + frete). **Nota:** verificar `POD_PACKAGE_ID` na primeira transação real. |
 | 8 | **Geração do PDF do livro** | Backend (Cloudflare Worker) que: (1) recebe evento pós-Stripe `checkout.session.completed`, (2) busca fotos do Supabase, (3) monta PDF landscape 11×8.5" com os layouts do livro, (4) envia para API Lulu, (5) Lulu imprime e entrega ao cliente. Maior tarefa técnica do projeto. |
 
 ### 🟡 Média prioridade
 
 | # | Item | Detalhe |
 |---|---|---|
-| 9 | **Foto de capa do demo** | A capa do livro demo usa `DEMO_USER.allPhotos[0]` = `1.webp`. Verificar se é uma foto de impacto suficiente; se não, reordenar as fotos ou apontar para uma mais representativa. |
+| 7b | **↳ Cadastrar método de pagamento na Lulu** | Adicionar cartão em lulu.com → My Account → Payment Method. Necessário para que a Lulu possa cobrar pela impressão quando pedidos chegarem via API. Sem isso, print jobs falharão. |
+| 7c | **↳ Verificar POD_PACKAGE_ID** | Na primeira transação real, verificar se `1100X0850FCSTDCW060UW444MNG` (US Letter Landscape, Full Color, Hardcover) é o código correto em `developers.lulu.com/products`. Se API retornar erro 400, corrigir em `functions/lulu-shipping.js`. |
+| 8 | **Geração do PDF do livro** | Backend (Cloudflare Worker ou serviço externo) que: (1) recebe evento pós-Stripe `checkout.session.completed`, (2) busca fotos do Supabase, (3) monta PDF landscape 11×8.5" a 300 DPI com os layouts do livro (baseados nos modelos da pasta `page-model/`), (4) envia para API Lulu, (5) Lulu imprime e entrega. Maior tarefa técnica do projeto. Referência de layouts: `page-model/` (54 modelos PNG validados pelo usuário). |
+| 9 | **Revisão completa do livro interativo** | Os layouts do livro interativo ainda não refletem fielmente os modelos da pasta `page-model/`. Pendente revisão página por página comparando o interativo com cada PNG do Canva. Prioridade: fazer o interativo ser o espelho fiel dos modelos antes de gerar o PDF. |
 | 10 | **Teste do fluxo completo pós-login** | Logar com conta real do app → verificar se fotos carregam, rota e km exibem corretos, livro monta sem erros no console. |
-| 11 | ~~**Ko-fi — conta**~~ | ✅ **21/04/2026** — Conta criada em ko-fi.com/meuperegrino. Stripe conectado. Moeda: EUR. Valores sugeridos: €3/€5/€10. Mínimo: €3. Wording: Donate. Mensagem: "Thank you for your support! Every contribution helps keep Peregrino free for all pilgrims on the Camino." |
+| 11 | ~~**Ko-fi — conta**~~ | ✅ **21/04/2026** — Conta criada em ko-fi.com/meuperegrino. Stripe conectado. Moeda: EUR. Valores sugeridos: €3/€5/€10. Mínimo: €3. Ko-fi com erro "problemas com conta Stripe" — será resolvido automaticamente quando Stripe aprovar verificação. |
 | 11a | **↳ Integrar Ko-fi no app** | Adicionar botão de doação no app (`entreambientesoficial/Peregrino`) que abre `https://ko-fi.com/meuperegrino`. Local sugerido: tela principal ou menu lateral. Tarefa rápida — só um botão com link externo. |
 | 11b | **↳ Remover telefone dos dados públicos Stripe** | Após aprovação da conta Stripe: Configurações → Dados da empresa → remover telefone +55 11 99617 0706 dos dados públicos para não aparecer nas faturas dos clientes. |
-| 12 | **Conta Nomad** | Abrir conta internacional Nomad (nomadglobal.com) no CPF do Anderson. Gratuita, sem mensalidade. Após abertura: configurar como conta de saque no Stripe (IBAN em EUR → recebe diretamente em euros, sem conversão). Esposa já tem conta Nomad como referência. |
+| 12 | **Conta Nomad** | Abrir conta internacional Nomad (nomadglobal.com) no CPF do Anderson. Gratuita, sem mensalidade. Após abertura: configurar como conta de saque no Stripe (IBAN em EUR → recebe diretamente em euros, sem conversão). Revolut descartado — exige residência europeia. Esposa já tem Nomad como referência. |
 
 ### 🟢 Baixa prioridade
 
 | # | Item | Detalhe |
 |---|---|---|
-| 12 | **Tradução dos termos legais** | Atualmente só PT-BR. Adicionar versão em EN quando o projeto começar a gerar receita. |
-| 13 | **Limpar originais** | A pasta `img-apoio/img-webp/` na raiz do projeto (fora de `public/`) contém os JPGs originais das 89 fotos. Pode ser deletada para liberar ~180MB em disco sem impacto no site. |
-| 14 | **Remover logs de debug** | `console.log('[Peregrino/photos]', ...)` e `console.log('Dados recuperados:', ...)` em `loadUserData` devem ser removidos antes do lançamento em produção. |
+| 13 | **Tradução dos termos legais** | Atualmente só PT-BR. Adicionar versão em EN quando o projeto começar a gerar receita. |
+| 14 | **Limpar originais** | A pasta `img-apoio/img-webp/` na raiz do projeto (fora de `public/`) contém os JPGs originais das 89 fotos. Pode ser deletada para liberar ~180MB em disco sem impacto no site. |
+| 15 | **Remover logs de debug** | `console.log('[Peregrino/photos]', ...)` e `console.log('Dados recuperados:', ...)` em `loadUserData` devem ser removidos antes do lançamento em produção. |
 
 ---
 

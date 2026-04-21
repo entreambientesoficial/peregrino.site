@@ -7,32 +7,47 @@ export async function onRequestPost(context) {
     const body = await request.json().catch(() => ({}));
     const successUrl  = body.successUrl  || `${origin}/sucesso`;
     const cancelUrl   = body.cancelUrl   || `${origin}/#livro`;
-    const modelId       = body.modelId       || 'journey';
-    const modelLabel    = body.modelLabel    || 'Jornada';
-    const modelPages    = body.modelPages    || 100;
+    const modelId         = body.modelId         || 'journey';
+    const modelLabel      = body.modelLabel      || 'Jornada';
+    const modelPages      = body.modelPages      || 100;
     const customerEmail   = body.customerEmail   || null;
     const customerName    = body.customerName    || null;
     const shippingAddress = body.shippingAddress || null;
+    const shippingCostCents  = body.shippingCostCents  || 0;
+    const shippingLabel      = body.shippingLabel      || 'Frete';
 
     const PRICES = { essential: 4990, journey: 7490, legacy: 9990 };
     const unitAmount = PRICES[modelId] ?? 7490;
 
+    const lineItems = [
+      {
+        price_data: {
+          currency: 'eur',
+          unit_amount: unitAmount,
+          product_data: {
+            name: `Coffee Table Book — Peregrino (${modelLabel})`,
+            description: `Livro fotográfico personalizado com sua jornada no Caminho de Santiago. ${modelPages} páginas.`,
+            images: ['https://meuperegrino.com/img-apoio/card1-St-Jean-Pied-de-Port.webp'],
+          },
+        },
+        quantity: 1,
+      },
+    ];
+
+    if (shippingCostCents > 0) {
+      lineItems.push({
+        price_data: {
+          currency: 'eur',
+          unit_amount: shippingCostCents,
+          product_data: { name: shippingLabel },
+        },
+        quantity: 1,
+      });
+    }
+
     const payload = {
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'eur',
-            unit_amount: unitAmount,
-            product_data: {
-              name: `Coffee Table Book — Peregrino (${modelLabel})`,
-              description: `Livro fotográfico personalizado com sua jornada no Caminho de Santiago. ${modelPages} páginas.`,
-              images: ['https://meuperegrino.com/img-apoio/card1-St-Jean-Pied-de-Port.webp'],
-            },
-          },
-          quantity: 1,
-        },
-      ],
+      line_items: lineItems,
       mode: 'payment',
       success_url: successUrl,
       cancel_url: cancelUrl,

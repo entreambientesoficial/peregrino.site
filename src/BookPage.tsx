@@ -688,36 +688,43 @@ function renderBookPage(
       );
 
     // ── Selos — grade dinâmica de carimbos da credencial ────────────────────
+    // Slots dinâmicos: refletem os selos reais do peregrino.
+    // Rotas longas (Francês ~60-80 selos) → mais slots; rotas curtas (Inglês ~20) → menos.
+    // Mínimo de 16 para não ficar vazio no demo.
     case 'stamps': {
       const realCount = bookData.stampsCount;
-      const displayCount = Math.max(realCount, 28);
-      const cols = displayCount <= 12 ? 3 : displayCount <= 20 ? 4 : displayCount <= 32 ? 5 : 6;
+      const displayCount = Math.max(realCount, 16);
+      // 4 colunas base (como modelo); expande para 5 em rotas longas, 6 em muito longas
+      const cols = displayCount <= 16 ? 4 : displayCount <= 30 ? 5 : 6;
+      const rows = Math.ceil(displayCount / cols);
       return (
-        <div className="w-full h-full bg-[#FDFCF8] flex flex-col" style={{ padding: sp(14) }}>
-          <p className="text-[#2D3A27]/25 uppercase tracking-[0.28em] text-center" style={{ fontSize: fs(0.44), marginBottom: sp(10) }}>
+        <div className="w-full h-full bg-white flex flex-col" style={{ padding: sp(16) }}>
+          <p className="text-[#2D3A27]/30 uppercase tracking-[0.28em] text-center font-serif italic"
+            style={{ fontSize: fs(0.42), marginBottom: sp(10) }}>
             Carimbos da Credencial
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: sp(3), flex: 1 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)`, gap: sp(4), flex: 1 }}>
             {Array.from({ length: displayCount }).map((_, i) => {
               const isReal = i < realCount;
               const mock = STAMP_PLACES[i % STAMP_PLACES.length];
               return (
-                <div key={i} className="flex flex-col items-center justify-center border border-[#2D3A27]/10 bg-[#F5F2EA]"
-                  style={{ borderRadius: sp(2), padding: sp(3), gap: sp(1) }}>
+                <div key={i}
+                  className="flex flex-col items-center justify-center bg-[#F8F6F0] border border-[#2D3A27]/08"
+                  style={{ borderRadius: sp(2), padding: `${sp(2)}px ${sp(3)}px`, gap: sp(1) }}>
                   {isReal ? (
-                    <p className="font-serif italic text-[#2D3A27]/40" style={{ fontSize: fs(0.5) }}>{i + 1}</p>
+                    <p className="font-serif italic text-[#2D3A27]/35" style={{ fontSize: fs(0.48) }}>{i + 1}</p>
                   ) : (
                     <>
-                      <span style={{ fontSize: fs(0.28), letterSpacing: '0.14em', color: 'rgba(45,58,39,0.25)', textTransform: 'uppercase' }}>{mock.code}</span>
-                      <span className="font-serif italic" style={{ fontSize: fs(0.32), color: 'rgba(45,58,39,0.35)', textAlign: 'center', lineHeight: 1.1 }}>{mock.city}</span>
-                      <span style={{ fontSize: fs(0.24), color: 'rgba(45,58,39,0.18)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{mock.day}</span>
+                      <span style={{ fontSize: fs(0.26), letterSpacing: '0.12em', color: 'rgba(45,58,39,0.22)', textTransform: 'uppercase' }}>{mock.code}</span>
+                      <span className="font-serif italic" style={{ fontSize: fs(0.30), color: 'rgba(45,58,39,0.32)', textAlign: 'center', lineHeight: 1.1 }}>{mock.city}</span>
+                      <span style={{ fontSize: fs(0.22), color: 'rgba(45,58,39,0.16)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{mock.day}</span>
                     </>
                   )}
                 </div>
               );
             })}
           </div>
-          <p className="text-[#2D3A27]/20 text-center" style={{ fontSize: fs(0.42), marginTop: sp(7) }}>
+          <p className="text-[#2D3A27]/20 text-center font-serif italic" style={{ fontSize: fs(0.40), marginTop: sp(8) }}>
             {bookData.route} · {bookData.startDate} — {bookData.endDate}
           </p>
         </div>
@@ -1491,7 +1498,7 @@ function InteractiveBook({ bookData, selectedModel }: { bookData: BookData; sele
               drawShadow={true} flippingTime={700} usePortrait={false}
               startZIndex={10} autoSize={false} clickEventForward={true}
               useMouseEvents={true} swipeDistance={30} showPageCorners={true}
-              disableFlipByClick={false} style={{}} className="" startPage={0}
+              disableFlipByClick={false} style={{}} className="" startPage={1}
               onFlip={(e: any) => setPage(e.data)}
             >
               {pageDefs.map((def, idx) => (
@@ -1504,13 +1511,13 @@ function InteractiveBook({ bookData, selectedModel }: { bookData: BookData; sele
 
           <div className="flex items-center gap-6">
             <button
-              onClick={page === 0 ? () => setBookOpen(false) : goPrev}
+              onClick={page <= 1 ? () => setBookOpen(false) : goPrev}
               className="w-10 h-10 rounded-full bg-[#E8E4D9]/15 flex items-center justify-center hover:bg-[#E8E4D9]/30 transition-colors"
             >
               <ChevronLeft size={18} className="text-[#E8E4D9]" />
             </button>
             <span className="text-[#E8E4D9]/70 text-xs tabular-nums min-w-[5.5rem] text-center">
-              {page === 0 ? 'Capa' : page >= TOTAL - 1 ? 'Contracapa' : `pág. ${page + 1} / ${TOTAL}`}
+              {page <= 1 ? 'Verso da capa' : page >= TOTAL - 1 ? 'Contracapa' : `pág. ${page - 1} / ${TOTAL - 3}`}
             </span>
             <button onClick={goNext} disabled={page >= TOTAL - 1}
               className="w-10 h-10 rounded-full bg-[#E8E4D9]/15 flex items-center justify-center hover:bg-[#E8E4D9]/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
@@ -2327,6 +2334,10 @@ const SHIPPING_COUNTRIES: { code: string; label: string }[] = [
   { code: 'AU', label: 'Austrália' },
 ];
 
+const PRICE_CENTS: Record<ModelId, number> = { essential: 4990, journey: 7490, legacy: 9990 };
+
+interface ShippingOption { level: string; label: string; cost_cents: number; dates: string[] }
+
 function StepShipping({ bookData, selectedModel, userEmail, address, onChange, onBack }: {
   bookData: BookData;
   selectedModel: ModelId;
@@ -2339,11 +2350,41 @@ function StepShipping({ bookData, selectedModel, userEmail, address, onChange, o
   const model = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shippingOpts, setShippingOpts] = useState<ShippingOption[]>([]);
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [selectedShipping, setSelectedShipping] = useState<ShippingOption | null>(null);
 
   const set = (field: keyof ShippingAddress) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     onChange({ ...address, [field]: e.target.value });
 
   const isValid = address.name.trim() && address.line1.trim() && address.city.trim() && address.postal_code.trim();
+
+  // Busca frete quando o país muda
+  useEffect(() => {
+    if (!address.country) return;
+    setShippingOpts([]);
+    setSelectedShipping(null);
+    setShippingLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch('/lulu-shipping', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ countryCode: address.country, modelId: selectedModel }),
+        });
+        const data = await res.json();
+        if (data.options?.length) {
+          setShippingOpts(data.options);
+          setSelectedShipping(data.options[0]);
+        }
+      } catch {
+        // falha silenciosa — frete fica como "não disponível"
+      } finally {
+        setShippingLoading(false);
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [address.country, selectedModel]);
 
   const handlePay = async () => {
     if (!isValid) return;
@@ -2361,6 +2402,8 @@ function StepShipping({ bookData, selectedModel, userEmail, address, onChange, o
           customerEmail: userEmail,
           customerName: bookData.userName,
           shippingAddress: address,
+          shippingCostCents: selectedShipping?.cost_cents ?? 0,
+          shippingLabel: selectedShipping?.label ?? 'Frete',
         }),
       });
       const data = await res.json();
@@ -2369,6 +2412,8 @@ function StepShipping({ bookData, selectedModel, userEmail, address, onChange, o
     } catch { setError(t('bp.s3.error_conn')); }
     finally { setLoading(false); }
   };
+
+  const fmtEur = (cents: number) => `€${(cents / 100).toFixed(2).replace('.', ',')}`;
 
   const inputClass = "w-full bg-white border border-[#2D3A27]/12 rounded-2xl px-4 py-3 text-sm text-[#2D3A27] placeholder-[#2D3A27]/30 focus:outline-none focus:border-[#2D3A27]/40 transition-colors";
 
@@ -2419,9 +2464,50 @@ function StepShipping({ bookData, selectedModel, userEmail, address, onChange, o
         </div>
       </div>
 
-      <div className="bg-[#F5F2EA] rounded-2xl p-4 flex justify-between items-center">
-        <span className="text-sm text-[#2D3A27]/60">Coffee Table Book — {model.label}</span>
-        <span className="font-serif italic text-[#2D3A27] text-lg">{model.price}</span>
+      <div className="bg-[#F5F2EA] rounded-2xl p-4 flex flex-col gap-2">
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-[#2D3A27]/60">Coffee Table Book — {model.label}</span>
+          <span className="font-serif italic text-[#2D3A27] text-lg">{model.price}</span>
+        </div>
+
+        {/* Frete */}
+        {shippingOpts.length > 1 ? (
+          <div className="flex flex-col gap-1.5 pt-1">
+            {shippingOpts.map(opt => (
+              <label key={opt.level} className="flex items-center justify-between gap-3 cursor-pointer">
+                <div className="flex items-center gap-2">
+                  <input type="radio" name="shipping" checked={selectedShipping?.level === opt.level}
+                    onChange={() => setSelectedShipping(opt)}
+                    className="accent-[#2D3A27]" />
+                  <span className="text-sm text-[#2D3A27]/70">{opt.label}</span>
+                </div>
+                <span className="text-sm font-medium text-[#2D3A27]">{fmtEur(opt.cost_cents)}</span>
+              </label>
+            ))}
+          </div>
+        ) : (
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-[#2D3A27]/60">
+              {shippingLoading ? 'Calculando frete...' : selectedShipping ? selectedShipping.label : 'Frete'}
+            </span>
+            {shippingLoading
+              ? <svg className="animate-spin w-4 h-4 text-[#2D3A27]/40" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>
+              : selectedShipping
+                ? <span className="text-sm font-medium text-[#2D3A27]">{fmtEur(selectedShipping.cost_cents)}</span>
+                : <span className="text-xs text-[#2D3A27]/40">Selecione o país</span>
+            }
+          </div>
+        )}
+
+        {/* Total */}
+        {selectedShipping && (
+          <div className="border-t border-[#2D3A27]/10 pt-2 flex justify-between items-center">
+            <span className="text-sm font-semibold text-[#2D3A27]">Total</span>
+            <span className="font-serif italic text-[#2D3A27] text-xl">
+              {fmtEur(PRICE_CENTS[selectedModel] + selectedShipping.cost_cents)}
+            </span>
+          </div>
+        )}
       </div>
 
       {error && <p className="text-red-500 text-sm text-center">{error}</p>}
