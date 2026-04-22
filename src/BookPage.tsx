@@ -212,8 +212,9 @@ const PHOTO_BLOCK: PageDef[] = [
 // Gera as 54 page defs fixas (modelo 50 páginas do usuário):
 // cover + verso-capa + preface + 48 fotos + stamps + verso-back + back-cover
 function generatePageDefs(_modelPages?: number): PageDef[] {
+  // A capa NÃO entra no flipbook — é exibida apenas no preview do livro fechado.
+  // O flipbook começa em verso-capa (idx 0) + prefácio (idx 1) como primeiro spread.
   return [
-    { kind: 'cover' },
     { kind: 'verso-capa' },
     { kind: 'preface' },
     ...PHOTO_BLOCK,
