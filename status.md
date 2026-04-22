@@ -87,6 +87,58 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ## 🔄 Histórico de Alterações
 
+### Sessão 23/04/2026 — Fix definitivo capa duplicada + diagnóstico fotos
+
+#### Fix definitivo: capa não aparece mais ao abrir o livro (`BookPage.tsx`)
+
+**Problema:** Ontem a correção foi incompleta. `startPage={1}` fazia react-pageflip exibir o spread das páginas 0+1 (capa esq + verso-capa dir). A capa continuava visível.
+
+**Causa raiz:** A capa estava no array `pageDefs` como índice 0. O react-pageflip, ao receber `startPage=1`, mostrava o spread que contém a página 1, que inclui a página 0 (capa) na esquerda.
+
+**Solução definitiva:** Remover `{ kind: 'cover' }` de `generatePageDefs()`. A capa pertence exclusivamente ao preview do livro fechado (HTML customizado) — nunca ao flipbook.
+
+Resultado após fix:
+```
+pageDefs[0] = verso-capa  → esquerda do 1º spread ✅
+pageDefs[1] = prefácio    → direita do 1º spread  ✅
+pageDefs[2+] = fotos...
+```
+
+Com `startPage={1}`, o flipbook abre mostrando: **logo Peregrino (esq) + prefácio (dir)**.
+
+---
+
+#### Diagnóstico: fotos não preenchem slots corretamente
+
+**Problema identificado:** Em praticamente todas as páginas do livro interativo, as fotos não se encaixam corretamente nos seus slots — aparecem com espaço em branco ao redor.
+
+**Causa raiz técnica:**
+- `object-contain` foi aplicado nos layouts "emoldurados" para evitar corte de fotos
+- Porém `object-contain` faz a foto aparecer inteira dentro de um container maior, deixando fundo branco nas bordas internas
+- O container não tem a proporção correta para a foto que recebe
+
+**O modelo correto (como o Canva foi desenhado):**
+```
+[ margem branca ][ container com proporção correta + foto object-cover ][ margem branca ]
+```
+
+**O que está errado hoje:**
+```
+[ container grande + foto object-contain + fundo branco interno ]
+```
+
+A diferença: o branco deve ser **ao redor** do container (margem da página), não **dentro** do container.
+
+**Solução planejada para próxima sessão:**
+Revisar cada layout do `page-model/` e definir para cada slot:
+1. A **proporção correta** do container (portrait 3:4, landscape 4:3, quadrado 1:1)
+2. Usar `object-cover` dentro do container proporcionado
+3. O branco visível é a margem da página — CSS padding/gap — não o fundo da foto
+
+**Prioridade:** Alta — é o principal problema visual do livro interativo e afeta a conversão.
+
+---
+
 ### Sessão 22/04/2026 — Frete Lulu + Correções livro interativo
 
 #### Credenciais Lulu.com configuradas
@@ -954,7 +1006,7 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 | 7b | **↳ Cadastrar método de pagamento na Lulu** | Adicionar cartão em lulu.com → My Account → Payment Method. Necessário para que a Lulu possa cobrar pela impressão quando pedidos chegarem via API. Sem isso, print jobs falharão. |
 | 7c | **↳ Verificar POD_PACKAGE_ID** | Na primeira transação real, verificar se `1100X0850FCSTDCW060UW444MNG` (US Letter Landscape, Full Color, Hardcover) é o código correto em `developers.lulu.com/products`. Se API retornar erro 400, corrigir em `functions/lulu-shipping.js`. |
 | 8 | **Geração do PDF do livro** | Backend (Cloudflare Worker ou serviço externo) que: (1) recebe evento pós-Stripe `checkout.session.completed`, (2) busca fotos do Supabase, (3) monta PDF landscape 11×8.5" a 300 DPI com os layouts do livro (baseados nos modelos da pasta `page-model/`), (4) envia para API Lulu, (5) Lulu imprime e entrega. Maior tarefa técnica do projeto. Referência de layouts: `page-model/` (54 modelos PNG validados pelo usuário). |
-| 9 | **Revisão completa do livro interativo** | Os layouts do livro interativo ainda não refletem fielmente os modelos da pasta `page-model/`. Pendente revisão página por página comparando o interativo com cada PNG do Canva. Prioridade: fazer o interativo ser o espelho fiel dos modelos antes de gerar o PDF. |
+| 9 | **Revisão completa do livro interativo — fotos não preenchem slots** | **Problema principal:** fotos aparecem com espaço em branco interno nos slots (object-contain em container grande). **Solução planejada:** revisar cada layout do `page-model/` e corrigir a proporção de cada container de foto para que corresponda à orientação esperada (portrait 3:4, landscape 4:3, etc.), usando `object-cover` dentro de containers corretamente proporcionados. O branco visível deve ser margem da página (padding/gap), nunca fundo interno do container. Afeta praticamente todas as páginas. **Prioridade alta** — impacta diretamente a conversão do mostruário. |
 | 10 | **Teste do fluxo completo pós-login** | Logar com conta real do app → verificar se fotos carregam, rota e km exibem corretos, livro monta sem erros no console. |
 | 11 | ~~**Ko-fi — conta**~~ | ✅ **21/04/2026** — Conta criada em ko-fi.com/meuperegrino. Stripe conectado. Moeda: EUR. Valores sugeridos: €3/€5/€10. Mínimo: €3. Ko-fi com erro "problemas com conta Stripe" — será resolvido automaticamente quando Stripe aprovar verificação. |
 | 11a | **↳ Integrar Ko-fi no app** | Adicionar botão de doação no app (`entreambientesoficial/Peregrino`) que abre `https://ko-fi.com/meuperegrino`. Local sugerido: tela principal ou menu lateral. Tarefa rápida — só um botão com link externo. |
