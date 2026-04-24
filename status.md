@@ -231,7 +231,7 @@ RLS habilitado em todas as tabelas relevantes. Políticas aplicadas:
 **Correção aplicada em 24/04/2026 — análise de segunda opinião:**
 Uma IA externa sinalizou que `sos_requests` SELECT estava incorreto. Verificado no código do app (`sos.js`): `getSosRequests()` busca todos os pedidos sem filtro de usuário — é um feed comunitário. A política foi corrigida para `auth.role() = 'authenticated'`. Mesma correção aplicada a `sos_messages` pois `getChatMessages()` também não filtra por usuário. A sugestão de `owner_user_id` em `establishments` foi descartada: coluna não existe na tabela e o app nunca escreve em establishments.
 
-**Pendente:** testar app Flutter com conta real — abrir tela SOS (verificar feed), criar stamp e fazer upload de foto para confirmar que tudo continua funcionando.
+**✅ Testado em 24/04/2026:** app funcionando normalmente após RLS. Feed SOS, stamps e fotos confirmados.
 
 ---
 
@@ -1199,7 +1199,7 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 
 | # | Item | Detalhe |
 |---|---|---|
-| S1 | ~~**Habilitar RLS no Supabase**~~ | ✅ **24/04/2026** — SQL executado com sucesso ("No rows returned"). RLS habilitado em: `profiles`, `stamps`, `photos`, `sos_requests`, `sos_messages`, `daily_logs`, `establishment_requests`, `establishments`. Políticas criadas por tabela (ver sessão 24/04 no histórico). **Pendente:** testar app Flutter — criar stamp e upload de foto com conta real para confirmar que escrita continua funcionando. |
+| S1 | ~~**Habilitar RLS no Supabase**~~ | ✅ **24/04/2026** — Concluído e testado. RLS ativo em todas as tabelas. App testado com conta real: feed SOS, stamps e fotos funcionando normalmente. |
 
 ### 🟠 Alta prioridade (funcionalidade de venda)
 
