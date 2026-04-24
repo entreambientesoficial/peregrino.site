@@ -87,6 +87,137 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ## 🔄 Histórico de Alterações
 
+### Sessão 24/04/2026 — Revisão de estado + contas externas + RLS Supabase
+
+#### ⚠️ REGRA DE OURO DESTE DOCUMENTO
+**Nunca apagar nada do status.md. Nunca resumir ou condensar histórico anterior. Sempre acrescentar novas seções no topo do histórico. O documento deve crescer, nunca encolher. Qualquer IA ou desenvolvedor que receber este arquivo deve seguir esta regra.**
+
+---
+
+#### 1. Contas externas — situação atual
+
+| Serviço | Status | Detalhe |
+|---|---|---|
+| **Stripe** | ✅ Conta ativa | Ko-fi vinculado sem erros. Dashboard confirmado em 24/04/2026. Cloudflare Pages ainda com chaves de teste (`sk_test_` / `pk_test_`). Migração para live pendente (item 6a). |
+| **Ko-fi** | ✅ Ativo e funcional | `ko-fi.com/meuperegrino`. Stripe conectado sem erros. Moeda EUR. **Uso exclusivo: doações via app Peregrino — não vinculado ao site/landing.** |
+| **Nomad** | ⚠️ Conta aberta, mas inutilizável para Stripe | Ver diagnóstico abaixo. |
+
+---
+
+#### 2. Diagnóstico crítico: Stripe Brasil não aceita Nomad
+
+**Problema descoberto em 24/04/2026:**
+A conta Stripe está registrada no **Brasil** (CPF/CNPJ verificado). Contas Stripe Brasil têm uma limitação estrutural: **só aceitam bancos brasileiros como conta de saque, e só pagam em BRL**.
+
+Ao tentar adicionar a conta Nomad (Community Federal Savings Bank — banco americano) nas configurações do Stripe (Settings → Contas e agendamento para repasses externos), o formulário só exibe bancos brasileiros. Não há opção para banco estrangeiro.
+
+**O que estava configurado antes:**
+- Banco C6 S.A. — agência 0001 — conta ••••2530 — moeda BRL (já cadastrado e funcionando)
+
+**Por que o Nomad não funciona aqui:**
+O alerta do Stripe confirma: *"A conta bancária que recebe repasses precisa estar associada ao mesmo ID fiscal (CPF ou CNPJ) da pessoa física ou jurídica registrada na sua conta Stripe."*
+O Nomad é um banco americano e não pode ser vinculado a um CPF/CNPJ brasileiro no Stripe.
+
+**Erro de recomendação anterior (registrado para não repetir):**
+Em sessões anteriores, a IA recomendou abrir a conta Nomad para receber repasses do Stripe em EUR/USD. Esta recomendação estava **errada** — a limitação do Stripe Brasil era desconhecida no momento. O tempo gasto abrindo a conta Nomad foi perdido para este fim. Wise Business foi citado como alternativa, mas também **não foi verificado** se funciona com Stripe Brasil — não recomendar sem confirmar.
+
+**Decisão tomada:**
+- C6 permanece como conta de saque do Stripe
+- Stripe cobra cliente em EUR → converte para BRL → deposita no C6
+- Perda cambial EUR→BRL existe mas é aceitável no volume inicial
+- A conta Nomad pode ser usada para outros fins (ex.: receber repasses do Ko-fi se necessário)
+- **Não recomendar nova solução de conta internacional sem testar/confirmar primeiro**
+
+**Fluxo de recebimento real (revisado):**
+```
+Cliente compra livro → Stripe cobra em EUR
+  → Stripe converte para BRL → deposita no C6 (Brasil)
+
+Cliente doa via app → Ko-fi processa em EUR
+  → Repasse Ko-fi → conta bancária configurada no Ko-fi (verificar)
+```
+
+---
+
+#### 3. Alerta crítico Supabase: RLS desativado (rls_disabled_in_public)
+
+**Alerta recebido em 24/04/2026:** `rls_disabled_in_public` — Row-Level Security desativado em todas as tabelas do schema public.
+
+**Por que é crítico:**
+A `VITE_SUPABASE_ANON_KEY` está embutida no bundle JavaScript público do site (variáveis `VITE_` são expostas no browser). Com RLS desativado, qualquer pessoa que inspecionar o bundle pode usar a chave + URL do Supabase para consultar **todos os dados de todos os usuários**:
+```
+SELECT * FROM photos   -- fotos de todos os peregrinos
+SELECT * FROM profiles -- perfis de todos os usuários
+SELECT * FROM stamps   -- carimbos de todos os peregrinos
+```
+O site está live em `meuperegrino.com` com usuários reais autenticados. Isso é uma vulnerabilidade ativa.
+
+**Tabelas encontradas no Supabase (schema public):**
+
+| Tabela | RLS | Tipo | Ação necessária |
+|---|---|---|---|
+| `photos` | ❌ Desativado | Dados do usuário | Habilitar RLS |
+| `profiles` | ❌ Desativado | Dados do usuário | Habilitar RLS |
+| `stamps` | ❌ Desativado | Dados do usuário | Habilitar RLS |
+| `daily_logs` | ❌ Desativado | Provável: dados do usuário | Verificar colunas antes |
+| `sos_messages` | ❌ Desativado | Dados sensíveis (SOS) | Verificar colunas antes |
+| `sos_requests` | ❌ Desativado | Dados sensíveis (SOS) | Verificar colunas antes |
+| `establishment_requests` | ❌ Desativado | Provável: dados do usuário | Verificar colunas antes |
+| `establishments` | ❌ Desativado | Provavelmente público (POIs) | Verificar uso |
+| `routes` | UNRESTRICTED | Dados públicos (rotas do Caminho) | ✅ Correto — não mexer |
+| `spatial_ref_sys` | UNRESTRICTED | Sistema PostGIS | ✅ Correto — não mexer |
+| `geography_columns` | Sistema PostGIS | Sistema | ✅ Correto — não mexer |
+| `geometry_columns` | Sistema PostGIS | Sistema | ✅ Correto — não mexer |
+
+**Nota:** A tabela `journeys` mencionada no código (`loadUserData`) **não apareceu na listagem do Table Editor**. Pode não existir ainda ou estar em outro schema.
+
+**Colunas de usuário já mapeadas pelo código (`BookPage.tsx`):**
+- `profiles` → coluna de usuário: `id` (`.eq('id', userId)`)
+- `stamps` → coluna de usuário: `pilgrim_id` (`.eq('pilgrim_id', userId)`)
+- `photos` → coluna de usuário: `pilgrim_id` (`.eq('pilgrim_id', userId)`)
+
+**SQL pronto para rodar (tabelas com colunas confirmadas):**
+```sql
+-- PROFILES (coluna: id)
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "profiles_select_own" ON public.profiles
+  FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "profiles_insert_own" ON public.profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "profiles_update_own" ON public.profiles
+  FOR UPDATE USING (auth.uid() = id);
+
+-- STAMPS (coluna: pilgrim_id)
+ALTER TABLE public.stamps ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "stamps_select_own" ON public.stamps
+  FOR SELECT USING (auth.uid() = pilgrim_id);
+CREATE POLICY "stamps_insert_own" ON public.stamps
+  FOR INSERT WITH CHECK (auth.uid() = pilgrim_id);
+CREATE POLICY "stamps_update_own" ON public.stamps
+  FOR UPDATE USING (auth.uid() = pilgrim_id);
+
+-- PHOTOS (coluna: pilgrim_id)
+ALTER TABLE public.photos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "photos_select_own" ON public.photos
+  FOR SELECT USING (auth.uid() = pilgrim_id);
+CREATE POLICY "photos_insert_own" ON public.photos
+  FOR INSERT WITH CHECK (auth.uid() = pilgrim_id);
+CREATE POLICY "photos_update_own" ON public.photos
+  FOR UPDATE USING (auth.uid() = pilgrim_id);
+```
+
+**Pendente antes de completar RLS:**
+Clicar em cada tabela abaixo no Supabase Table Editor e verificar qual coluna guarda o `user_id` / `pilgrim_id`:
+- `daily_logs`
+- `sos_messages`
+- `sos_requests`
+- `establishment_requests`
+- `establishments` (confirmar se é dado público ou por usuário)
+
+Após verificar as colunas, complementar o SQL acima e rodar tudo de uma vez. Depois testar o app Flutter para garantir que escrita de stamps/fotos continua funcionando.
+
+---
+
 ### Sessão 23/04/2026 — Fix definitivo capa duplicada + diagnóstico fotos
 
 #### Fix definitivo: capa não aparece mais ao abrir o livro (`BookPage.tsx`)
@@ -136,6 +267,64 @@ Revisar cada layout do `page-model/` e definir para cada slot:
 3. O branco visível é a margem da página — CSS padding/gap — não o fundo da foto
 
 **Prioridade:** Alta — é o principal problema visual do livro interativo e afeta a conversão.
+
+---
+
+### Sessão 23/04/2026 (tarde) — Verificação de estado + Token GitHub + Trabalho via Gemini
+
+#### Contexto da sessão
+
+Crédito Claude esgotado durante o dia. O trabalho de desenvolvimento foi realizado via **Gemini 3 Flash** no chat do **Antigravity** (VS Code). Esta sub-sessão serviu apenas para:
+1. Verificar se o `status.md` estava atualizado como fonte da verdade antes de iniciar o trabalho com o Gemini
+2. Resolver situação do token GitHub ao retornar
+3. Encerrar o dia com registro
+
+#### Verificação do status.md
+
+O `status.md` foi lido e confirmado atualizado. Última entrada registrada: sessão da manhã de 23/04/2026 (fix capa duplicada + diagnóstico fotos). Documento apto para ser passado como contexto para qualquer IA ou desenvolvedor externo.
+
+#### Trabalho realizado via Gemini 3 Flash (Antigravity)
+
+O usuário trabalhou no projeto durante o dia usando Gemini 3 Flash como assistente. As alterações realizadas não foram detalhadas nesta sessão. Verificação do `git log` ao retornar mostrou que **nenhum commit novo foi gerado** — os commits existentes mais recentes são da manhã de 23/04/2026:
+
+```
+f1d35aa docs: status.md — pendência #9c design fraco na seção Personalizar
+9752b55 docs: status.md — plano redesign Personalizar + proporções fotos celular
+1ce9c53 docs: status.md — diagnóstico fotos + fix capa duplicada documentados
+2d53dec fix: corrige capa duplicada no flipbook — remove cover do pageDefs
+da1539f feat: frete Lulu real + correções livro interativo (selos + capa duplicada)
+```
+
+**Possível explicação:** alterações foram feitas mas não commitadas, ou a sessão Gemini foi usada apenas para estudo/planejamento. A verificar na próxima sessão com `git diff`.
+
+#### Token GitHub — situação documentada
+
+**Problema relatado:** token anterior havia expirado.
+
+**Ação do usuário:** gerado novo **PAT (Personal Access Token)** no GitHub com **validade permanente**.
+
+**Diagnóstico técnico:**
+- O remote do projeto usa **SSH**: `git@github-entreambientes:entreambientesoficial/peregrino.site.git`
+- PAT serve para autenticação **HTTPS** — incompatível com o remote SSH diretamente
+- `git fetch origin` executado com sucesso → **SSH está funcionando normalmente**
+- `git log origin/main..HEAD` retornou vazio → **branch local em sync perfeito com origin**
+- Nenhuma troca de remote foi necessária
+
+**Conclusão:** o token SSH configurado na máquina (`~/.ssh/`) **não expirou**. O PAT gerado é para autenticação HTTPS e não era necessário para o push atual. Manter o PAT guardado em local seguro (gerenciador de senhas) para eventual migração futura do remote de SSH para HTTPS.
+
+**⚠️ Alerta de segurança:** o PAT foi compartilhado diretamente no chat. Tokens compartilhados em chat ficam no histórico da conversa. Recomendado: revogar o token atual em `github.com → Settings → Developer settings → Personal access tokens` e gerar um novo se houver risco de exposição do histórico desta conversa.
+
+#### Estado do repositório ao encerrar o dia
+
+| Item | Estado |
+|---|---|
+| Branch | `main` |
+| Remote | SSH — em sync com origin |
+| Commits pendentes de push | Nenhum |
+| Arquivos modificados não commitados | A verificar (`git diff` na próxima sessão) |
+| Pasta não rastreada | `lulu-book-template-all-us-letter-landscape/` |
+
+**Sobre a pasta `lulu-book-template-all-us-letter-landscape/`:** é material de referência (templates oficiais Lulu.com para layout e configuração do PDF). Não deve ser commitada no repositório — adicionar ao `.gitignore` se ainda não estiver. Os arquivos relevantes já foram documentados neste `status.md` (sessão 19/04/2026).
 
 ---
 
@@ -989,12 +1178,18 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 | 4 | ~~**↳ Deploy no domínio definitivo**~~ | ✅ **20/04/2026** — Custom domain conectado no Cloudflare Pages |
 | 5 | ~~**↳ Deep link App → Site**~~ | ✅ **20/04/2026** — CTA "Transforme sua jornada num livro" no modal de chegada do app. Link: `https://meuperegrino.com/book?lang=${getLocale()}`. Repo: entreambientesoficial/Peregrino commit f064c33 |
 
+### 🔴 Segurança — urgente
+
+| # | Item | Detalhe |
+|---|---|---|
+| S1 | **🚨 Habilitar RLS no Supabase** | Alerta `rls_disabled_in_public` recebido em 24/04/2026. Todas as tabelas do schema public estão abertas. SQL pronto para `profiles`, `stamps`, `photos` (ver sessão 24/04 no histórico). **Bloqueado por:** falta verificar colunas de `daily_logs`, `sos_messages`, `sos_requests`, `establishment_requests`, `establishments`. Próximo passo: clicar em cada tabela no Table Editor → confirmar coluna do usuário → completar e rodar o SQL. Após rodar: testar app Flutter para garantir que escrita continua funcionando. |
+
 ### 🟠 Alta prioridade (funcionalidade de venda)
 
 | # | Item | Detalhe |
 |---|---|---|
 | 6 | ~~**Configurar Stripe no Cloudflare**~~ | ✅ **20/04/2026** — Stripe configurado, webhook validado, checkout testado end-to-end em modo teste. |
-| 6a | **⚠️ Migrar chaves Stripe para produção** | Após Stripe aprovar verificação de identidade (prazo 2-3 dias úteis a partir de 21/04/2026): substituir `STRIPE_SECRET_KEY` (sk_test_ → sk_live_) e `STRIPE_PUBLIC_KEY` (pk_test_ → pk_live_) no Cloudflare Pages → Settings → Environment Variables. Sem isso o site opera em modo teste e não processa pagamentos reais. Verificação de identidade enviada em 21/04/2026 — conta suspensa até aprovação. |
+| 6a | **⚠️ Migrar chaves Stripe para produção** | Conta Stripe ativa e Ko-fi vinculado (confirmado 24/04/2026). Conta é **brasileira** — repasses em BRL para C6. Cloudflare Pages ainda com chaves de teste. Pendente: substituir `STRIPE_SECRET_KEY` (sk_test_ → sk_live_), `STRIPE_PUBLIC_KEY` (pk_test_ → pk_live_) e `STRIPE_WEBHOOK_SECRET` (segredo do endpoint live) no Cloudflare Pages → Settings → Environment Variables. |
 | 7 | ~~**Conta Lulu.com**~~ | ✅ **22/04/2026** — Conta `entreambientes.oficial@gmail.com` (Business). API Keys geradas e salvas no Cloudflare Pages (`LULU_CLIENT_KEY` + `LULU_CLIENT_SECRET`). |
 | 7a | ~~**↳ Cálculo de frete real**~~ | ✅ **22/04/2026** — Worker `functions/lulu-shipping.js` criado. StepShipping busca frete ao selecionar país, exibe opções e total. Stripe cobra 2 line items (livro + frete). **Nota:** verificar `POD_PACKAGE_ID` na primeira transação real. |
 | 8 | **Geração do PDF do livro** | Backend (Cloudflare Worker) que: (1) recebe evento pós-Stripe `checkout.session.completed`, (2) busca fotos do Supabase, (3) monta PDF landscape 11×8.5" com os layouts do livro, (4) envia para API Lulu, (5) Lulu imprime e entrega ao cliente. Maior tarefa técnica do projeto. |
@@ -1011,10 +1206,10 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 | 9b | **Redesign aba "Personalizar" — Textos** | **Problema:** lista técnica de campos por página sem feedback visual — usuário não sabe o que está editando. **Solução planejada:** remover a aba Textos e implementar edição inline diretamente no livro: clicar num bloco de texto no livro abre campo de edição no local. Igual ao comportamento do Canva. Elimina a aba completamente. |
 | 9c | **Redesign visual da página "Personalize seu livro"** | **Problema:** fontes e cards dos seletores (modelo Essencial/Jornada/Legado e abas Capa/Textos/Fotos) estão pequenos, apagados e difíceis de ler. Design geral fraco. **Solução planejada:** aumentar tamanho das fontes, melhorar contraste dos cards não-selecionados, aumentar padding dos botões de aba, revisar hierarquia visual da seção inteira. Avaliar junto com o redesign das abas #9a e #9b. |
 | 10 | **Teste do fluxo completo pós-login** | Logar com conta real do app → verificar se fotos carregam, rota e km exibem corretos, livro monta sem erros no console. |
-| 11 | ~~**Ko-fi — conta**~~ | ✅ **21/04/2026** — Conta criada em ko-fi.com/meuperegrino. Stripe conectado. Moeda: EUR. Valores sugeridos: €3/€5/€10. Mínimo: €3. Ko-fi com erro "problemas com conta Stripe" — será resolvido automaticamente quando Stripe aprovar verificação. |
+| 11 | ~~**Ko-fi — conta**~~ | ✅ **24/04/2026** — Conta `ko-fi.com/meuperegrino` ativa e funcional. Stripe vinculado sem erros. Moeda: EUR. Valores sugeridos: €3/€5/€10. Mínimo: €3. **Uso: doações via app Peregrino (não site).** |
 | 11a | **↳ Integrar Ko-fi no app** | Adicionar botão de doação no app (`entreambientesoficial/Peregrino`) que abre `https://ko-fi.com/meuperegrino`. Local sugerido: tela principal ou menu lateral. Tarefa rápida — só um botão com link externo. |
 | 11b | **↳ Remover telefone dos dados públicos Stripe** | Após aprovação da conta Stripe: Configurações → Dados da empresa → remover telefone +55 11 99617 0706 dos dados públicos para não aparecer nas faturas dos clientes. |
-| 12 | **Conta Nomad** | Abrir conta internacional Nomad (nomadglobal.com) no CPF do Anderson. Gratuita, sem mensalidade. Após abertura: configurar como conta de saque no Stripe (IBAN em EUR → recebe diretamente em euros, sem conversão). Revolut descartado — exige residência europeia. Esposa já tem Nomad como referência. |
+| 12 | **⚠️ Conta Nomad — aberta mas inutilizável para Stripe** | Conta aberta (Community Federal Savings Bank, US, titular Anderson Del Arco). **Problema descoberto em 24/04/2026:** Stripe Brasil só aceita bancos brasileiros com CPF/CNPJ verificado — impossível adicionar Nomad. Conta C6 permanece como conta de saque do Stripe (BRL). Nomad pode ser usada para outros fins futuros. Dados bancários ACH guardados no gerenciador de senhas. **Não tentar novamente sem verificar mudança na política do Stripe Brasil.** |
 
 ### 🟢 Baixa prioridade
 
