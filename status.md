@@ -206,15 +206,27 @@ CREATE POLICY "photos_update_own" ON public.photos
   FOR UPDATE USING (auth.uid() = pilgrim_id);
 ```
 
-**Pendente antes de completar RLS:**
-Clicar em cada tabela abaixo no Supabase Table Editor e verificar qual coluna guarda o `user_id` / `pilgrim_id`:
-- `daily_logs`
-- `sos_messages`
-- `sos_requests`
-- `establishment_requests`
-- `establishments` (confirmar se é dado público ou por usuário)
+**Colunas mapeadas nas 4 tabelas restantes:**
 
-Após verificar as colunas, complementar o SQL acima e rodar tudo de uma vez. Depois testar o app Flutter para garantir que escrita de stamps/fotos continua funcionando.
+| Tabela | Coluna do usuário | Registros | Observação |
+|---|---|---|---|
+| `sos_messages` | `sender_id` | 2 | Coluna diferente do padrão `pilgrim_id` |
+| `daily_logs` | `pilgrim_id` | 0 | Já tinha 5 políticas RLS definidas — só habilitou |
+| `establishment_requests` | `requester_user_id` | 0 | Coluna com nome diferente |
+| `establishments` | sem coluna de usuário | 100+ | POIs públicos do Caminho — leitura pública |
+
+**✅ SQL executado em 24/04/2026 — "No rows returned" (sucesso)**
+
+RLS habilitado em todas as tabelas relevantes. Políticas aplicadas:
+- `profiles` → SELECT/INSERT/UPDATE onde `auth.uid() = id`
+- `stamps`, `photos`, `sos_requests`, `daily_logs` → SELECT/INSERT/UPDATE onde `auth.uid() = pilgrim_id`
+- `sos_messages` → SELECT onde `sender_id = auth.uid()` OU `request_id` pertence ao próprio peregrino; INSERT onde `sender_id = auth.uid()`
+- `establishment_requests` → SELECT/INSERT/UPDATE onde `auth.uid() = requester_user_id`
+- `establishments` → SELECT público (`USING (true)`); escrita bloqueada para clientes (só `service_role`)
+- `routes`, `spatial_ref_sys` → mantidos UNRESTRICTED (dados públicos / sistema PostGIS)
+- `daily_logs` → tinha 5 políticas pré-existentes; apenas `ALTER TABLE ENABLE ROW LEVEL SECURITY` executado
+
+**Pendente:** testar app Flutter com conta real — criar stamp e fazer upload de foto para confirmar que escrita continua funcionando após RLS.
 
 ---
 
@@ -1182,7 +1194,7 @@ Reescrever `PAGE_DEFS` e todos os `renderBookPage` cases para implementar os 50 
 
 | # | Item | Detalhe |
 |---|---|---|
-| S1 | **🚨 Habilitar RLS no Supabase** | Alerta `rls_disabled_in_public` recebido em 24/04/2026. Todas as tabelas do schema public estão abertas. SQL pronto para `profiles`, `stamps`, `photos` (ver sessão 24/04 no histórico). **Bloqueado por:** falta verificar colunas de `daily_logs`, `sos_messages`, `sos_requests`, `establishment_requests`, `establishments`. Próximo passo: clicar em cada tabela no Table Editor → confirmar coluna do usuário → completar e rodar o SQL. Após rodar: testar app Flutter para garantir que escrita continua funcionando. |
+| S1 | ~~**Habilitar RLS no Supabase**~~ | ✅ **24/04/2026** — SQL executado com sucesso ("No rows returned"). RLS habilitado em: `profiles`, `stamps`, `photos`, `sos_requests`, `sos_messages`, `daily_logs`, `establishment_requests`, `establishments`. Políticas criadas por tabela (ver sessão 24/04 no histórico). **Pendente:** testar app Flutter — criar stamp e upload de foto com conta real para confirmar que escrita continua funcionando. |
 
 ### 🟠 Alta prioridade (funcionalidade de venda)
 
