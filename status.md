@@ -224,7 +224,8 @@ RLS habilitado em todas as tabelas relevantes. Políticas aplicadas:
 - `sos_messages` → SELECT para qualquer autenticado (`auth.role() = 'authenticated'`) — qualquer peregrino pode ler mensagens de qualquer thread SOS; INSERT onde `sender_id = auth.uid()`
 - `establishment_requests` → SELECT/INSERT/UPDATE onde `auth.uid() = requester_user_id`
 - `establishments` → SELECT público (`USING (true)`); escrita bloqueada para clientes (só `service_role`)
-- `routes`, `spatial_ref_sys` → mantidos UNRESTRICTED (dados públicos / sistema PostGIS)
+- `routes` → RLS ativado com SELECT público (`USING (true)`) — leitura livre, escrita bloqueada para clientes. Corrigido em 24/04/2026 após segunda opinião: UNRESTRICTED permitia DELETE/UPDATE por qualquer pessoa com a chave anon.
+- `spatial_ref_sys` → mantido UNRESTRICTED — tabela interna do PostgreSQL/PostGIS, o sistema precisa de acesso livre. Não mexer.
 - `daily_logs` → tinha 5 políticas pré-existentes; apenas `ALTER TABLE ENABLE ROW LEVEL SECURITY` executado
 
 **Correção aplicada em 24/04/2026 — análise de segunda opinião:**
