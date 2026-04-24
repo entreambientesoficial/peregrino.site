@@ -219,14 +219,18 @@ CREATE POLICY "photos_update_own" ON public.photos
 
 RLS habilitado em todas as tabelas relevantes. Políticas aplicadas:
 - `profiles` → SELECT/INSERT/UPDATE onde `auth.uid() = id`
-- `stamps`, `photos`, `sos_requests`, `daily_logs` → SELECT/INSERT/UPDATE onde `auth.uid() = pilgrim_id`
-- `sos_messages` → SELECT onde `sender_id = auth.uid()` OU `request_id` pertence ao próprio peregrino; INSERT onde `sender_id = auth.uid()`
+- `stamps`, `photos`, `daily_logs` → SELECT/INSERT/UPDATE onde `auth.uid() = pilgrim_id`
+- `sos_requests` → SELECT para qualquer autenticado (`auth.role() = 'authenticated'`) — feed comunitário, todos os peregrinos veem todos os pedidos ativos; INSERT/UPDATE onde `auth.uid() = pilgrim_id`
+- `sos_messages` → SELECT para qualquer autenticado (`auth.role() = 'authenticated'`) — qualquer peregrino pode ler mensagens de qualquer thread SOS; INSERT onde `sender_id = auth.uid()`
 - `establishment_requests` → SELECT/INSERT/UPDATE onde `auth.uid() = requester_user_id`
 - `establishments` → SELECT público (`USING (true)`); escrita bloqueada para clientes (só `service_role`)
 - `routes`, `spatial_ref_sys` → mantidos UNRESTRICTED (dados públicos / sistema PostGIS)
 - `daily_logs` → tinha 5 políticas pré-existentes; apenas `ALTER TABLE ENABLE ROW LEVEL SECURITY` executado
 
-**Pendente:** testar app Flutter com conta real — criar stamp e fazer upload de foto para confirmar que escrita continua funcionando após RLS.
+**Correção aplicada em 24/04/2026 — análise de segunda opinião:**
+Uma IA externa sinalizou que `sos_requests` SELECT estava incorreto. Verificado no código do app (`sos.js`): `getSosRequests()` busca todos os pedidos sem filtro de usuário — é um feed comunitário. A política foi corrigida para `auth.role() = 'authenticated'`. Mesma correção aplicada a `sos_messages` pois `getChatMessages()` também não filtra por usuário. A sugestão de `owner_user_id` em `establishments` foi descartada: coluna não existe na tabela e o app nunca escreve em establishments.
+
+**Pendente:** testar app Flutter com conta real — abrir tela SOS (verificar feed), criar stamp e fazer upload de foto para confirmar que tudo continua funcionando.
 
 ---
 
