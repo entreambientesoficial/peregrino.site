@@ -32,9 +32,9 @@ const DEMO_USER = {
   stamps: 28,
   photos: 89,
   // Ordem otimizada: fotos landscape nos slots panorama/stacked/centered, portrait nos restantes
-  allPhotos: [3,6,7,8,10,1,4,5,9,11,12,13,14,17,18,21,22,23,24,26,15,16,28,29,30,32,34,36,37,
-    38,41,42,44,46,47,48,19,20,49,25,27,31,33,2,35,39,50,40,45,53,54,55,57,60,62,63,64,65,67,
-    68,69,71,72,51,52,73,56,75,76,77,78,80,81,83,84,86,58,59,89,61,66,70,74,79,82,85,87,88,90]
+  allPhotos: [3, 6, 7, 8, 10, 1, 4, 5, 9, 11, 12, 13, 14, 17, 18, 21, 22, 23, 24, 26, 15, 16, 28, 29, 30, 32, 34, 36, 37,
+    38, 41, 42, 44, 46, 47, 48, 19, 20, 49, 25, 27, 31, 33, 2, 35, 39, 50, 40, 45, 53, 54, 55, 57, 60, 62, 63, 64, 65, 67,
+    68, 69, 71, 72, 51, 52, 73, 56, 75, 76, 77, 78, 80, 81, 83, 84, 86, 58, 59, 89, 61, 66, 70, 74, 79, 82, 85, 87, 88, 90]
     .map(n => `/img-apoio/img-webp/${n}.webp`),
 };
 
@@ -81,17 +81,17 @@ const DEFAULT_BOOK_DATA: BookData = {
   caption1: 'Os primeiros passos foram os mais difíceis — e os mais inesquecíveis.',
   caption2: 'No meio do caminho, percebi que não estava mais sozinho.',
   caption3: 'Santiago chegou antes do esperado. Ou talvez eu é que tivesse chegado.',
-  userName:    DEMO_USER.name,
-  startDate:   DEMO_USER.startDate,
-  endDate:     DEMO_USER.endDate,
-  km:          DEMO_USER.km,
-  days:        DEMO_USER.days,
+  userName: DEMO_USER.name,
+  startDate: DEMO_USER.startDate,
+  endDate: DEMO_USER.endDate,
+  km: DEMO_USER.km,
+  days: DEMO_USER.days,
   stampsCount: DEMO_USER.stamps,
   photosCount: DEMO_USER.photos,
-  allPhotos:        DEMO_USER.allPhotos,
-  uploadedPhotos:   [],
+  allPhotos: DEMO_USER.allPhotos,
+  uploadedPhotos: [],
   photoAssignments: {},
-  pageTexts:        {},
+  pageTexts: {},
 };
 
 type Step = 'reveal' | 'customize' | 'order' | 'shipping';
@@ -120,25 +120,25 @@ const FONT_SIZE_FS: Record<FontSize, number> = { xs: 0.36, sm: 0.50, md: 0.64, l
 const FONT_SIZE_LABEL: Record<FontSize, string> = { xs: 'PP', sm: 'P', md: 'M', lg: 'G', xl: 'GG' };
 
 const FONT_FAMILIES: { id: FontFamily; label: string; css: string }[] = [
-  { id: 'inter',      label: 'Inter',          css: "'Inter', sans-serif" },
-  { id: 'playfair',   label: 'Playfair',        css: "'Playfair Display', serif" },
-  { id: 'lora',       label: 'Lora',            css: "'Lora', serif" },
-  { id: 'dancing',    label: 'Dancing',         css: "'Dancing Script', cursive" },
-  { id: 'montserrat', label: 'Montserrat',      css: "'Montserrat', sans-serif" },
+  { id: 'inter', label: 'Inter', css: "'Inter', sans-serif" },
+  { id: 'playfair', label: 'Playfair', css: "'Playfair Display', serif" },
+  { id: 'lora', label: 'Lora', css: "'Lora', serif" },
+  { id: 'dancing', label: 'Dancing', css: "'Dancing Script', cursive" },
+  { id: 'montserrat', label: 'Montserrat', css: "'Montserrat', sans-serif" },
 ];
 
 // Layouts que suportam slots de texto personalizados
 const PAGE_TEXT_SLOTS: Partial<Record<PageKind, Array<'top' | 'bottom'>>> = {
-  'photo-text-r':    ['top', 'bottom'],
-  'text-photo-r':    ['top', 'bottom'],
+  'photo-text-r': ['top', 'bottom'],
+  'text-photo-r': ['top', 'bottom'],
   'wide-photo-text': ['top'],
-  'photo-caption':   ['bottom'],
+  'photo-caption': ['bottom'],
 };
 
 const BOOK_MODELS: { id: ModelId; label: string; pages: number; price: string; desc: string; featured?: true }[] = [
-  { id: 'essential', label: 'Essencial', pages: 50,  price: '€49,90', desc: 'As melhores memórias da sua jornada' },
-  { id: 'journey',   label: 'Jornada',   pages: 100, price: '€74,90', desc: 'Uma narrativa completa do Caminho', featured: true },
-  { id: 'legacy',    label: 'Legado',    pages: 150, price: '€99,90', desc: 'O registro definitivo da sua história' },
+  { id: 'essential', label: 'Essencial', pages: 50, price: '€49,90', desc: 'As melhores memórias da sua jornada' },
+  { id: 'journey', label: 'Jornada', pages: 100, price: '€74,90', desc: 'Uma narrativa completa do Caminho', featured: true },
+  { id: 'legacy', label: 'Legado', pages: 150, price: '€99,90', desc: 'O registro definitivo da sua história' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -148,65 +148,66 @@ type PageKind =
   | 'cover' | 'verso-capa' | 'preface' | 'stamps' | 'verso-back' | 'back-cover'
   | 'full-bleed' | 'duo-margin' | 'photo-text-r' | 'trio-centered'
   | 'quote-route' | 'offset-two' | 'one-centered' | 'one-portrait-margin'
-  | 'stagger-2' | 'one-landscape-margin' | 'two-left-one-right' | 'grid-2x2'
+  | 'stagger-2' | 'duo-stagger' | 'spread-l' | 'spread-r'
+  | 'one-landscape-margin' | 'two-left-one-right' | 'grid-2x2'
   | 'duo-portrait-margin' | 'duo-stacked' | 'one-left-two-right'
   | 'trio-stagger' | 'text-photo-r' | 'one-top-two-bottom' | 'grid-3x2'
   | 'one-wide-three-below' | 'trio-rotated' | 'wide-photo-text'
   | 'two-top-one-bottom' | 'trio-portrait' | 'photo-caption' | 'text-route';
 
-interface PageDef { kind: PageKind; p?: number | number[]; ck?: 'c1' | 'c2' | 'c3' }
+interface PageDef { kind: PageKind; p?: number | number[]; ck?: 'c1' | 'c2' | 'c3'; o?: ('l' | 'p' | 'any')[] }
 
 // 48 páginas fotográficas (p3–p50 do modelo Canva do usuário)
 // Total: cover + verso-capa + preface + 48 fotos + stamps + verso-back + back-cover = 54 páginas
 const PHOTO_BLOCK: PageDef[] = [
-  { kind: 'full-bleed',           p: 0 },           // p3  — foto inteira
-  { kind: 'duo-margin',           p: [0,1] },        // p4  — 2 fotos paisagem na margem
-  { kind: 'photo-text-r',         p: 0 },            // p5  — retrato esq + texto dir
-  { kind: 'full-bleed',           p: 0 },            // p6  — foto inteira
-  { kind: 'trio-centered',        p: [0,1,2] },      // p7  — 3 retratos centralizados
-  { kind: 'quote-route' },                           // p8  — texto + rota/data
-  { kind: 'offset-two',           p: [0,1] },        // p9  — 2 fotos desalinhadas
-  { kind: 'full-bleed',           p: 0 },            // p10 — foto inteira
-  { kind: 'one-centered',         p: 0 },            // p11 — 1 paisagem centralizada
-  { kind: 'one-portrait-margin',  p: 0 },            // p12 — 1 retrato na margem
-  { kind: 'stagger-2',            p: [0,1] },        // p13 — 2 retratos desalinhados
-  { kind: 'one-landscape-margin', p: 0 },            // p14 — 1 paisagem na margem
-  { kind: 'full-bleed',           p: 0 },            // p15 — foto inteira
-  { kind: 'full-bleed',           p: 0 },            // p16 — foto inteira
-  { kind: 'two-left-one-right',   p: [0,1,2] },      // p17 — 2 esq empilhadas + 1 dir
-  { kind: 'grid-2x2',             p: [0,1,2,3] },    // p18 — grade 2×2
-  { kind: 'photo-text-r',         p: 0 },            // p19 — retrato esq + texto dir
-  { kind: 'full-bleed',           p: 0 },            // p20 — foto inteira
-  { kind: 'trio-centered',        p: [0,1,2] },      // p21 — 3 retratos
-  { kind: 'stagger-2',            p: [0,1] },        // p22 — 2 fotos diagonal
-  { kind: 'one-landscape-margin', p: 0 },            // p23 — 1 paisagem na margem
-  { kind: 'duo-portrait-margin',  p: [0,1] },        // p24 — 2 retratos lado a lado
-  { kind: 'duo-stacked',          p: [0,1] },        // p25 — 2 paisagens empilhadas
-  { kind: 'duo-portrait-margin',  p: [0,1] },        // p26 — 2 retratos lado a lado
-  { kind: 'quote-route' },                           // p27 — texto + rota/data
-  { kind: 'full-bleed',           p: 0 },            // p28 — foto inteira
-  { kind: 'one-left-two-right',   p: [0,1,2] },      // p29 — 1 esq + 2 dir empilhadas
-  { kind: 'one-landscape-margin', p: 0 },            // p30 — 1 paisagem na margem
-  { kind: 'trio-stagger',         p: [0,1,2] },      // p31 — 3 retratos escalonados
-  { kind: 'full-bleed',           p: 0 },            // p32 — foto inteira
-  { kind: 'full-bleed',           p: 0 },            // p33 — foto inteira
-  { kind: 'photo-text-r',         p: 0 },            // p34 — retrato esq + texto dir
-  { kind: 'text-photo-r',         p: 0 },            // p35 — texto esq + retrato dir
-  { kind: 'duo-portrait-margin',  p: [0,1] },        // p36 — 2 retratos lado a lado
-  { kind: 'one-top-two-bottom',   p: [0,1,2] },      // p37 — 1 topo + 2 baixo
-  { kind: 'grid-3x2',             p: [0,1,2,3,4,5] },// p38 — grade 3×2 (6 fotos)
-  { kind: 'text-photo-r',         p: 0 },            // p39 — texto esq + retrato dir
-  { kind: 'two-left-one-right',   p: [0,1,2] },      // p40 — 2 esq + 1 dir
-  { kind: 'one-wide-three-below', p: [0,1,2,3] },    // p41 — 1 larga + 3 abaixo
-  { kind: 'full-bleed',           p: 0 },            // p42 — foto inteira
-  { kind: 'trio-rotated',         p: [0,1,2] },      // p43 — 3 fotos, 1 inclinada
-  { kind: 'wide-photo-text',      p: 0 },            // p44 — foto larga + texto
-  { kind: 'duo-portrait-margin',  p: [0,1] },        // p45 — 2 retratos lado a lado
-  { kind: 'text-route' },                            // p46 — texto + rota/data
-  { kind: 'two-top-one-bottom',   p: [0,1,2] },      // p47 — 2 cima + 1 baixo
-  { kind: 'trio-portrait',        p: [0,1,2] },      // p48 — 3 retratos
-  { kind: 'grid-2x2',             p: [0,1,2,3] },    // p49 — grade 2×2
-  { kind: 'photo-caption',        p: 0 },            // p50 — foto + legenda
+  { kind: 'full-bleed',          p: 0,          o: ['any']                              }, // p3
+  { kind: 'duo-margin',          p: [0,1],       o: ['l','l']                            }, // p4
+  { kind: 'photo-text-r',        p: 0,           o: ['p']                                }, // p5
+  { kind: 'full-bleed',          p: 0,           o: ['any']                              }, // p6
+  { kind: 'trio-centered',       p: [0,1,2],     o: ['p','p','p']                        }, // p7
+  { kind: 'quote-route'                                                                   }, // p8
+  { kind: 'grid-2x2',            p: [0,1,2,3],   o: ['any','any','any','any']            }, // p9
+  { kind: 'full-bleed',          p: 0,           o: ['any']                              }, // p10
+  { kind: 'one-centered',        p: 0,           o: ['l']                                }, // p11
+  { kind: 'one-portrait-margin', p: 0,           o: ['p']                                }, // p12
+  { kind: 'one-left-two-right',  p: [0,1,2],     o: ['p','l','l']                        }, // p13
+  { kind: 'one-landscape-margin',p: 0,           o: ['l']                                }, // p14
+  { kind: 'spread-l',            p: 0,           o: ['l']                                }, // p15
+  { kind: 'spread-r'                                                                      }, // p16 — slot compartilhado com spread-l
+  { kind: 'two-left-one-right',  p: [0,1,2],     o: ['p','p','l']                        }, // p17
+  { kind: 'grid-2x2',            p: [0,1,2,3],   o: ['any','any','any','any']            }, // p18
+  { kind: 'photo-text-r',        p: 0,           o: ['p']                                }, // p19
+  { kind: 'full-bleed',          p: 0,           o: ['any']                              }, // p20
+  { kind: 'trio-centered',       p: [0,1,2],     o: ['p','p','p']                        }, // p21
+  { kind: 'trio-centered',       p: [0,1,2],     o: ['p','p','p']                        }, // p22
+  { kind: 'one-landscape-margin',p: 0,           o: ['l']                                }, // p23
+  { kind: 'duo-portrait-margin', p: [0,1],       o: ['p','p']                            }, // p24
+  { kind: 'duo-stacked',         p: [0,1],       o: ['l','l']                            }, // p25
+  { kind: 'duo-portrait-margin', p: [0,1],       o: ['p','p']                            }, // p26
+  { kind: 'quote-route'                                                                   }, // p27
+  { kind: 'full-bleed',          p: 0,           o: ['any']                              }, // p28
+  { kind: 'one-left-two-right',  p: [0,1,2],     o: ['p','l','l']                        }, // p29
+  { kind: 'one-landscape-margin',p: 0,           o: ['l']                                }, // p30
+  { kind: 'trio-stagger',        p: [0,1,2],     o: ['p','p','p']                        }, // p31
+  { kind: 'full-bleed',          p: 0,           o: ['any']                              }, // p32
+  { kind: 'full-bleed',          p: 0,           o: ['any']                              }, // p33
+  { kind: 'photo-text-r',        p: 0,           o: ['p']                                }, // p34
+  { kind: 'text-photo-r',        p: 0,           o: ['p']                                }, // p35
+  { kind: 'duo-portrait-margin', p: [0,1],       o: ['p','p']                            }, // p36
+  { kind: 'one-top-two-bottom',  p: [0,1,2],     o: ['l','any','any']                    }, // p37
+  { kind: 'grid-3x2',            p: [0,1,2,3,4,5], o: ['any','any','any','any','any','any'] }, // p38
+  { kind: 'text-photo-r',        p: 0,           o: ['p']                                }, // p39
+  { kind: 'two-left-one-right',  p: [0,1,2],     o: ['p','p','l']                        }, // p40
+  { kind: 'one-wide-three-below',p: [0,1,2,3],   o: ['l','any','any','any']              }, // p41
+  { kind: 'full-bleed',          p: 0,           o: ['any']                              }, // p42
+  { kind: 'trio-rotated',        p: [0,1,2],     o: ['p','p','p']                        }, // p43
+  { kind: 'wide-photo-text',     p: 0,           o: ['l']                                }, // p44
+  { kind: 'duo-portrait-margin', p: [0,1],       o: ['p','p']                            }, // p45
+  { kind: 'text-route'                                                                    }, // p46
+  { kind: 'two-top-one-bottom',  p: [0,1,2],     o: ['any','any','l']                    }, // p47
+  { kind: 'trio-centered',       p: [0,1,2],     o: ['p','p','p']                        }, // p48
+  { kind: 'grid-2x2',            p: [0,1,2,3],   o: ['any','any','any','any']            }, // p49
+  { kind: 'photo-caption',       p: 0,           o: ['l']                                }, // p50
 ];
 
 // Gera as 54 page defs fixas (modelo 50 páginas do usuário):
@@ -228,37 +229,80 @@ function generatePageDefs(_modelPages?: number): PageDef[] {
 // Mock de locais para os espaços de carimbo
 // ---------------------------------------------------------------------------
 const STAMP_PLACES = [
-  { city: 'Saint-Jean-Pied-de-Port', code: 'SJPP', region: 'França',   day: 'Dia 1'  },
-  { city: 'Roncesvalles',            code: 'RVS',  region: 'Navarra',  day: 'Dia 2'  },
-  { city: 'Pamplona',                code: 'PNA',  region: 'Navarra',  day: 'Dia 3'  },
-  { city: 'Puente la Reina',         code: 'PLR',  region: 'Navarra',  day: 'Dia 4'  },
-  { city: 'Logroño',                 code: 'LGN',  region: 'La Rioja', day: 'Dia 7'  },
-  { city: 'Burgos',                  code: 'BRG',  region: 'Castilla', day: 'Dia 12' },
-  { city: 'León',                    code: 'LEN',  region: 'Castilla', day: 'Dia 18' },
-  { city: 'Astorga',                 code: 'AST',  region: 'Castilla', day: 'Dia 20' },
-  { city: 'Ponferrada',              code: 'PNF',  region: 'El Bierzo',day: 'Dia 22' },
-  { city: 'O Cebreiro',              code: 'OCB',  region: 'Galicia',  day: 'Dia 25' },
-  { city: 'Sarria',                  code: 'SAR',  region: 'Galicia',  day: 'Dia 27' },
-  { city: 'Portomarín',              code: 'PTM',  region: 'Galicia',  day: 'Dia 28' },
-  { city: 'Palas de Rei',            code: 'PDR',  region: 'Galicia',  day: 'Dia 29' },
-  { city: 'Arzúa',                   code: 'ARZ',  region: 'Galicia',  day: 'Dia 31' },
-  { city: 'O Pedrouzo',              code: 'OPD',  region: 'Galicia',  day: 'Dia 32' },
-  { city: 'Santiago de Compostela',  code: 'SCQ',  region: 'Galicia',  day: 'Dia 33' },
+  { city: 'Saint-Jean-Pied-de-Port', code: 'SJPP', region: 'França', day: 'Dia 1' },
+  { city: 'Roncesvalles', code: 'RVS', region: 'Navarra', day: 'Dia 2' },
+  { city: 'Pamplona', code: 'PNA', region: 'Navarra', day: 'Dia 3' },
+  { city: 'Puente la Reina', code: 'PLR', region: 'Navarra', day: 'Dia 4' },
+  { city: 'Logroño', code: 'LGN', region: 'La Rioja', day: 'Dia 7' },
+  { city: 'Burgos', code: 'BRG', region: 'Castilla', day: 'Dia 12' },
+  { city: 'León', code: 'LEN', region: 'Castilla', day: 'Dia 18' },
+  { city: 'Astorga', code: 'AST', region: 'Castilla', day: 'Dia 20' },
+  { city: 'Ponferrada', code: 'PNF', region: 'El Bierzo', day: 'Dia 22' },
+  { city: 'O Cebreiro', code: 'OCB', region: 'Galicia', day: 'Dia 25' },
+  { city: 'Sarria', code: 'SAR', region: 'Galicia', day: 'Dia 27' },
+  { city: 'Portomarín', code: 'PTM', region: 'Galicia', day: 'Dia 28' },
+  { city: 'Palas de Rei', code: 'PDR', region: 'Galicia', day: 'Dia 29' },
+  { city: 'Arzúa', code: 'ARZ', region: 'Galicia', day: 'Dia 31' },
+  { city: 'O Pedrouzo', code: 'OPD', region: 'Galicia', day: 'Dia 32' },
+  { city: 'Santiago de Compostela', code: 'SCQ', region: 'Galicia', day: 'Dia 33' },
 ];
 
 // ---------------------------------------------------------------------------
-// Mapeamento sequencial de slots de fotos
-// Cada página recebe slots únicos em ordem — foto 0 nunca repete.
-// Cada página recebe slots únicos em ordem — foto 0 nunca repete.
+// Mapeamento de slots — distribuição inteligente por orientação
+// photoOrientations: array paralelo a allPhotos com 'l' | 'p' por foto
+// Sem orientações, cai no modo sequencial (fallback).
 // ---------------------------------------------------------------------------
-function buildPhotoSlotMap(pageDefs: PageDef[]): Map<number, number[]> {
-  let slot = 0;
+function buildPhotoSlotMap(
+  pageDefs: PageDef[],
+  photoOrientations?: ('l' | 'p')[],
+): Map<number, number[]> {
   const map = new Map<number, number[]>();
+
+  if (!photoOrientations || photoOrientations.length === 0) {
+    let slot = 0;
+    for (let i = 0; i < pageDefs.length; i++) {
+      const def = pageDefs[i];
+      if (def.p === undefined) { map.set(i, []); continue; }
+      const count = Array.isArray(def.p) ? def.p.length : 1;
+      map.set(i, Array.from({ length: count }, () => slot++));
+    }
+    return map;
+  }
+
+  // Filas separadas por orientação (cada índice aparece em apenas uma fila)
+  const lQueue: number[] = [];
+  const pQueue: number[] = [];
+  photoOrientations.forEach((o, i) => (o === 'l' ? lQueue : pQueue).push(i));
+
+  const pick = (prefer: 'l' | 'p' | 'any'): number => {
+    if (prefer === 'l') {
+      if (lQueue.length > 0) return lQueue.shift()!;
+      if (pQueue.length > 0) return pQueue.shift()!;
+    } else if (prefer === 'p') {
+      if (pQueue.length > 0) return pQueue.shift()!;
+      if (lQueue.length > 0) return lQueue.shift()!;
+    } else {
+      if (lQueue.length > 0) return lQueue.shift()!;
+      if (pQueue.length > 0) return pQueue.shift()!;
+    }
+    return -1;
+  };
+
+  let lastSpreadSlot = -1;
   for (let i = 0; i < pageDefs.length; i++) {
     const def = pageDefs[i];
-    if (def.p === undefined) { map.set(i, []); continue; }
+    // spread-r compartilha o slot do spread-l anterior
+    if (def.kind === 'spread-r') {
+      map.set(i, lastSpreadSlot >= 0 ? [lastSpreadSlot] : []);
+      lastSpreadSlot = -1;
+      continue;
+    }
+    if (def.p === undefined) { map.set(i, []); lastSpreadSlot = -1; continue; }
     const count = Array.isArray(def.p) ? def.p.length : 1;
-    map.set(i, Array.from({ length: count }, () => slot++));
+    const hints = def.o ?? [];
+    const slots = Array.from({ length: count }, (_, j) => pick((hints[j] ?? 'any') as 'l' | 'p' | 'any'));
+    lastSpreadSlot = def.kind === 'spread-l' ? slots[0] : -1;
+    map.set(i, slots);
   }
   return map;
 }
@@ -295,34 +339,16 @@ function renderBookPage(
       </p>
     );
   };
-  // Helper: retorna <img> real ou placeholder de carimbo escalado com S
-  // fit='cover' para sangrias full-bleed; fit='contain' para layouts emoldurados
-  const img = (n: number, cls: string, sty?: React.CSSProperties, fit: 'cover' | 'contain' = 'cover') => {
-    const src = ph(n);
-    if (!src.startsWith('__stamp__')) {
-      const fitCls = fit === 'contain'
-        ? cls.replace('object-cover', 'object-contain')
-        : cls;
-      return <img src={src} className={fitCls} alt="" style={sty} />;
-    }
-    const place = STAMP_PLACES[n % STAMP_PLACES.length];
-    return (
-      <div className={cls} style={{ ...sty, background: '#F0EDE4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: sp(3), padding: sp(6) }}>
-        <div style={{ width: sp(68), height: sp(68), border: '1.5px dashed rgba(45,58,39,0.22)', borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: sp(2), flexShrink: 0 }}>
-          <span style={{ fontSize: fs(0.3), letterSpacing: '0.18em', color: 'rgba(45,58,39,0.3)', textTransform: 'uppercase' }}>{place.code}</span>
-          <span className="font-serif italic" style={{ fontSize: fs(0.42), color: 'rgba(45,58,39,0.5)', textAlign: 'center', lineHeight: 1.1, padding: `0 ${sp(3)}` }}>{place.city}</span>
-          <span style={{ fontSize: fs(0.27), color: 'rgba(45,58,39,0.22)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>{place.day}</span>
-        </div>
-        {[0, 1, 2].map(i => <div key={i} style={{ width: '72%', height: '1px', background: `rgba(45,58,39,${0.1 - i * 0.025})`, marginTop: sp(2) }} />)}
-        <span style={{ fontSize: fs(0.24), color: 'rgba(45,58,39,0.18)', letterSpacing: '0.22em', textTransform: 'uppercase', marginTop: sp(1) }}>Espaço para Carimbo</span>
-      </div>
-    );
-  };
-
-  // Helper inline para imagem com object-contain
+  const img = (_n: number, cls: string, sty?: React.CSSProperties) => (
+    <div className={cls} style={{ ...sty, background: '#E8E4D9' }} />
+  );
+  // Renderiza foto real (object-fit:cover) ou placeholder bege se não disponível
   const pimg = (slotIdx: number, style?: React.CSSProperties) => {
-    const src = ph(slotIdx);
-    return <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', ...style }} />;
+    const url = ph(slotIdx);
+    if (url && !url.startsWith('__stamp__')) {
+      return <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block', ...style }} />;
+    }
+    return <div style={{ width: '100%', height: '100%', background: '#E8E4D9', display: 'block', ...style }} />;
   };
   // Cor de fundo neutra para células de foto
   const cellBg = '#f0ede6';
@@ -364,7 +390,7 @@ function renderBookPage(
     // ── Prefácio (pág 2 — dados da jornada) ─────────────────────────────────
     case 'preface':
       return (
-        <div className="w-full h-full bg-[#F5F2EA] flex flex-col justify-between" style={{ padding: sp(20) }}>
+        <div className="w-full h-full bg-white flex flex-col justify-between" style={{ padding: sp(20) }}>
           <div>
             <p className="text-[#2D3A27]/25 uppercase tracking-[0.28em]" style={{ fontSize: fs(0.44) }}>Peregrino · Coffee Table Book</p>
             <div style={{ width: sp(22), height: '1px', background: 'rgba(45,58,39,0.15)', margin: `${sp(10)} 0` }} />
@@ -373,14 +399,14 @@ function renderBookPage(
           <div className="flex flex-col" style={{ gap: sp(6) }}>
             {([
               ['Peregrino', bookData.userName],
-              ['Rota',      bookData.route],
-              ['Início',    bookData.startDate],
-              ['Chegada',   bookData.endDate],
+              ['Rota', bookData.route],
+              ['Início', bookData.startDate],
+              ['Chegada', bookData.endDate],
               ['Distância', `${bookData.km} km`],
-              ['Duração',   `${bookData.days} dias`],
-              ['Carimbos',  `${bookData.stampsCount}`],
-              ['Fotos',     `${bookData.photosCount}`],
-            ] as [string,string][]).map(([k, v], i) => (
+              ['Duração', `${bookData.days} dias`],
+              ['Carimbos', `${bookData.stampsCount}`],
+              ['Fotos', `${bookData.photosCount}`],
+            ] as [string, string][]).map(([k, v], i) => (
               <div key={i} className="flex justify-between" style={{ borderBottom: '1px solid rgba(45,58,39,0.08)', paddingBottom: sp(4) }}>
                 <span className="text-[#2D3A27]/35 uppercase tracking-[0.12em]" style={{ fontSize: fs(0.48) }}>{k}</span>
                 <span className="text-[#2D3A27]/70" style={{ fontSize: fs(0.48) }}>{v}</span>
@@ -408,7 +434,7 @@ function renderBookPage(
     case 'duo-margin':
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: sp(5), padding: sp(12) }}>
-          {[0,1].map(i => (
+          {[0, 1].map(i => (
             <div key={i} style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[i])}</div>
           ))}
         </div>
@@ -431,11 +457,12 @@ function renderBookPage(
     }
 
     // ── Trio Centered — 3 retratos centrados com margens brancas ────────────
+    // Canva: margem ~26% altura topo/base, ~5% largura laterais → fotos ~3:4 portrait
     case 'trio-centered':
       return (
-        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: sp(10) }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: sp(5), width: '100%', height: '85%' }}>
-            {[0,1,2].map(i => (
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: `${sp(80)} ${sp(20)}` }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: sp(5), width: '100%', height: '100%' }}>
+            {[0, 1, 2].map(i => (
               <div key={i} style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[i])}</div>
             ))}
           </div>
@@ -445,7 +472,7 @@ function renderBookPage(
     // ── Quote Route — texto grande italic + rota/data (sem foto) ────────────
     case 'quote-route':
       return (
-        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: `${sp(14)} ${sp(18)} ${sp(22)}` }}>
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(18)} ${sp(22)}` }}>
           <p style={{ fontFamily: "'Dancing Script', cursive", fontSize: fs(1.05), color: '#1B2616', lineHeight: 1.4, marginBottom: sp(10) }}>
             {bookData.openingPhrase}
           </p>
@@ -455,14 +482,14 @@ function renderBookPage(
         </div>
       );
 
-    // ── Offset Two — 2 fotos desalinhadas (diagonal) ─────────────────────────
+    // ── Offset Two — foto paisagem baixo-esq + foto retrato alto dir (Canva p9)
     case 'offset-two':
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', position: 'relative' }}>
-          <div style={{ position: 'absolute', top: sp(10), left: sp(10), width: '55%', height: '52%', overflow: 'hidden', background: cellBg }}>
+          <div style={{ position: 'absolute', top: '24%', left: 0, width: '47%', height: '76%', overflow: 'hidden', background: cellBg }}>
             {pimg(slots[0])}
           </div>
-          <div style={{ position: 'absolute', bottom: sp(10), right: sp(10), width: '55%', height: '58%', overflow: 'hidden', background: cellBg }}>
+          <div style={{ position: 'absolute', top: 0, right: 0, width: '50%', height: '100%', overflow: 'hidden', background: cellBg }}>
             {pimg(slots[1])}
           </div>
         </div>
@@ -478,34 +505,67 @@ function renderBookPage(
         </div>
       );
 
-    // ── One Portrait Margin — 1 retrato com margens e borda ─────────────────
+    // ── One Portrait Margin — 1 foto paisagem com margens finas uniformes ────
     case 'one-portrait-margin':
       return (
-        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: sp(16) }}>
-          <div style={{ width: '58%', height: '84%', overflow: 'hidden', background: cellBg, border: `${sp(1)}px solid rgba(45,58,39,0.12)` }}>
+        <div style={{ width: '100%', height: '100%', background: '#fff', padding: sp(14) }}>
+          <div style={{ width: '100%', height: '100%', overflow: 'hidden', background: cellBg }}>
             {pimg(slots[0])}
           </div>
         </div>
       );
 
-    // ── Stagger 2 — 2 fotos desalinhadas verticalmente ──────────────────────
+    // ── Stagger 2 — 2 retratos mesma altura: esq ancora top-left, dir ancora bottom-right (Canva p13)
     case 'stagger-2':
       return (
-        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', alignItems: 'center', padding: sp(10), gap: sp(5) }}>
-          <div style={{ flex: 1, height: '72%', overflow: 'hidden', background: cellBg, marginTop: `-${sp(14)}` }}>
+        <div style={{ width: '100%', height: '100%', background: '#fff', position: 'relative' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '47%', height: '92%', overflow: 'hidden', background: cellBg }}>
             {pimg(slots[0])}
           </div>
-          <div style={{ flex: 1, height: '72%', overflow: 'hidden', background: cellBg, marginTop: sp(14) }}>
+          <div style={{ position: 'absolute', bottom: 0, right: 0, width: '51%', height: '92%', overflow: 'hidden', background: cellBg }}>
             {pimg(slots[1])}
           </div>
         </div>
       );
 
-    // ── One Landscape Margin — 1 foto paisagem com margens ──────────────────
+    // ── Duo Stagger — 2 paisagens diagonais: esq ancora top-left, dir ancora bottom-right (Canva p22)
+    case 'duo-stagger':
+      return (
+        <div style={{ width: '100%', height: '100%', background: '#fff', position: 'relative' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '58%', height: '50%', overflow: 'hidden', background: cellBg }}>
+            {pimg(slots[0])}
+          </div>
+          <div style={{ position: 'absolute', bottom: 0, right: 0, width: '58%', height: '50%', overflow: 'hidden', background: cellBg }}>
+            {pimg(slots[1])}
+          </div>
+        </div>
+      );
+
+    // ── Spread L — metade esquerda de uma foto que atravessa dois spreads ─────
+    case 'spread-l':
+      return (
+        <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}>
+          {slots[0] >= 0
+            ? <img src={ph(slots[0])} style={{ position: 'absolute', top: 0, left: 0, width: '200%', height: '100%', objectFit: 'cover', objectPosition: '0% center' }} />
+            : <div style={{ width: '100%', height: '100%', background: '#E8E4D9' }} />}
+        </div>
+      );
+
+    // ── Spread R — metade direita da mesma foto do spread-l ─────────────────
+    case 'spread-r':
+      return (
+        <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}>
+          {slots[0] >= 0
+            ? <img src={ph(slots[0])} style={{ position: 'absolute', top: 0, right: 0, width: '200%', height: '100%', objectFit: 'cover', objectPosition: '100% center' }} />
+            : <div style={{ width: '100%', height: '100%', background: '#E8E4D9' }} />}
+        </div>
+      );
+
+    // ── One Landscape Margin — idêntico ao one-portrait-margin (margens finas) ─
     case 'one-landscape-margin':
       return (
-        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: sp(14) }}>
-          <div style={{ width: '100%', height: '70%', overflow: 'hidden', background: cellBg }}>
+        <div style={{ width: '100%', height: '100%', background: '#fff', padding: sp(14) }}>
+          <div style={{ width: '100%', height: '100%', overflow: 'hidden', background: cellBg }}>
             {pimg(slots[0])}
           </div>
         </div>
@@ -525,7 +585,7 @@ function renderBookPage(
     case 'grid-2x2':
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(5), padding: sp(10) }}>
-          {[0,1,2,3].map(i => (
+          {[0, 1, 2, 3].map(i => (
             <div key={i} style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[i])}</div>
           ))}
         </div>
@@ -535,7 +595,7 @@ function renderBookPage(
     case 'duo-portrait-margin':
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: sp(5), padding: sp(10) }}>
-          {[0,1].map(i => (
+          {[0, 1].map(i => (
             <div key={i} style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[i])}</div>
           ))}
         </div>
@@ -545,7 +605,7 @@ function renderBookPage(
     case 'duo-stacked':
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateRows: '1fr 1fr', gap: sp(5), padding: sp(10) }}>
-          {[0,1].map(i => (
+          {[0, 1].map(i => (
             <div key={i} style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[i])}</div>
           ))}
         </div>
@@ -581,7 +641,7 @@ function renderBookPage(
             {topText ?? <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: fs(0.82), color: '#1B2616', lineHeight: 1.2 }}>{bookData.title}</p>}
             {botText ?? <p style={{ fontFamily: "'Inter', sans-serif", fontSize: fs(0.5), color: 'rgba(45,58,39,0.55)', lineHeight: 1.6 }}>{bookData.reflectionText.slice(0, 80)}</p>}
           </div>
-          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
+          <div style={{ overflow: 'hidden', background: '#fff', padding: sp(10) }}>{pimg(slots[0])}</div>
         </div>
       );
     }
@@ -600,7 +660,7 @@ function renderBookPage(
     case 'grid-3x2':
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(4), padding: sp(10) }}>
-          {[0,1,2,3,4,5].map(i => (
+          {[0, 1, 2, 3, 4, 5].map(i => (
             <div key={i} style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[i])}</div>
           ))}
         </div>
@@ -624,7 +684,7 @@ function renderBookPage(
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '45% 52%', gridTemplateRows: '1fr 1fr', gap: sp(5), padding: sp(10) }}>
           <div style={{ gridRow: '1 / 3', overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
-          <div style={{ overflow: 'hidden', background: cellBg, transform: 'rotate(-3deg)', transformOrigin: 'center' }}>{pimg(slots[1])}</div>
+          <div style={{ overflow: 'visible', background: cellBg, transform: 'rotate(6deg)', transformOrigin: 'center', position: 'relative', zIndex: 1 }}>{pimg(slots[1])}</div>
           <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[2])}</div>
         </div>
       );
@@ -656,7 +716,7 @@ function renderBookPage(
     case 'trio-portrait':
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: sp(5), padding: sp(10) }}>
-          {[0,1,2].map(i => (
+          {[0, 1, 2].map(i => (
             <div key={i} style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[i])}</div>
           ))}
         </div>
@@ -667,7 +727,7 @@ function renderBookPage(
       const botText = renderTextSlot('bottom', bookData.caption3);
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', padding: sp(14), gap: sp(8) }}>
-          <div style={{ flex: 1, overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
+          <div style={{ flex: '0 0 60%', overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
           <div style={{ borderTop: '1px solid rgba(45,58,39,0.1)', paddingTop: sp(6) }}>
             {botText ?? <p style={{ fontFamily: "'Dancing Script', cursive", fontStyle: 'italic', fontSize: fs(0.56), color: 'rgba(45,58,39,0.55)', lineHeight: 1.5 }}>{bookData.caption3}</p>}
           </div>
@@ -678,7 +738,7 @@ function renderBookPage(
     // ── Text Route — texto título + rota/data (sem foto) ────────────────────
     case 'text-route':
       return (
-        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: `${sp(14)} ${sp(18)} ${sp(20)}` }}>
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(18)} ${sp(20)}` }}>
           <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: fs(1.05), color: '#1B2616', lineHeight: 1.2, marginBottom: sp(8) }}>
             {bookData.title}
           </p>
@@ -778,15 +838,38 @@ function useBookSize() {
   useEffect(() => {
     const upd = () => {
       const vw = window.innerWidth;
-      if (vw < 640)       setSize({ w: 160, h: 124 });
+      if (vw < 640) setSize({ w: 160, h: 124 });
       else if (vw < 1024) setSize({ w: 280, h: 216 });
-      else                setSize({ w: 440, h: 340 });
+      else setSize({ w: 440, h: 340 });
     };
     upd();
     window.addEventListener('resize', upd);
     return () => window.removeEventListener('resize', upd);
   }, []);
   return size;
+}
+
+// ---------------------------------------------------------------------------
+// Hook — análise assíncrona de orientação das fotos (landscape | portrait)
+// ---------------------------------------------------------------------------
+function usePhotoOrientations(urls: string[]): ('l' | 'p')[] {
+  const [orientations, setOrientations] = useState<('l' | 'p')[]>([]);
+  const key = urls.join('|');
+  useEffect(() => {
+    if (urls.length === 0) { setOrientations([]); return; }
+    let cancelled = false;
+    Promise.all(
+      urls.map(url => new Promise<'l' | 'p'>(resolve => {
+        const img = document.createElement('img');
+        img.onload = () => resolve(img.naturalWidth >= img.naturalHeight ? 'l' : 'p');
+        img.onerror = () => resolve('l');
+        img.src = url;
+      }))
+    ).then(result => { if (!cancelled) setOrientations(result); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  return orientations;
 }
 
 // ---------------------------------------------------------------------------
@@ -877,10 +960,10 @@ function AuthModal({ onClose, onGuestMode }: { onClose: () => void; onGuestMode:
           ) : (
             <>
               <svg width="18" height="18" viewBox="0 0 18 18" className="shrink-0">
-                <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.25-.164-1.84H9v3.48h4.844a4.14 4.14 0 0 1-1.796 2.717v2.258h2.908C16.658 14.013 17.64 11.706 17.64 9.2z"/>
-                <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
-                <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
-                <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/>
+                <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.25-.164-1.84H9v3.48h4.844a4.14 4.14 0 0 1-1.796 2.717v2.258h2.908C16.658 14.013 17.64 11.706 17.64 9.2z" />
+                <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" />
+                <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" />
+                <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" />
               </svg>
               {t('bp.auth.google')}
             </>
@@ -1143,18 +1226,18 @@ export default function BookPage() {
 
   // Mapeamento route_id → chave i18n (conforme STATUS.md do App Peregrino)
   const ROUTE_KEY: Record<string, string> = {
-    frances:          'journey.name.frances',
-    portugues:        'journey.name.portugues.central',
+    frances: 'journey.name.frances',
+    portugues: 'journey.name.portugues.central',
     portugues_lisboa: 'journey.name.portugues.lisboa',
-    costa:            'journey.name.portugues.costa',
-    interior:         'journey.name.interior',
-    primitivo:        'journey.name.primitivo',
-    norte:            'journey.name.norte',
-    ingles:           'journey.name.ingles',
-    aragones:         'journey.name.aragones',
-    plata:            'journey.name.plata',
-    sanabres:         'journey.name.sanabres',
-    inverno:          'journey.name.inverno',
+    costa: 'journey.name.portugues.costa',
+    interior: 'journey.name.interior',
+    primitivo: 'journey.name.primitivo',
+    norte: 'journey.name.norte',
+    ingles: 'journey.name.ingles',
+    aragones: 'journey.name.aragones',
+    plata: 'journey.name.plata',
+    sanabres: 'journey.name.sanabres',
+    inverno: 'journey.name.inverno',
   };
 
   const fmtDate = (iso: string) => {
@@ -1213,14 +1296,14 @@ export default function BookPage() {
 
       console.log('[Peregrino/data]', { profile, journeyRows, stampCount, photoCount, photosError });
 
-      const journey     = (journeyRows as any)?.[0] ?? null;
+      const journey = (journeyRows as any)?.[0] ?? null;
       const latestStamp = (latestStamps as any)?.[0] ?? null;
-      const firstStamp  = (firstStamps as any)?.[0] ?? null;
+      const firstStamp = (firstStamps as any)?.[0] ?? null;
 
       // Prioridade de route_id: jornada ativa → perfil → último stamp → fallback 'frances'
-      const routeId  = journey?.route_id ?? (profile as any)?.route_id ?? latestStamp?.route_id ?? 'frances';
+      const routeId = journey?.route_id ?? (profile as any)?.route_id ?? latestStamp?.route_id ?? 'frances';
       const routeKey = ROUTE_KEY[routeId] ?? 'journey.name.frances';
-      const route    = t(routeKey);
+      const route = t(routeKey);
 
       const userName = (profile as any)?.full_name ?? DEMO_USER.name;
 
@@ -1240,9 +1323,9 @@ export default function BookPage() {
         : latestStamp ? fmtDate(latestStamp.stamped_at) : '—';
       const days = firstStamp && latestStamp
         ? Math.max(1, Math.round(
-            (new Date(latestStamp.stamped_at).getTime() - new Date(firstStamp.stamped_at).getTime())
-            / (1000 * 60 * 60 * 24)
-          ) + 1)
+          (new Date(latestStamp.stamped_at).getTime() - new Date(firstStamp.stamped_at).getTime())
+          / (1000 * 60 * 60 * 24)
+        ) + 1)
         : 0;
 
       const photoUrls: string[] = ((photos as any[]) ?? [])
@@ -1254,8 +1337,8 @@ export default function BookPage() {
 
       update({
         route,
-        title:          `${route}, ${new Date().getFullYear()}`,
-        coverPhoto:     allPhotos[0] ?? DEFAULT_BOOK_DATA.coverPhoto,
+        title: `${route}, ${new Date().getFullYear()}`,
+        coverPhoto: allPhotos[0] ?? DEFAULT_BOOK_DATA.coverPhoto,
         selectedPhotos: allPhotos.slice(0, 8),
         allPhotos,
         userName,
@@ -1418,7 +1501,11 @@ function InteractiveBook({ bookData, selectedModel }: { bookData: BookData; sele
 
   const model = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
   const pageDefs = React.useMemo(() => generatePageDefs(model.pages), [model.pages]);
-  const slotMap  = React.useMemo(() => buildPhotoSlotMap(pageDefs), [pageDefs]);
+  const photoOrientations = usePhotoOrientations(bookData.allPhotos);
+  const slotMap = React.useMemo(
+    () => buildPhotoSlotMap(pageDefs, photoOrientations.length > 0 ? photoOrientations : undefined),
+    [pageDefs, photoOrientations],
+  );
   const TOTAL = pageDefs.length;
 
   const goNext = () => bookRef.current?.pageFlip().flipNext();
@@ -1550,10 +1637,10 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
   const { t } = useT();
   const [statsVisible, setStatsVisible] = useState(false);
   const statsRef = useRef<HTMLDivElement>(null);
-  const aKm     = useCountUp(bookData.km,          1200, statsVisible && !dataLoading);
-  const aDays   = useCountUp(bookData.days,         900,  statsVisible && !dataLoading);
-  const aStamps = useCountUp(bookData.stampsCount,  800,  statsVisible && !dataLoading);
-  const aPhotos = useCountUp(bookData.photosCount,  1100, statsVisible && !dataLoading);
+  const aKm = useCountUp(bookData.km, 1200, statsVisible && !dataLoading);
+  const aDays = useCountUp(bookData.days, 900, statsVisible && !dataLoading);
+  const aStamps = useCountUp(bookData.stampsCount, 800, statsVisible && !dataLoading);
+  const aPhotos = useCountUp(bookData.photosCount, 1100, statsVisible && !dataLoading);
 
   useEffect(() => {
     const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setStatsVisible(true); }, { threshold: 0.3 });
@@ -1604,8 +1691,8 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
               </div>
               <div className="flex items-center gap-2 text-[#E8E4D9]/40 text-xs">
                 <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
                 <span className="uppercase tracking-widest">A carregar a tua jornada...</span>
               </div>
@@ -1659,10 +1746,10 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
             style={{ divideColor: 'rgba(200,169,110,0.12)' } as React.CSSProperties}
           >
             {[
-              { value: aKm,     unit: 'km', label: t('bp.stat.km') },
-              { value: aDays,   unit: '',   label: t('bp.stat.days') },
-              { value: aStamps, unit: '',   label: t('bp.stat.stamps') },
-              { value: aPhotos, unit: '',   label: t('bp.stat.photos') },
+              { value: aKm, unit: 'km', label: t('bp.stat.km') },
+              { value: aDays, unit: '', label: t('bp.stat.days') },
+              { value: aStamps, unit: '', label: t('bp.stat.stamps') },
+              { value: aPhotos, unit: '', label: t('bp.stat.photos') },
             ].map((stat, i) => (
               <motion.div
                 key={i}
@@ -1699,11 +1786,10 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
               <button
                 key={m.id}
                 onClick={() => { onSelectModel(m.id); onCustomize(); }}
-                className={`flex-1 flex flex-col items-center gap-1 rounded-2xl py-5 px-3 transition-all duration-200 cursor-pointer ${
-                  active
+                className={`flex-1 flex flex-col items-center gap-1 rounded-2xl py-5 px-3 transition-all duration-200 cursor-pointer ${active
                     ? 'scale-[1.04]'
                     : 'hover:border-[#C8A96E]/30'
-                }`}
+                  }`}
                 style={{
                   background: active ? 'rgba(200,169,110,0.16)' : 'rgba(255,255,255,0.04)',
                   border: active ? '1px solid rgba(200,169,110,0.45)' : '1px solid rgba(255,255,255,0.07)',
@@ -1763,11 +1849,12 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
   const model = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
   const totalAvailable = bookData.allPhotos.length;
   const gap = Math.max(0, model.pages - totalAvailable);
+  const photoOrientations = usePhotoOrientations(bookData.allPhotos);
 
   // Computa slots de foto e texto para o modelo atual
   const { pageDefs: customPageDefs, slotMap: customSlotMap, photoSlots, pageTextSlots } = useMemo(() => {
     const pageDefs = generatePageDefs(model.pages);
-    const slotMap = buildPhotoSlotMap(pageDefs);
+    const slotMap = buildPhotoSlotMap(pageDefs, photoOrientations.length > 0 ? photoOrientations : undefined);
     const photoSlots: { pageIdx: number; slotIdx: number; slotPos: number }[] = [];
     const pageTextSlots: { pageIdx: number; kind: PageKind; slots: Array<'top' | 'bottom'> }[] = [];
     pageDefs.forEach((def, pageIdx) => {
@@ -1782,7 +1869,7 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
       if (textSlots) pageTextSlots.push({ pageIdx, kind: def.kind, slots: textSlots });
     });
     return { pageDefs, slotMap, photoSlots, pageTextSlots };
-  }, [model.pages]);
+  }, [model.pages, photoOrientations]);
 
   const currentPhotoForSlot = useCallback((slotIdx: number): string | null => {
     if (bookData.photoAssignments[slotIdx] !== undefined) return bookData.photoAssignments[slotIdx];
@@ -1850,397 +1937,395 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
 
   return (
     <>
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="max-w-2xl mx-auto px-6 py-10 flex flex-col gap-8">
-      <div className="text-center">
-        <h2 className="font-serif text-3xl md:text-4xl text-[#2D3A27] italic mb-2">{t('bp.s2.title')}</h2>
-        <p className="text-[#2D3A27]/50 text-sm">{t('bp.s2.sub')}</p>
-      </div>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="max-w-2xl mx-auto px-6 py-10 flex flex-col gap-8">
+        <div className="text-center">
+          <h2 className="font-serif text-3xl md:text-4xl text-[#2D3A27] italic mb-2">{t('bp.s2.title')}</h2>
+          <p className="text-[#2D3A27]/50 text-sm">{t('bp.s2.sub')}</p>
+        </div>
 
-      {/* Seletor de modelo */}
-      <div>
-        <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-3">{t('bp.s2.model')}</p>
-        <div className="flex gap-3">
-          {BOOK_MODELS.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => onSelectModel(m.id)}
-              className={`flex-1 flex flex-col items-center gap-0.5 rounded-2xl py-3 px-2 border transition-all duration-200 ${
-                selectedModel === m.id
-                  ? 'bg-[#2D3A27] border-[#2D3A27] text-[#E8E4D9]'
-                  : 'bg-[#F5F2EA] border-[#2D3A27]/10 text-[#2D3A27]/50 hover:border-[#2D3A27]/30'
-              }`}
+        {/* Seletor de modelo */}
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-3">{t('bp.s2.model')}</p>
+          <div className="flex gap-3">
+            {BOOK_MODELS.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => onSelectModel(m.id)}
+                className={`flex-1 flex flex-col items-center gap-0.5 rounded-2xl py-3 px-2 border transition-all duration-200 ${selectedModel === m.id
+                    ? 'bg-[#2D3A27] border-[#2D3A27] text-[#E8E4D9]'
+                    : 'bg-[#F5F2EA] border-[#2D3A27]/10 text-[#2D3A27]/50 hover:border-[#2D3A27]/30'
+                  }`}
+              >
+                <span className="text-xs font-semibold">{m.label}</span>
+                <span className={`text-[0.65rem] ${selectedModel === m.id ? 'text-[#E8E4D9]/60' : 'text-[#2D3A27]/35'}`}>{m.price} · {m.pages} pág.</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex bg-[#F5F2EA] rounded-2xl p-1 gap-1">
+          {([
+            { id: 'cover' as const, label: t('bp.s2.tab.cover'), icon: <BookOpen size={14} /> },
+            { id: 'texts' as const, label: t('bp.s2.tab.texts'), icon: <Type size={14} /> },
+            { id: 'photos' as const, label: t('bp.s2.tab.photos'), icon: <Image size={14} /> },
+          ]).map(tab_ => (
+            <button key={tab_.id} onClick={() => setTab(tab_.id)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === tab_.id ? 'bg-white text-[#2D3A27] shadow-sm' : 'text-[#2D3A27]/40 hover:text-[#2D3A27]/70'}`}
             >
-              <span className="text-xs font-semibold">{m.label}</span>
-              <span className={`text-[0.65rem] ${selectedModel === m.id ? 'text-[#E8E4D9]/60' : 'text-[#2D3A27]/35'}`}>{m.price} · {m.pages} pág.</span>
+              {tab_.icon}{tab_.label}
             </button>
           ))}
         </div>
-      </div>
 
-      <div className="flex bg-[#F5F2EA] rounded-2xl p-1 gap-1">
-        {([
-          { id: 'cover' as const,  label: t('bp.s2.tab.cover'),  icon: <BookOpen size={14} /> },
-          { id: 'texts' as const,  label: t('bp.s2.tab.texts'),  icon: <Type size={14} /> },
-          { id: 'photos' as const, label: t('bp.s2.tab.photos'), icon: <Image size={14} /> },
-        ]).map(tab_ => (
-          <button key={tab_.id} onClick={() => setTab(tab_.id)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === tab_.id ? 'bg-white text-[#2D3A27] shadow-sm' : 'text-[#2D3A27]/40 hover:text-[#2D3A27]/70'}`}
-          >
-            {tab_.icon}{tab_.label}
-          </button>
-        ))}
-      </div>
-
-      <AnimatePresence mode="wait">
-        {tab === 'cover' && (
-          <motion.div key="cover" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-8">
-            <div className="flex justify-center">
-              <div style={{ filter: 'drop-shadow(-10px 20px 50px rgba(0,0,0,0.35))' }}>
-                <div className="relative">
-                  <div className="absolute left-0 top-0 bottom-0 w-5 z-10 rounded-l-sm" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.55), rgba(0,0,0,0.18) 40%, rgba(255,255,255,0.06) 65%, rgba(0,0,0,0.12))' }} />
-                  <div className="relative w-52 md:w-60 rounded-r-lg rounded-l-sm overflow-hidden">
-                    <img src={bookData.coverPhoto} alt="Capa" className="w-full aspect-[22/17] object-cover" />
-                    <div className="absolute inset-0 flex flex-col justify-between p-5" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.08) 55%, rgba(0,0,0,0.2) 100%)' }}>
-                      <span className="text-white/60 text-xs uppercase tracking-widest self-end">Peregrino</span>
-                      <div>
-                        <p className="text-white font-serif italic text-sm leading-tight">{bookData.title}</p>
-                        <p className="text-white/50 text-xs mt-1.5 uppercase tracking-wider">{bookData.userName}</p>
+        <AnimatePresence mode="wait">
+          {tab === 'cover' && (
+            <motion.div key="cover" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-8">
+              <div className="flex justify-center">
+                <div style={{ filter: 'drop-shadow(-10px 20px 50px rgba(0,0,0,0.35))' }}>
+                  <div className="relative">
+                    <div className="absolute left-0 top-0 bottom-0 w-5 z-10 rounded-l-sm" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.55), rgba(0,0,0,0.18) 40%, rgba(255,255,255,0.06) 65%, rgba(0,0,0,0.12))' }} />
+                    <div className="relative w-52 md:w-60 rounded-r-lg rounded-l-sm overflow-hidden">
+                      <img src={bookData.coverPhoto} alt="Capa" className="w-full aspect-[22/17] object-cover" />
+                      <div className="absolute inset-0 flex flex-col justify-between p-5" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.08) 55%, rgba(0,0,0,0.2) 100%)' }}>
+                        <span className="text-white/60 text-xs uppercase tracking-widest self-end">Peregrino</span>
+                        <div>
+                          <p className="text-white font-serif italic text-sm leading-tight">{bookData.title}</p>
+                          <p className="text-white/50 text-xs mt-1.5 uppercase tracking-wider">{bookData.userName}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-3">{t('bp.s2.cover_photo')}</p>
-              <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-                {bookData.allPhotos.map((photo, i) => (
-                  <button key={i} onClick={() => onChange({ coverPhoto: photo })}
-                    className={`aspect-square rounded-xl overflow-hidden ring-2 transition-all duration-200 ${bookData.coverPhoto === photo ? 'ring-[#2D3A27] scale-105 shadow-md' : 'ring-transparent hover:ring-[#2D3A27]/30'}`}
-                  >
-                    <img src={photo} alt="" className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-3">{t('bp.s2.title_label')}</p>
-              <input type="text" value={bookData.title} maxLength={60} onChange={e => onChange({ title: e.target.value })}
-                placeholder="Ex: Caminho Francês, 2026"
-                className="w-full bg-[#F5F2EA] border border-[#2D3A27]/10 rounded-2xl px-5 py-4 font-serif italic text-[#2D3A27] text-lg focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20"
-              />
-              <p className="text-xs text-[#2D3A27]/25 mt-2 text-right">{bookData.title.length}/60</p>
-            </div>
-          </motion.div>
-        )}
-
-        {tab === 'texts' && (
-          <motion.div key="texts" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-8">
-            <div>
-              <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Frase de abertura</p>
-              <p className="text-xs text-[#2D3A27]/30 mb-3">Aparece na página 4, logo após a capa</p>
-              <div className="bg-[#F5F2EA] rounded-2xl p-5 mb-3 border border-[#2D3A27]/5">
-                <p className="text-[#2D3A27]/25 text-xs uppercase tracking-widest mb-2">Prévia</p>
-                <p className="font-serif italic text-[#2D3A27] text-base leading-relaxed">"{bookData.openingPhrase}"</p>
-                <p className="text-[#2D3A27]/30 text-xs mt-2">— {bookData.userName}</p>
-              </div>
-              <textarea value={bookData.openingPhrase} maxLength={160} onChange={e => onChange({ openingPhrase: e.target.value })} rows={3}
-                placeholder="Uma frase que resume o que o Caminho significou para você..."
-                className="w-full bg-[#F5F2EA] border border-[#2D3A27]/10 rounded-2xl px-5 py-4 font-serif italic text-[#2D3A27] text-base focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none"
-              />
-              <p className="text-xs text-[#2D3A27]/25 mt-1 text-right">{bookData.openingPhrase.length}/160</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Sua reflexão</p>
-              <p className="text-xs text-[#2D3A27]/30 mb-3">Aparece na página 45, próxima à contracapa</p>
-              <div className="bg-[#F5F2EA] rounded-2xl p-5 mb-3 border border-[#2D3A27]/5">
-                <p className="text-[#2D3A27]/25 text-xs uppercase tracking-widest mb-2">Prévia</p>
-                <p className="font-serif italic text-[#2D3A27] text-sm leading-relaxed">"{bookData.reflectionText}"</p>
-              </div>
-              <textarea value={bookData.reflectionText} maxLength={400} onChange={e => onChange({ reflectionText: e.target.value })} rows={5}
-                placeholder="Escreva sobre o que viveu, aprendeu ou sentiu durante o Caminho..."
-                className="w-full bg-[#F5F2EA] border border-[#2D3A27]/10 rounded-2xl px-5 py-4 font-serif italic text-[#2D3A27] text-sm focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none"
-              />
-              <p className="text-xs text-[#2D3A27]/25 mt-1 text-right">{bookData.reflectionText.length}/400</p>
-            </div>
-            <div className="border-t border-[#2D3A27]/8 pt-6">
-              <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Legendas das fotos</p>
-              <p className="text-xs text-[#2D3A27]/35 mb-5">Três frases curtas distribuídas ao longo do livro, ao lado das fotos em destaque.</p>
-              {([
-                { key: 'caption1' as const, label: 'Legenda 1', hint: 'Início da jornada — págs. 7–8', val: bookData.caption1 },
-                { key: 'caption2' as const, label: 'Legenda 2', hint: 'Meio do caminho — págs. 23–24', val: bookData.caption2 },
-                { key: 'caption3' as const, label: 'Legenda 3', hint: 'Chegada — págs. 39–40', val: bookData.caption3 },
-              ]).map(({ key, label, hint, val }) => (
-                <div key={key} className="mb-5">
-                  <div className="flex justify-between items-baseline mb-2">
-                    <p className="text-xs font-medium text-[#2D3A27]/50">{label}</p>
-                    <p className="text-[0.6rem] text-[#2D3A27]/25">{hint}</p>
-                  </div>
-                  <textarea value={val} maxLength={120} onChange={e => onChange({ [key]: e.target.value })} rows={2}
-                    placeholder="Uma frase sobre este momento..."
-                    className="w-full bg-[#F5F2EA] border border-[#2D3A27]/10 rounded-xl px-4 py-3 font-serif italic text-[#2D3A27] text-sm focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none"
-                  />
-                  <p className="text-xs text-[#2D3A27]/25 mt-1 text-right">{val.length}/120</p>
-                </div>
-              ))}
-            </div>
-
-            {/* ── Textos por página ─────────────────────────────────────── */}
-            <div className="border-t border-[#2D3A27]/8 pt-6">
-              <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Textos das páginas</p>
-              <p className="text-xs text-[#2D3A27]/35 mb-4">
-                Adicione frases ou textos opcionais por página. Deixe em branco para não exibir. Cada campo permite escolher fonte e tamanho.
-              </p>
-              <div className="flex flex-col gap-4 max-h-[34rem] overflow-y-auto pr-1">
-                {pageTextSlots.map(({ pageIdx, kind, slots: textSlots }) => {
-                  const kindLabel: Record<PageKind, string> = {
-                    'cover': 'Capa', 'verso-capa': 'Verso da capa', 'preface': 'Prefácio',
-                    'stamps': 'Selos', 'verso-back': 'Verso contracapa', 'back-cover': 'Contracapa',
-                    'full-bleed': 'Foto inteira', 'duo-margin': '2 fotos na margem',
-                    'photo-text-r': 'Foto + texto', 'trio-centered': '3 retratos',
-                    'quote-route': 'Texto + rota', 'offset-two': '2 fotos desalinhadas',
-                    'one-centered': '1 foto centralizada', 'one-portrait-margin': '1 retrato na margem',
-                    'stagger-2': '2 fotos escalonadas', 'one-landscape-margin': '1 paisagem na margem',
-                    'two-left-one-right': '2 esq + 1 dir', 'grid-2x2': 'Grade 2×2',
-                    'duo-portrait-margin': '2 retratos', 'duo-stacked': '2 empilhadas',
-                    'one-left-two-right': '1 esq + 2 dir', 'trio-stagger': '3 escalonados',
-                    'text-photo-r': 'Texto + foto', 'one-top-two-bottom': '1 cima + 2 baixo',
-                    'grid-3x2': 'Grade 3×2 (6 fotos)', 'one-wide-three-below': '1 larga + 3',
-                    'trio-rotated': '3 fotos (1 inclinada)', 'wide-photo-text': 'Foto larga + texto',
-                    'two-top-one-bottom': '2 cima + 1 baixo', 'trio-portrait': '3 retratos',
-                    'photo-caption': 'Foto + legenda', 'text-route': 'Texto + rota',
-                  };
-                  return (
-                    <div key={pageIdx} className="bg-[#F5F2EA] rounded-2xl p-4 border border-[#2D3A27]/6">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-[0.6rem] uppercase tracking-widest text-[#2D3A27]/30 bg-[#2D3A27]/8 rounded-full px-2 py-0.5">
-                          Pág. {pageIdx + 1}
-                        </span>
-                        <span className="text-xs text-[#2D3A27]/50">{kindLabel[kind]}</span>
-                      </div>
-                      {textSlots.map(slotPos => {
-                        const key = `${pageIdx}-${slotPos}`;
-                        const entry: PageTextEntry = bookData.pageTexts[key] ?? { text: '', fontSize: 'sm', fontFamily: 'inter' };
-                        const updateEntry = (patch: Partial<PageTextEntry>) => {
-                          const next = { ...bookData.pageTexts, [key]: { ...entry, ...patch } };
-                          if (!patch.text && !entry.text) { delete next[key]; }
-                          onChange({ pageTexts: next });
-                        };
-                        return (
-                          <div key={slotPos} className="mb-3 last:mb-0">
-                            <p className="text-[0.6rem] uppercase tracking-widest text-[#2D3A27]/30 mb-1.5">
-                              {slotPos === 'top' ? 'Topo' : 'Rodapé'}
-                            </p>
-                            <textarea
-                              value={entry.text}
-                              maxLength={140}
-                              rows={2}
-                              onChange={e => updateEntry({ text: e.target.value })}
-                              placeholder="Espaço para texto ou frase..."
-                              className="w-full bg-white border border-[#2D3A27]/10 rounded-xl px-4 py-3 text-[#2D3A27] text-sm focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none mb-2"
-                              style={{ fontFamily: FONT_FAMILIES.find(f => f.id === entry.fontFamily)?.css }}
-                            />
-                            <div className="flex gap-2 flex-wrap">
-                              {/* Seletor de tipologia */}
-                              <div className="flex gap-1">
-                                {FONT_FAMILIES.map(f => (
-                                  <button key={f.id}
-                                    onClick={() => updateEntry({ fontFamily: f.id })}
-                                    className={`px-2 py-1 rounded-lg text-[0.6rem] border transition-all ${
-                                      entry.fontFamily === f.id
-                                        ? 'bg-[#2D3A27] text-[#E8E4D9] border-[#2D3A27]'
-                                        : 'bg-white text-[#2D3A27]/50 border-[#2D3A27]/15 hover:border-[#2D3A27]/35'
-                                    }`}
-                                    style={{ fontFamily: f.css }}
-                                  >
-                                    {f.label}
-                                  </button>
-                                ))}
-                              </div>
-                              {/* Seletor de tamanho */}
-                              <div className="flex gap-1">
-                                {(Object.keys(FONT_SIZE_LABEL) as FontSize[]).map(sz => (
-                                  <button key={sz}
-                                    onClick={() => updateEntry({ fontSize: sz })}
-                                    className={`w-7 h-7 rounded-lg text-[0.62rem] font-semibold border transition-all ${
-                                      entry.fontSize === sz
-                                        ? 'bg-[#2D3A27] text-[#E8E4D9] border-[#2D3A27]'
-                                        : 'bg-white text-[#2D3A27]/50 border-[#2D3A27]/15 hover:border-[#2D3A27]/35'
-                                    }`}
-                                  >
-                                    {FONT_SIZE_LABEL[sz]}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {tab === 'photos' && (
-          <motion.div key="photos" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-6">
-
-            {/* — Galeria ————————————————————————————————————————————— */}
-            <div>
-              <div className="flex items-baseline justify-between mb-1">
-                <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40">Sua galeria</p>
-                <p className="text-xs text-[#2D3A27]/30">{bookData.allPhotos.length} fotos</p>
-              </div>
-              {pickedPhoto ? (
-                <div className="mb-2 px-3 py-2 bg-[#2D3A27]/8 rounded-xl flex items-center gap-2">
-                  <img src={pickedPhoto} className="w-8 h-8 rounded-lg object-cover shrink-0" alt="" />
-                  <p className="text-xs text-[#2D3A27]/70 flex-1">Foto selecionada — toque em uma página abaixo para atribuir</p>
-                  <button onClick={() => setPickedPhoto(null)} className="text-[#2D3A27]/40 hover:text-[#2D3A27] transition-colors"><X size={14} /></button>
-                </div>
-              ) : (
-                <p className="text-xs text-[#2D3A27]/35 mb-2">Toque em uma foto para selecioná-la, depois toque na página desejada.</p>
-              )}
-              <div className="grid grid-cols-4 md:grid-cols-6 gap-2 max-h-44 overflow-y-auto pr-1">
-                {bookData.allPhotos.map((photo, i) => (
-                  <button key={i}
-                    onClick={() => setPickedPhoto(pickedPhoto === photo ? null : photo)}
-                    className={`relative aspect-square rounded-xl overflow-hidden ring-2 transition-all duration-150 ${pickedPhoto === photo ? 'ring-[#2D3A27] scale-105 shadow-md' : 'ring-transparent hover:ring-[#2D3A27]/30'}`}
-                  >
-                    <img src={photo} alt="" className="w-full h-full object-cover" />
-                    {pickedPhoto === photo && (
-                      <div className="absolute inset-0 bg-[#2D3A27]/30 flex items-center justify-center">
-                        <Check size={16} className="text-white" />
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* — Páginas do livro ————————————————————————————————————— */}
-            <div>
-              <div className="flex items-baseline justify-between mb-1">
-                <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40">Páginas do livro</p>
-                <p className="text-xs text-[#2D3A27]/30">{photoSlots.length} slots · {Object.keys(bookData.photoAssignments).length} atribuídos</p>
-              </div>
-              <p className="text-xs text-[#2D3A27]/35 mb-3">
-                {pickedPhoto ? 'Toque em uma página para atribuir a foto selecionada.' : 'Toque em qualquer página para trocar sua foto. Badge amarelo = atribuição manual.'}
-              </p>
-              <div className="grid grid-cols-4 md:grid-cols-6 gap-2 max-h-64 overflow-y-auto pr-1">
-                {photoSlots.map(({ slotIdx, pageIdx }) => {
-                  const currentPhoto = currentPhotoForSlot(slotIdx);
-                  const isManual = bookData.photoAssignments[slotIdx] !== undefined;
-                  const isTarget = pickedSlot === slotIdx;
-                  return (
-                    <div key={slotIdx} className="relative">
-                      <button
-                        onClick={() => {
-                          if (pickedPhoto) {
-                            assignPhoto(slotIdx, pickedPhoto);
-                          } else {
-                            setPickedSlot(isTarget ? null : slotIdx);
-                          }
-                        }}
-                        className={`relative w-full aspect-square rounded-xl overflow-hidden ring-2 transition-all duration-150 ${
-                          isTarget ? 'ring-[#2D3A27] scale-105 shadow-md' :
-                          pickedPhoto ? 'ring-[#2D3A27]/40 hover:ring-[#2D3A27] hover:scale-105' :
-                          'ring-transparent hover:ring-[#2D3A27]/25'
-                        }`}
-                      >
-                        {currentPhoto ? (
-                          <img src={currentPhoto} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-[#F0EDE4] flex items-center justify-center">
-                            <Camera size={14} className="text-[#2D3A27]/20" />
-                          </div>
-                        )}
-                        {pickedPhoto && (
-                          <div className="absolute inset-0 bg-[#2D3A27]/20 flex items-center justify-center">
-                            <div className="w-5 h-5 rounded-full bg-[#2D3A27]/70 flex items-center justify-center">
-                              <Check size={10} className="text-white" />
-                            </div>
-                          </div>
-                        )}
-                        <span className="absolute bottom-1 left-1 text-[0.5rem] text-white/70 bg-black/30 rounded px-1">{slotIdx + 1}</span>
-                      </button>
-                      {isManual && (
-                        <button
-                          onClick={() => removeAssignment(slotIdx)}
-                          className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center shadow-sm hover:bg-red-500 transition-colors z-10"
-                          title="Remover atribuição manual"
-                        >
-                          <X size={8} className="text-white" />
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              {Object.keys(bookData.photoAssignments).length > 0 && (
-                <button
-                  onClick={() => onChange({ photoAssignments: {} })}
-                  className="mt-3 text-xs text-[#2D3A27]/40 hover:text-red-500 transition-colors underline underline-offset-2"
-                >
-                  Remover todas as atribuições manuais
-                </button>
-              )}
-            </div>
-
-            {/* — Picker inline quando slot selecionado sem foto prévia ——— */}
-            {pickedSlot !== null && !pickedPhoto && (
-              <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="border border-[#2D3A27]/10 rounded-2xl p-4 bg-[#F5F2EA]">
-                <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-3">
-                  Escolha uma foto para o slot {pickedSlot + 1}
-                </p>
+              <div>
+                <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-3">{t('bp.s2.cover_photo')}</p>
                 <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
                   {bookData.allPhotos.map((photo, i) => (
-                    <button key={i}
-                      onClick={() => assignPhoto(pickedSlot!, photo)}
-                      className="aspect-square rounded-lg overflow-hidden ring-1 ring-transparent hover:ring-[#2D3A27]/40 transition-all"
+                    <button key={i} onClick={() => onChange({ coverPhoto: photo })}
+                      className={`aspect-square rounded-xl overflow-hidden ring-2 transition-all duration-200 ${bookData.coverPhoto === photo ? 'ring-[#2D3A27] scale-105 shadow-md' : 'ring-transparent hover:ring-[#2D3A27]/30'}`}
                     >
                       <img src={photo} alt="" className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>
-                <button onClick={() => setPickedSlot(null)} className="mt-3 text-xs text-[#2D3A27]/40 hover:text-[#2D3A27] transition-colors">Cancelar</button>
-              </motion.div>
-            )}
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-3">{t('bp.s2.title_label')}</p>
+                <input type="text" value={bookData.title} maxLength={60} onChange={e => onChange({ title: e.target.value })}
+                  placeholder="Ex: Caminho Francês, 2026"
+                  className="w-full bg-[#F5F2EA] border border-[#2D3A27]/10 rounded-2xl px-5 py-4 font-serif italic text-[#2D3A27] text-lg focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20"
+                />
+                <p className="text-xs text-[#2D3A27]/25 mt-2 text-right">{bookData.title.length}/60</p>
+              </div>
+            </motion.div>
+          )}
 
-          </motion.div>
+          {tab === 'texts' && (
+            <motion.div key="texts" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-8">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Frase de abertura</p>
+                <p className="text-xs text-[#2D3A27]/30 mb-3">Aparece na página 4, logo após a capa</p>
+                <div className="bg-[#F5F2EA] rounded-2xl p-5 mb-3 border border-[#2D3A27]/5">
+                  <p className="text-[#2D3A27]/25 text-xs uppercase tracking-widest mb-2">Prévia</p>
+                  <p className="font-serif italic text-[#2D3A27] text-base leading-relaxed">"{bookData.openingPhrase}"</p>
+                  <p className="text-[#2D3A27]/30 text-xs mt-2">— {bookData.userName}</p>
+                </div>
+                <textarea value={bookData.openingPhrase} maxLength={160} onChange={e => onChange({ openingPhrase: e.target.value })} rows={3}
+                  placeholder="Uma frase que resume o que o Caminho significou para você..."
+                  className="w-full bg-[#F5F2EA] border border-[#2D3A27]/10 rounded-2xl px-5 py-4 font-serif italic text-[#2D3A27] text-base focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none"
+                />
+                <p className="text-xs text-[#2D3A27]/25 mt-1 text-right">{bookData.openingPhrase.length}/160</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Sua reflexão</p>
+                <p className="text-xs text-[#2D3A27]/30 mb-3">Aparece na página 45, próxima à contracapa</p>
+                <div className="bg-[#F5F2EA] rounded-2xl p-5 mb-3 border border-[#2D3A27]/5">
+                  <p className="text-[#2D3A27]/25 text-xs uppercase tracking-widest mb-2">Prévia</p>
+                  <p className="font-serif italic text-[#2D3A27] text-sm leading-relaxed">"{bookData.reflectionText}"</p>
+                </div>
+                <textarea value={bookData.reflectionText} maxLength={400} onChange={e => onChange({ reflectionText: e.target.value })} rows={5}
+                  placeholder="Escreva sobre o que viveu, aprendeu ou sentiu durante o Caminho..."
+                  className="w-full bg-[#F5F2EA] border border-[#2D3A27]/10 rounded-2xl px-5 py-4 font-serif italic text-[#2D3A27] text-sm focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none"
+                />
+                <p className="text-xs text-[#2D3A27]/25 mt-1 text-right">{bookData.reflectionText.length}/400</p>
+              </div>
+              <div className="border-t border-[#2D3A27]/8 pt-6">
+                <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Legendas das fotos</p>
+                <p className="text-xs text-[#2D3A27]/35 mb-5">Três frases curtas distribuídas ao longo do livro, ao lado das fotos em destaque.</p>
+                {([
+                  { key: 'caption1' as const, label: 'Legenda 1', hint: 'Início da jornada — págs. 7–8', val: bookData.caption1 },
+                  { key: 'caption2' as const, label: 'Legenda 2', hint: 'Meio do caminho — págs. 23–24', val: bookData.caption2 },
+                  { key: 'caption3' as const, label: 'Legenda 3', hint: 'Chegada — págs. 39–40', val: bookData.caption3 },
+                ]).map(({ key, label, hint, val }) => (
+                  <div key={key} className="mb-5">
+                    <div className="flex justify-between items-baseline mb-2">
+                      <p className="text-xs font-medium text-[#2D3A27]/50">{label}</p>
+                      <p className="text-[0.6rem] text-[#2D3A27]/25">{hint}</p>
+                    </div>
+                    <textarea value={val} maxLength={120} onChange={e => onChange({ [key]: e.target.value })} rows={2}
+                      placeholder="Uma frase sobre este momento..."
+                      className="w-full bg-[#F5F2EA] border border-[#2D3A27]/10 rounded-xl px-4 py-3 font-serif italic text-[#2D3A27] text-sm focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none"
+                    />
+                    <p className="text-xs text-[#2D3A27]/25 mt-1 text-right">{val.length}/120</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Textos por página ─────────────────────────────────────── */}
+              <div className="border-t border-[#2D3A27]/8 pt-6">
+                <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Textos das páginas</p>
+                <p className="text-xs text-[#2D3A27]/35 mb-4">
+                  Adicione frases ou textos opcionais por página. Deixe em branco para não exibir. Cada campo permite escolher fonte e tamanho.
+                </p>
+                <div className="flex flex-col gap-4 max-h-[34rem] overflow-y-auto pr-1">
+                  {pageTextSlots.map(({ pageIdx, kind, slots: textSlots }) => {
+                    const kindLabel: Record<PageKind, string> = {
+                      'cover': 'Capa', 'verso-capa': 'Verso da capa', 'preface': 'Prefácio',
+                      'stamps': 'Selos', 'verso-back': 'Verso contracapa', 'back-cover': 'Contracapa',
+                      'full-bleed': 'Foto inteira', 'duo-margin': '2 fotos na margem',
+                      'photo-text-r': 'Foto + texto', 'trio-centered': '3 retratos',
+                      'quote-route': 'Texto + rota', 'offset-two': '2 fotos desalinhadas',
+                      'one-centered': '1 foto centralizada', 'one-portrait-margin': '1 retrato na margem',
+                      'stagger-2': '2 fotos escalonadas', 'duo-stagger': '2 paisagens diagonal',
+                      'spread-l': 'Spread esquerda', 'spread-r': 'Spread direita',
+                      'one-landscape-margin': '1 paisagem na margem',
+                      'two-left-one-right': '2 esq + 1 dir', 'grid-2x2': 'Grade 2×2',
+                      'duo-portrait-margin': '2 retratos', 'duo-stacked': '2 empilhadas',
+                      'one-left-two-right': '1 esq + 2 dir', 'trio-stagger': '3 escalonados',
+                      'text-photo-r': 'Texto + foto', 'one-top-two-bottom': '1 cima + 2 baixo',
+                      'grid-3x2': 'Grade 3×2 (6 fotos)', 'one-wide-three-below': '1 larga + 3',
+                      'trio-rotated': '3 fotos (1 inclinada)', 'wide-photo-text': 'Foto larga + texto',
+                      'two-top-one-bottom': '2 cima + 1 baixo', 'trio-portrait': '3 retratos',
+                      'photo-caption': 'Foto + legenda', 'text-route': 'Texto + rota',
+                    };
+                    return (
+                      <div key={pageIdx} className="bg-[#F5F2EA] rounded-2xl p-4 border border-[#2D3A27]/6">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-[0.6rem] uppercase tracking-widest text-[#2D3A27]/30 bg-[#2D3A27]/8 rounded-full px-2 py-0.5">
+                            Pág. {pageIdx + 1}
+                          </span>
+                          <span className="text-xs text-[#2D3A27]/50">{kindLabel[kind]}</span>
+                        </div>
+                        {textSlots.map(slotPos => {
+                          const key = `${pageIdx}-${slotPos}`;
+                          const entry: PageTextEntry = bookData.pageTexts[key] ?? { text: '', fontSize: 'sm', fontFamily: 'inter' };
+                          const updateEntry = (patch: Partial<PageTextEntry>) => {
+                            const next = { ...bookData.pageTexts, [key]: { ...entry, ...patch } };
+                            if (!patch.text && !entry.text) { delete next[key]; }
+                            onChange({ pageTexts: next });
+                          };
+                          return (
+                            <div key={slotPos} className="mb-3 last:mb-0">
+                              <p className="text-[0.6rem] uppercase tracking-widest text-[#2D3A27]/30 mb-1.5">
+                                {slotPos === 'top' ? 'Topo' : 'Rodapé'}
+                              </p>
+                              <textarea
+                                value={entry.text}
+                                maxLength={140}
+                                rows={2}
+                                onChange={e => updateEntry({ text: e.target.value })}
+                                placeholder="Espaço para texto ou frase..."
+                                className="w-full bg-white border border-[#2D3A27]/10 rounded-xl px-4 py-3 text-[#2D3A27] text-sm focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none mb-2"
+                                style={{ fontFamily: FONT_FAMILIES.find(f => f.id === entry.fontFamily)?.css }}
+                              />
+                              <div className="flex gap-2 flex-wrap">
+                                {/* Seletor de tipologia */}
+                                <div className="flex gap-1">
+                                  {FONT_FAMILIES.map(f => (
+                                    <button key={f.id}
+                                      onClick={() => updateEntry({ fontFamily: f.id })}
+                                      className={`px-2 py-1 rounded-lg text-[0.6rem] border transition-all ${entry.fontFamily === f.id
+                                          ? 'bg-[#2D3A27] text-[#E8E4D9] border-[#2D3A27]'
+                                          : 'bg-white text-[#2D3A27]/50 border-[#2D3A27]/15 hover:border-[#2D3A27]/35'
+                                        }`}
+                                      style={{ fontFamily: f.css }}
+                                    >
+                                      {f.label}
+                                    </button>
+                                  ))}
+                                </div>
+                                {/* Seletor de tamanho */}
+                                <div className="flex gap-1">
+                                  {(Object.keys(FONT_SIZE_LABEL) as FontSize[]).map(sz => (
+                                    <button key={sz}
+                                      onClick={() => updateEntry({ fontSize: sz })}
+                                      className={`w-7 h-7 rounded-lg text-[0.62rem] font-semibold border transition-all ${entry.fontSize === sz
+                                          ? 'bg-[#2D3A27] text-[#E8E4D9] border-[#2D3A27]'
+                                          : 'bg-white text-[#2D3A27]/50 border-[#2D3A27]/15 hover:border-[#2D3A27]/35'
+                                        }`}
+                                    >
+                                      {FONT_SIZE_LABEL[sz]}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {tab === 'photos' && (
+            <motion.div key="photos" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-6">
+
+              {/* — Galeria ————————————————————————————————————————————— */}
+              <div>
+                <div className="flex items-baseline justify-between mb-1">
+                  <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40">Sua galeria</p>
+                  <p className="text-xs text-[#2D3A27]/30">{bookData.allPhotos.length} fotos</p>
+                </div>
+                {pickedPhoto ? (
+                  <div className="mb-2 px-3 py-2 bg-[#2D3A27]/8 rounded-xl flex items-center gap-2">
+                    <img src={pickedPhoto} className="w-8 h-8 rounded-lg object-cover shrink-0" alt="" />
+                    <p className="text-xs text-[#2D3A27]/70 flex-1">Foto selecionada — toque em uma página abaixo para atribuir</p>
+                    <button onClick={() => setPickedPhoto(null)} className="text-[#2D3A27]/40 hover:text-[#2D3A27] transition-colors"><X size={14} /></button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-[#2D3A27]/35 mb-2">Toque em uma foto para selecioná-la, depois toque na página desejada.</p>
+                )}
+                <div className="grid grid-cols-4 md:grid-cols-6 gap-2 max-h-44 overflow-y-auto pr-1">
+                  {bookData.allPhotos.map((photo, i) => (
+                    <button key={i}
+                      onClick={() => setPickedPhoto(pickedPhoto === photo ? null : photo)}
+                      className={`relative aspect-square rounded-xl overflow-hidden ring-2 transition-all duration-150 ${pickedPhoto === photo ? 'ring-[#2D3A27] scale-105 shadow-md' : 'ring-transparent hover:ring-[#2D3A27]/30'}`}
+                    >
+                      <img src={photo} alt="" className="w-full h-full object-cover" />
+                      {pickedPhoto === photo && (
+                        <div className="absolute inset-0 bg-[#2D3A27]/30 flex items-center justify-center">
+                          <Check size={16} className="text-white" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* — Páginas do livro ————————————————————————————————————— */}
+              <div>
+                <div className="flex items-baseline justify-between mb-1">
+                  <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40">Páginas do livro</p>
+                  <p className="text-xs text-[#2D3A27]/30">{photoSlots.length} slots · {Object.keys(bookData.photoAssignments).length} atribuídos</p>
+                </div>
+                <p className="text-xs text-[#2D3A27]/35 mb-3">
+                  {pickedPhoto ? 'Toque em uma página para atribuir a foto selecionada.' : 'Toque em qualquer página para trocar sua foto. Badge amarelo = atribuição manual.'}
+                </p>
+                <div className="grid grid-cols-4 md:grid-cols-6 gap-2 max-h-64 overflow-y-auto pr-1">
+                  {photoSlots.map(({ slotIdx, pageIdx }) => {
+                    const currentPhoto = currentPhotoForSlot(slotIdx);
+                    const isManual = bookData.photoAssignments[slotIdx] !== undefined;
+                    const isTarget = pickedSlot === slotIdx;
+                    return (
+                      <div key={slotIdx} className="relative">
+                        <button
+                          onClick={() => {
+                            if (pickedPhoto) {
+                              assignPhoto(slotIdx, pickedPhoto);
+                            } else {
+                              setPickedSlot(isTarget ? null : slotIdx);
+                            }
+                          }}
+                          className={`relative w-full aspect-square rounded-xl overflow-hidden ring-2 transition-all duration-150 ${isTarget ? 'ring-[#2D3A27] scale-105 shadow-md' :
+                              pickedPhoto ? 'ring-[#2D3A27]/40 hover:ring-[#2D3A27] hover:scale-105' :
+                                'ring-transparent hover:ring-[#2D3A27]/25'
+                            }`}
+                        >
+                          {currentPhoto ? (
+                            <img src={currentPhoto} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-[#F0EDE4] flex items-center justify-center">
+                              <Camera size={14} className="text-[#2D3A27]/20" />
+                            </div>
+                          )}
+                          {pickedPhoto && (
+                            <div className="absolute inset-0 bg-[#2D3A27]/20 flex items-center justify-center">
+                              <div className="w-5 h-5 rounded-full bg-[#2D3A27]/70 flex items-center justify-center">
+                                <Check size={10} className="text-white" />
+                              </div>
+                            </div>
+                          )}
+                          <span className="absolute bottom-1 left-1 text-[0.5rem] text-white/70 bg-black/30 rounded px-1">{slotIdx + 1}</span>
+                        </button>
+                        {isManual && (
+                          <button
+                            onClick={() => removeAssignment(slotIdx)}
+                            className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center shadow-sm hover:bg-red-500 transition-colors z-10"
+                            title="Remover atribuição manual"
+                          >
+                            <X size={8} className="text-white" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {Object.keys(bookData.photoAssignments).length > 0 && (
+                  <button
+                    onClick={() => onChange({ photoAssignments: {} })}
+                    className="mt-3 text-xs text-[#2D3A27]/40 hover:text-red-500 transition-colors underline underline-offset-2"
+                  >
+                    Remover todas as atribuições manuais
+                  </button>
+                )}
+              </div>
+
+              {/* — Picker inline quando slot selecionado sem foto prévia ——— */}
+              {pickedSlot !== null && !pickedPhoto && (
+                <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="border border-[#2D3A27]/10 rounded-2xl p-4 bg-[#F5F2EA]">
+                  <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-3">
+                    Escolha uma foto para o slot {pickedSlot + 1}
+                  </p>
+                  <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+                    {bookData.allPhotos.map((photo, i) => (
+                      <button key={i}
+                        onClick={() => assignPhoto(pickedSlot!, photo)}
+                        className="aspect-square rounded-lg overflow-hidden ring-1 ring-transparent hover:ring-[#2D3A27]/40 transition-all"
+                      >
+                        <img src={photo} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={() => setPickedSlot(null)} className="mt-3 text-xs text-[#2D3A27]/40 hover:text-[#2D3A27] transition-colors">Cancelar</button>
+                </motion.div>
+              )}
+
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="flex justify-between items-center pt-4 border-t border-[#2D3A27]/8">
+          <button onClick={onBack} className="flex items-center gap-2 text-sm text-[#2D3A27]/40 hover:text-[#2D3A27] transition-colors">
+            <ArrowLeft size={15} /> {t('bp.s2.back')}
+          </button>
+          <motion.button onClick={handleDone} disabled={bookData.selectedPhotos.length < 4}
+            whileHover={bookData.selectedPhotos.length >= 4 ? { scale: 1.03 } : {}}
+            whileTap={bookData.selectedPhotos.length >= 4 ? { scale: 0.97 } : {}}
+            className="bg-[#2D3A27] text-[#E8E4D9] px-8 py-3.5 rounded-full font-semibold flex items-center gap-2 hover:bg-[#1B2616] transition-colors shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {t('bp.s2.done')} <ArrowRight size={16} />
+          </motion.button>
+        </div>
+      </motion.div>
+
+      {/* Gap Modal — aparece se fotos < páginas do plano */}
+      <AnimatePresence>
+        {showGapModal && (
+          <GapModal
+            gap={gap}
+            planName={model.label}
+            planPages={model.pages}
+            currentPhotos={totalAvailable}
+            uploadProgress={uploadProgress}
+            onUpload={handleUpload}
+            onKeepStamps={() => { setShowGapModal(false); onDone(); }}
+            onClose={() => setShowGapModal(false)}
+          />
         )}
       </AnimatePresence>
-
-      <div className="flex justify-between items-center pt-4 border-t border-[#2D3A27]/8">
-        <button onClick={onBack} className="flex items-center gap-2 text-sm text-[#2D3A27]/40 hover:text-[#2D3A27] transition-colors">
-          <ArrowLeft size={15} /> {t('bp.s2.back')}
-        </button>
-        <motion.button onClick={handleDone} disabled={bookData.selectedPhotos.length < 4}
-          whileHover={bookData.selectedPhotos.length >= 4 ? { scale: 1.03 } : {}}
-          whileTap={bookData.selectedPhotos.length >= 4 ? { scale: 0.97 } : {}}
-          className="bg-[#2D3A27] text-[#E8E4D9] px-8 py-3.5 rounded-full font-semibold flex items-center gap-2 hover:bg-[#1B2616] transition-colors shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          {t('bp.s2.done')} <ArrowRight size={16} />
-        </motion.button>
-      </div>
-    </motion.div>
-
-    {/* Gap Modal — aparece se fotos < páginas do plano */}
-    <AnimatePresence>
-      {showGapModal && (
-        <GapModal
-          gap={gap}
-          planName={model.label}
-          planPages={model.pages}
-          currentPhotos={totalAvailable}
-          uploadProgress={uploadProgress}
-          onUpload={handleUpload}
-          onKeepStamps={() => { setShowGapModal(false); onDone(); }}
-          onClose={() => setShowGapModal(false)}
-        />
-      )}
-    </AnimatePresence>
     </>
   );
 }
@@ -2289,9 +2374,9 @@ function StepOrder({ bookData, selectedModel, onNext, onBack }: { bookData: Book
 
       <div className="grid grid-cols-3 gap-3">
         {[
-          { icon: <Shield size={15} />, label: t('bp.s3.secure'),   sub: 'via Stripe' },
-          { icon: <Globe size={15} />,  label: t('bp.s3.global'),   sub: '140+ países' },
-          { icon: <Package size={15} />,label: t('bp.s3.ondemand'), sub: 'Lulu.com' },
+          { icon: <Shield size={15} />, label: t('bp.s3.secure'), sub: 'via Stripe' },
+          { icon: <Globe size={15} />, label: t('bp.s3.global'), sub: '140+ países' },
+          { icon: <Package size={15} />, label: t('bp.s3.ondemand'), sub: 'Lulu.com' },
         ].map((item, i) => (
           <div key={i} className="bg-[#F5F2EA] rounded-2xl p-3 flex flex-col items-center gap-1 text-center">
             <div className="text-[#2D3A27]/40">{item.icon}</div>

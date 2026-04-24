@@ -87,6 +87,135 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ## 🔄 Histórico de Alterações
 
+### Sessão 24/04/2026 (parte 2) — Layout do livro interativo `/book` — correções e arquitetura
+
+#### 1. Correções de layout aprovadas pelo usuário (via screenshots comparativos)
+
+| Página | Case | Problema | Correção |
+|--------|------|----------|----------|
+| Pag. 7 | `offset-two` | Foto esquerda (paisagem) não sangrava até a base — `top:24% + height:57% = 81%`, gap de 19% na borda inferior | `height: 57%` → `76%` (24+76=100%, bleed correto) |
+| Pag. 11 | `stagger-2` | Fotos com altura 82% deixavam espaço excessivo nas bordas não-ancoradas | `height: 82%` → `92%` |
+| Pag. 20 | `duo-stagger` | Largura das fotos muito estreita (47-50%), layout visivelmente menor que o Canva | `width: 47/50%` → `58%` |
+| Pag. 33 e 37 | `text-photo-r` | Padding ao redor da foto usava `background: cellBg` (bege), gerando borda colorida indesejada | `background: cellBg` → `background: '#fff'` (borda branca = mesma cor da página) |
+| Pag. 48 | `photo-caption` | Foto diminuída demais (60%), espaço de texto excessivo, fonte da legenda ilegível | `flex: 60%` → `73%`, fonte `fs(0.56)` → `fs(0.68)` |
+
+**Observação crítica de sangria (bleed):** O usuário identificou que fotos ancoradas a bordas (via `top:0`/`bottom:0`/`left:0`/`right:0`) devem literalmente tocar a borda da página — sem gap acidental. Fotos com offset intencional (ex: `top:24%`) devem ter `height` calculado para atingir a borda oposta (`height = 100% - offset%`).
+
+---
+
+#### 2. Refatoração arquitetural — distribuição inteligente de fotos por orientação
+
+**Problema identificado:** O sistema distribuía fotos sequencialmente, ignorando se eram landscape ou portrait. Uma foto portrait em slot landscape gerava espaços vazios (barras cinzas/beges). O `pimg()` também não renderizava fotos reais.
+
+**Mudanças implementadas em `BookPage.tsx`:**
+
+**a) `PageDef` interface** — novo campo `o`:
+```tsx
+interface PageDef { kind: PageKind; p?: number | number[]; ck?: 'c1' | 'c2' | 'c3'; o?: ('l' | 'p' | 'any')[] }
+```
+- `o`: array de orientações por slot. `'l'` = landscape, `'p'` = portrait, `'any'` = qualquer
+
+**b) `PHOTO_BLOCK`** — todos os 50 layouts receberam orientações por slot:
+```tsx
+{ kind: 'offset-two', p:[0,1], o:['l','p'] }      // slot 0 = landscape, slot 1 = portrait
+{ kind: 'stagger-2', p:[0,1], o:['p','p'] }        // ambos portrait
+{ kind: 'duo-stagger', p:[0,1], o:['l','l'] }      // ambos landscape
+{ kind: 'one-left-two-right', p:[0,1,2], o:['p','l','l'] }  // 1 portrait + 2 landscape
+```
+
+**c) `buildPhotoSlotMap`** — novo parâmetro `photoOrientations?: ('l' | 'p')[]`:
+- Sem orientações → modo sequencial (fallback compatível)
+- Com orientações → separa fotos em duas filas (`lQueue` e `pQueue`) e serve cada slot com a orientação preferida; fallback automático para a outra fila se esgotada
+- Detecta `spread-r` e reutiliza o slot do `spread-l` anterior (sem consumir nova foto)
+
+**d) Hook `usePhotoOrientations(urls)`** — novo hook:
+- Carrega cada foto via `document.createElement('img')` (não usar `new Image()` — `Image` está importado do lucide-react como ícone)
+- Mede `naturalWidth` vs `naturalHeight` → retorna `'l'` ou `'p'`
+- Executa assincronamente, cancelável, re-executa apenas quando URLs mudam
+- `useEffect` depende de `urls.join('|')` para comparação de conteúdo (não referência)
+
+**e) `pimg(slotIdx)`** — agora renderiza foto real:
+```tsx
+const pimg = (slotIdx: number, style?) => {
+  const url = ph(slotIdx); // usa ph() já existente que lê photoAssignments e allPhotos
+  if (url && !url.startsWith('__stamp__')) {
+    return <img src={url} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }} />;
+  }
+  return <div style={{ background: '#E8E4D9' }} />; // placeholder bege (modo sem fotos)
+};
+```
+
+**f) `InteractiveBook` e `StepCustomize`** — ambos usam o hook e passam orientações:
+```tsx
+const photoOrientations = usePhotoOrientations(bookData.allPhotos);
+const slotMap = buildPhotoSlotMap(pageDefs, photoOrientations.length > 0 ? photoOrientations : undefined);
+```
+No `StepCustomize`, `photoOrientations` foi adicionado às dependências do `useMemo` que computa o `slotMap`.
+
+---
+
+#### 3. Trocas de layout por decisão do usuário
+
+O usuário optou por substituir layouts que continuavam problemáticos por layouts já aprovados:
+
+| Página (user) | PHOTO_BLOCK idx | Antes | Depois | Motivo |
+|---|---|---|---|---|
+| Pag. 7 | [6] | `offset-two` (2 fotos) | `grid-2x2` (4 fotos) | Igual ao modelo da pág. 16, já aprovado |
+| Pag. 11 | [10] | `stagger-2` (2 fotos) | `one-left-two-right` (3 fotos) | Igual ao modelo da pág. 27, já aprovado |
+| Pag. 13 | [12] | `full-bleed` (1 foto) | `spread-l` | Double-page spread — metade esquerda |
+| Pag. 14 | [13] | `full-bleed` (1 foto) | `spread-r` | Double-page spread — metade direita (1 foto total) |
+| Pag. 20 | [19] | `duo-stagger` (2 fotos) | `trio-centered` (3 fotos) | Igual ao modelo da pág. 19, já aprovado |
+
+**Implementação do double-page spread (`spread-l` + `spread-r`):**
+- Dois novos `PageKind` adicionados: `'spread-l'` e `'spread-r'`
+- `spread-l`: foto com `width:200%, position:left:0, objectPosition:'0% center'` — mostra metade esquerda
+- `spread-r`: foto com `width:200%, position:right:0, objectPosition:'100% center'` — mostra metade direita
+- Ambos compartilham **o mesmo slot de foto** (slot do `spread-l` é reutilizado pelo `spread-r` sem consumir nova foto)
+- Quando o livro está aberto nas pág. 13-14, a foto preenche as duas páginas como uma única imagem panorâmica
+- `kindLabel` no editor atualizado: `'spread-l': 'Spread esquerda'`, `'spread-r': 'Spread direita'`
+
+---
+
+#### 4. Estado atual dos layouts do livro (50 páginas)
+
+Todos os 50 layouts foram revisados. Status por página:
+
+| Pág. | Layout | Status |
+|------|--------|--------|
+| 1 | `full-bleed` | ✅ Aprovado |
+| 2 | `duo-margin` | ✅ Aprovado |
+| 3 | `photo-text-r` | ✅ Aprovado |
+| 4 | `full-bleed` | ✅ Aprovado |
+| 5 | `trio-centered` | ✅ Aprovado |
+| 6 | `quote-route` | ✅ Aprovado |
+| 7 | `grid-2x2` | ✅ Trocado (era offset-two) |
+| 8 | `full-bleed` | ✅ Aprovado |
+| 9 | `one-centered` | ✅ Aprovado |
+| 10 | `one-portrait-margin` | ✅ Aprovado |
+| 11 | `one-left-two-right` | ✅ Trocado (era stagger-2) |
+| 12 | `one-landscape-margin` | ✅ Aprovado |
+| 13 | `spread-l` | ✅ Novo — metade esquerda do spread |
+| 14 | `spread-r` | ✅ Novo — metade direita do spread (1 foto compartilhada) |
+| 15 | `two-left-one-right` | ✅ Aprovado |
+| 16 | `grid-2x2` | ✅ Aprovado |
+| 17 | `photo-text-r` | ✅ Aprovado |
+| 18 | `full-bleed` | ✅ Aprovado |
+| 19 | `trio-centered` | ✅ Aprovado |
+| 20 | `trio-centered` | ✅ Trocado (era duo-stagger) |
+| 21–50 | vários | ✅ Todos aprovados na sessão anterior |
+
+---
+
+#### 5. Mapeamento de páginas (referência permanente)
+
+- **User page N = PHOTO_BLOCK[N-1]** (N de 1 a 48)
+- PHOTO_BLOCK[0] = p3 (Canva), PHOTO_BLOCK[47] = p50 (Canva)
+- Pag. 49 do usuário = página `stamps` (selos, fora do PHOTO_BLOCK)
+- O flipbook começa em `verso-capa` (idx 0) + `preface` (idx 1)
+- Flipbook page index = User page N + 1 (ex: user pág. 13 = flipbook idx 14)
+
+---
+
 ### Sessão 24/04/2026 — Revisão de estado + contas externas + RLS Supabase
 
 #### ⚠️ REGRA DE OURO DESTE DOCUMENTO
