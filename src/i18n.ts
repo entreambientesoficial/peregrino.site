@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Peregrino Landing — i18n
  * 10 idiomas, mesma estrutura do app.
  * Detecção: 1) ?lang=xx na URL  2) localStorage  3) navigator.language  4) pt-BR
@@ -193,6 +193,12 @@ const translations: Record<LangCode, Dict> = {
     'bp.kind.photo-caption':        'Foto + legenda',
     'bp.kind.text-route':           'Texto + rota',
 
+    'bp.demo.openingPhrase':  'Comecei sem saber o que encontraria. Terminei diferente do que era.',
+    'bp.demo.reflectionText': 'Cada passo foi uma escolha. Cada noite foi um presente. O Caminho me ensinou que o destino não é Santiago — é quem você se torna ao longo dele.',
+    'bp.demo.caption1':       'Os primeiros passos foram os mais difíceis — e os mais inesquecíveis.',
+    'bp.demo.caption2':       'No meio do caminho, percebi que não estava mais sozinho.',
+    'bp.demo.caption3':       'Santiago chegou antes do esperado. Ou talvez eu é que tivesse chegado.',
+
     'journey.name.frances':           'Caminho Francês',
     'journey.name.portugues.central': 'Caminho Português (Central)',
     'journey.name.portugues.lisboa':  'Caminho Português (Lisboa)',
@@ -373,6 +379,12 @@ const translations: Record<LangCode, Dict> = {
     'bp.kind.trio-portrait':        '3 retratos',
     'bp.kind.photo-caption':        'Foto + legenda',
     'bp.kind.text-route':           'Texto + rota',
+
+    'bp.demo.openingPhrase':  'Comecei sem saber o que encontraria. Terminei diferente do que era.',
+    'bp.demo.reflectionText': 'Cada passo foi uma escolha. Cada noite foi um presente. O Caminho ensinou-me que o destino não é Santiago — é quem te tornaste ao longo dele.',
+    'bp.demo.caption1':       'Os primeiros passos foram os mais difíceis — e os mais inesquecíveis.',
+    'bp.demo.caption2':       'A meio do caminho, percebi que já não estava sozinho.',
+    'bp.demo.caption3':       'Santiago chegou antes do esperado. Ou talvez tivesse sido eu a chegar.',
 
     'journey.name.frances':           'Caminho Francês',
     'journey.name.portugues.central': 'Caminho Português (Central)',
@@ -555,6 +567,12 @@ const translations: Record<LangCode, Dict> = {
     'bp.kind.photo-caption':        'Photo + caption',
     'bp.kind.text-route':           'Text + route',
 
+    'bp.demo.openingPhrase':  'I started not knowing what I would find. I finished different from who I was.',
+    'bp.demo.reflectionText': 'Each step was a choice. Each night was a gift. The Way taught me that the destination is not Santiago — it is who you become along the way.',
+    'bp.demo.caption1':       'The first steps were the hardest — and the most unforgettable.',
+    'bp.demo.caption2':       'Halfway through, I realized I was no longer alone.',
+    'bp.demo.caption3':       'Santiago came sooner than expected. Or perhaps it was I who had arrived.',
+
     'journey.name.frances':           'The French Way',
     'journey.name.portugues.central': 'Portuguese Way (Central)',
     'journey.name.portugues.lisboa':  'Portuguese Way (Lisbon)',
@@ -735,6 +753,12 @@ const translations: Record<LangCode, Dict> = {
     'bp.kind.trio-portrait':        '3 retratos',
     'bp.kind.photo-caption':        'Foto + leyenda',
     'bp.kind.text-route':           'Texto + ruta',
+
+    'bp.demo.openingPhrase':  'Empecé sin saber lo que encontraría. Terminé diferente de quien era.',
+    'bp.demo.reflectionText': 'Cada paso fue una elección. Cada noche fue un regalo. El Camino me enseñó que el destino no es Santiago — es en quien te conviertes a lo largo de él.',
+    'bp.demo.caption1':       'Los primeros pasos fueron los más difíciles — y los más inolvidables.',
+    'bp.demo.caption2':       'A mitad del camino, me di cuenta de que ya no estaba solo.',
+    'bp.demo.caption3':       'Santiago llegó antes de lo esperado. O quizás era yo quien había llegado.',
 
     'journey.name.frances':           'Camino Francés',
     'journey.name.portugues.central': 'Camino Portugués (Central)',
@@ -917,6 +941,12 @@ const translations: Record<LangCode, Dict> = {
     'bp.kind.photo-caption':        'Photo + légende',
     'bp.kind.text-route':           'Texte + route',
 
+    'bp.demo.openingPhrase':  "J'ai commencé sans savoir ce que je trouverais. J'ai terminé différent de qui j'étais.",
+    'bp.demo.reflectionText': "Chaque pas était un choix. Chaque nuit était un cadeau. Le Chemin m'a appris que la destination n'est pas Santiago — c'est ce que tu deviens en chemin.",
+    'bp.demo.caption1':       'Les premiers pas étaient les plus difficiles — et les plus inoubliables.',
+    'bp.demo.caption2':       "À mi-chemin, j'ai réalisé que je n'étais plus seul.",
+    'bp.demo.caption3':       "Santiago est arrivé plus tôt que prévu. Ou peut-être que c'était moi qui étais arrivé.",
+
     'journey.name.frances':           'Chemin Français',
     'journey.name.portugues.central': 'Chemin Portugais (Central)',
     'journey.name.portugues.lisboa':  'Chemin Portugais (Lisbonne)',
@@ -1097,6 +1127,12 @@ const translations: Record<LangCode, Dict> = {
     'bp.kind.trio-portrait':        '3 Porträts',
     'bp.kind.photo-caption':        'Foto + Bildunterschrift',
     'bp.kind.text-route':           'Text + Route',
+
+    'bp.demo.openingPhrase':  'Ich begann, ohne zu wissen, was ich finden würde. Ich endete anders als ich war.',
+    'bp.demo.reflectionText': 'Jeder Schritt war eine Entscheidung. Jede Nacht war ein Geschenk. Der Weg lehrte mich, dass das Ziel nicht Santiago ist — sondern wer du auf dem Weg wirst.',
+    'bp.demo.caption1':       'Die ersten Schritte waren die schwersten — und die unvergesslichsten.',
+    'bp.demo.caption2':       'Auf halber Strecke merkte ich, dass ich nicht mehr allein war.',
+    'bp.demo.caption3':       'Santiago kam früher als erwartet. Oder vielleicht war ich es, der angekommen war.',
 
     'journey.name.frances':           'Camino Francés',
     'journey.name.portugues.central': 'Portugiesischer Jakobsweg (Zentral)',
@@ -1279,6 +1315,12 @@ const translations: Record<LangCode, Dict> = {
     'bp.kind.photo-caption':        'Foto + didascalia',
     'bp.kind.text-route':           'Testo + percorso',
 
+    'bp.demo.openingPhrase':  'Ho iniziato senza sapere cosa avrei trovato. Ho finito diverso da chi ero.',
+    'bp.demo.reflectionText': 'Ogni passo e stato una scelta. Ogni notte e stata un dono. Il Cammino mi ha insegnato che la destinazione non e Santiago — e chi diventi lungo la strada.',
+    'bp.demo.caption1':       'I primi passi erano i piu difficili — e i piu indimenticabili.',
+    'bp.demo.caption2':       'A meta strada, ho capito che non ero piu solo.',
+    'bp.demo.caption3':       'Santiago e arrivata prima del previsto. O forse ero io che ero arrivato.',
+
     'journey.name.frances':           'Cammino Francese',
     'journey.name.portugues.central': 'Cammino Portoghese (Centrale)',
     'journey.name.portugues.lisboa':  'Cammino Portoghese (Lisbona)',
@@ -1459,6 +1501,12 @@ const translations: Record<LangCode, Dict> = {
     'bp.kind.trio-portrait':        '3ポートレート',
     'bp.kind.photo-caption':        '写真＋キャプション',
     'bp.kind.text-route':           'テキスト＋ルート',
+
+    'bp.demo.openingPhrase':  '何を見つけるかも知らずに始めた。歩き終えた時、自分は変わっていた。',
+    'bp.demo.reflectionText': '一歩一歩が選択だった。毎夜が贈り物だった。道は教えてくれた — 目的地はサンティアゴではなく、道の途中でなる自分自身だと。',
+    'bp.demo.caption1':       '最初の一歩が最も辛く、そして最も忘れられないものだった。',
+    'bp.demo.caption2':       '道半ばで気づいた — もう一人ではないと。',
+    'bp.demo.caption3':       'サンティアゴは思ったより早くやってきた。あるいは私が着いたのかもしれない。',
 
     'journey.name.frances':           'フランス人の道',
     'journey.name.portugues.central': 'ポルトガル人の道（中央）',
@@ -1641,6 +1689,12 @@ const translations: Record<LangCode, Dict> = {
     'bp.kind.photo-caption':        '사진 + 캡션',
     'bp.kind.text-route':           '텍스트 + 루트',
 
+    'bp.demo.openingPhrase':  '무엇을 찾을지도 모르고 시작했다. 다른 사람이 되어 끝마쳤다.',
+    'bp.demo.reflectionText': '한 걸음 한 걸음이 선택이었다. 매일 밤이 선물이었다. 길은 가르쳐 주었다 — 목적지는 산티아고가 아니라 길을 걸으며 되어가는 당신이라고.',
+    'bp.demo.caption1':       '첫 걸음이 가장 힘들었고, 가장 잊지 못할 것이었다.',
+    'bp.demo.caption2':       '중간쯤에서 깨달았다 — 더 이상 혼자가 아니라는 것을.',
+    'bp.demo.caption3':       '산티아고는 예상보다 빨리 왔다. 아니면 내가 도착한 것인지도 모른다.',
+
     'journey.name.frances':           '프랑스 길',
     'journey.name.portugues.central': '포르투갈 길 (중앙)',
     'journey.name.portugues.lisboa':  '포르투갈 길 (리스본)',
@@ -1821,6 +1875,12 @@ const translations: Record<LangCode, Dict> = {
     'bp.kind.trio-portrait':        '3张人像',
     'bp.kind.photo-caption':        '照片＋说明文字',
     'bp.kind.text-route':           '文字＋路线',
+
+    'bp.demo.openingPhrase':  '出发时不知道会找到什么，结束时已脱胎换骨。',
+    'bp.demo.reflectionText': '每一步都是选择，每一夜都是礼物。这条路告诉我：终点不是圣地亚哥，而是路途中成为的那个自己。',
+    'bp.demo.caption1':       '最初的步伐最为艰难，却也最令人难忘。',
+    'bp.demo.caption2':       '走到一半时，我意识到自己不再孤单。',
+    'bp.demo.caption3':       '圣地亚哥来得比想象中更早，也许是我先到了。',
 
     'journey.name.frances':           '法国之路',
     'journey.name.portugues.central': '葡萄牙之路（中央）',

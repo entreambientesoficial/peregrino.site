@@ -71,28 +71,31 @@ interface BookData {
   pageTexts: Record<string, PageTextEntry>;
 }
 
-const DEFAULT_BOOK_DATA: BookData = {
-  title: `${DEMO_USER.route}, ${new Date().getFullYear()}`,
-  route: DEMO_USER.route,
-  coverPhoto: '/img-apoio/img-webp/79.webp',
-  openingPhrase: 'Comecei sem saber o que encontraria. Terminei diferente do que era.',
-  reflectionText: 'Cada passo foi uma escolha. Cada noite foi um presente. O Caminho me ensinou que o destino não é Santiago — é quem você se torna ao longo dele.',
-  selectedPhotos: DEMO_USER.allPhotos.slice(0, 8),
-  caption1: 'Os primeiros passos foram os mais difíceis — e os mais inesquecíveis.',
-  caption2: 'No meio do caminho, percebi que não estava mais sozinho.',
-  caption3: 'Santiago chegou antes do esperado. Ou talvez eu é que tivesse chegado.',
-  userName: DEMO_USER.name,
-  startDate: DEMO_USER.startDate,
-  endDate: DEMO_USER.endDate,
-  km: DEMO_USER.km,
-  days: DEMO_USER.days,
-  stampsCount: DEMO_USER.stamps,
-  photosCount: DEMO_USER.photos,
-  allPhotos: DEMO_USER.allPhotos,
-  uploadedPhotos: [],
-  photoAssignments: {},
-  pageTexts: {},
-};
+function makeDefaultBookData(t: (k: string) => string): BookData {
+  const route = t('bp.demo.route');
+  return {
+    title: `${route}, ${new Date().getFullYear()}`,
+    route,
+    coverPhoto: '/img-apoio/img-webp/79.webp',
+    openingPhrase: t('bp.demo.openingPhrase'),
+    reflectionText: t('bp.demo.reflectionText'),
+    selectedPhotos: DEMO_USER.allPhotos.slice(0, 8),
+    caption1: t('bp.demo.caption1'),
+    caption2: t('bp.demo.caption2'),
+    caption3: t('bp.demo.caption3'),
+    userName: DEMO_USER.name,
+    startDate: DEMO_USER.startDate,
+    endDate: DEMO_USER.endDate,
+    km: DEMO_USER.km,
+    days: DEMO_USER.days,
+    stampsCount: DEMO_USER.stamps,
+    photosCount: DEMO_USER.photos,
+    allPhotos: DEMO_USER.allPhotos,
+    uploadedPhotos: [],
+    photoAssignments: {},
+    pageTexts: {},
+  };
+}
 
 type Step = 'reveal' | 'customize' | 'order' | 'shipping';
 
@@ -1263,16 +1266,9 @@ function GapModal({
 // BookPage root
 // ---------------------------------------------------------------------------
 export default function BookPage() {
-  const { t } = useT();
+  const { t, lang } = useT();
   const [step, setStep] = useState<Step>('reveal');
-  const [bookData, setBookData] = useState<BookData>(() => {
-    const route = t('bp.demo.route');
-    return {
-      ...DEFAULT_BOOK_DATA,
-      route,
-      title: `${route}, ${new Date().getFullYear()}`,
-    };
-  });
+  const [bookData, setBookData] = useState<BookData>(() => makeDefaultBookData(t));
   const [selectedModel, setSelectedModel] = useState<ModelId>('essential');
   const [hasCustomized, setHasCustomized] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -1283,6 +1279,22 @@ export default function BookPage() {
   const [dataLoading, setDataLoading] = useState(false);
   const [noPhotosWarning, setNoPhotosWarning] = useState(false);
   const update = (patch: Partial<BookData>) => setBookData(p => ({ ...p, ...patch }));
+
+  // Quando o idioma muda em modo demo (sem login), atualiza os textos do livro
+  useEffect(() => {
+    if (user) return;
+    const d = makeDefaultBookData(t);
+    setBookData(p => ({
+      ...p,
+      route: d.route,
+      title: d.title,
+      openingPhrase: d.openingPhrase,
+      reflectionText: d.reflectionText,
+      caption1: d.caption1,
+      caption2: d.caption2,
+      caption3: d.caption3,
+    }));
+  }, [lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Mapeamento route_id → chave i18n (conforme STATUS.md do App Peregrino)
   const ROUTE_KEY: Record<string, string> = {
@@ -1393,12 +1405,13 @@ export default function BookPage() {
         .filter(Boolean);
 
       setNoPhotosWarning(photoUrls.length === 0);
-      const allPhotos = photoUrls.length >= 4 ? photoUrls : DEFAULT_BOOK_DATA.allPhotos;
+      const defaults = makeDefaultBookData(t);
+      const allPhotos = photoUrls.length >= 4 ? photoUrls : defaults.allPhotos;
 
       update({
         route,
         title: `${route}, ${new Date().getFullYear()}`,
-        coverPhoto: allPhotos[0] ?? DEFAULT_BOOK_DATA.coverPhoto,
+        coverPhoto: allPhotos[0] ?? defaults.coverPhoto,
         selectedPhotos: allPhotos.slice(0, 8),
         allPhotos,
         userName,
@@ -1465,7 +1478,7 @@ export default function BookPage() {
     setHasCustomized(false);
     setNoPhotosWarning(false);
     const route = t('bp.demo.route');
-    setBookData({ ...DEFAULT_BOOK_DATA, route, title: `${route}, ${new Date().getFullYear()}` });
+    setBookData(makeDefaultBookData(t));
   };
 
   return (
@@ -1665,7 +1678,7 @@ function InteractiveBook({ bookData, selectedModel }: { bookData: BookData; sele
               <ChevronLeft size={18} className="text-[#E8E4D9]" />
             </button>
             <span className="text-[#E8E4D9]/70 text-xs tabular-nums min-w-[5.5rem] text-center">
-              {page <= 1 ? 'Verso da capa' : page >= TOTAL - 1 ? 'Contracapa' : `pág. ${page - 1} / ${TOTAL - 3}`}
+              {page <= 1 ? t('bp.kind.verso-capa') : page >= TOTAL - 1 ? t('bp.kind.back-cover') : `${t('bp.page')} ${page - 1} / ${TOTAL - 3}`}
             </span>
             <button onClick={goNext} disabled={page >= TOTAL - 1}
               className="w-10 h-10 rounded-full bg-[#E8E4D9]/15 flex items-center justify-center hover:bg-[#E8E4D9]/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
