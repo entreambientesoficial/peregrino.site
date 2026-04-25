@@ -358,6 +358,7 @@ function renderBookPage(
   sp: (n: number) => string,
   fs: (n: number) => string,
   slotMap: Map<number, number[]>,
+  t: (k: string) => string,
 ) {
   const photos = bookData.allPhotos;
   const slots = slotMap.get(pageIdx) ?? [];
@@ -440,14 +441,14 @@ function renderBookPage(
           </div>
           <div className="flex flex-col" style={{ gap: sp(6) }}>
             {([
-              ['Peregrino', bookData.userName],
-              ['Rota', bookData.route],
-              ['Início', bookData.startDate],
-              ['Chegada', bookData.endDate],
-              ['Distância', `${bookData.km} km`],
-              ['Duração', `${bookData.days} dias`],
-              ['Carimbos', `${bookData.stampsCount}`],
-              ['Fotos', `${bookData.photosCount}`],
+              [t('bp.preface.pilgrim'), bookData.userName],
+              [t('bp.preface.route'), bookData.route],
+              [t('bp.preface.start'), bookData.startDate],
+              [t('bp.preface.end'), bookData.endDate],
+              [t('bp.preface.distance'), `${bookData.km} km`],
+              [t('bp.preface.duration'), `${bookData.days} ${t('bp.preface.days_unit')}`],
+              [t('bp.preface.stamps'), `${bookData.stampsCount}`],
+              [t('bp.preface.photos'), `${bookData.photosCount}`],
             ] as [string, string][]).map(([k, v], i) => (
               <div key={i} className="flex justify-between" style={{ borderBottom: '1px solid rgba(45,58,39,0.08)', paddingBottom: sp(4) }}>
                 <span className="text-[#2D3A27]/35 uppercase tracking-[0.12em]" style={{ fontSize: fs(0.48) }}>{k}</span>
@@ -824,7 +825,7 @@ function renderBookPage(
         <div className="w-full h-full bg-white flex flex-col" style={{ padding: sp(8) }}>
           <p className="text-[#2D3A27]/30 uppercase tracking-[0.28em] text-center font-serif italic"
             style={{ fontSize: fs(0.42), marginBottom: sp(4) }}>
-            Carimbos da Credencial
+            {t('bp.stamps.title')}
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)`, gap: sp(2), flex: 1 }}>
             {Array.from({ length: displayCount }).map((_, i) => {
@@ -1650,7 +1651,7 @@ function InteractiveBook({ bookData, selectedModel }: { bookData: BookData; sele
             >
               {pageDefs.map((def, idx) => (
                 <FlipPage key={idx}>
-                  {renderBookPage(def, idx, bookData, S, sp, fs, slotMap)}
+                  {renderBookPage(def, idx, bookData, S, sp, fs, slotMap, t)}
                 </FlipPage>
               ))}
             </HTMLFlipBook>
@@ -2138,32 +2139,14 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
                 </p>
                 <div className="flex flex-col gap-4 max-h-[34rem] overflow-y-auto pr-1">
                   {pageTextSlots.map(({ pageIdx, kind, slots: textSlots }) => {
-                    const kindLabel: Record<PageKind, string> = {
-                      'cover': 'Capa', 'verso-capa': 'Verso da capa', 'preface': 'Prefácio',
-                      'stamps': 'Selos', 'verso-back': 'Verso contracapa', 'back-cover': 'Contracapa',
-                      'full-bleed': 'Foto inteira', 'duo-margin': '2 fotos na margem',
-                      'photo-text-r': 'Foto + texto', 'trio-centered': '3 retratos',
-                      'quote-route': 'Texto + rota', 'offset-two': '2 fotos desalinhadas',
-                      'one-centered': '1 foto centralizada', 'one-portrait-margin': '1 retrato na margem',
-                      'stagger-2': '2 fotos escalonadas', 'duo-stagger': '2 paisagens diagonal',
-                      'spread-l': 'Spread esquerda', 'spread-r': 'Spread direita',
-                      'one-landscape-margin': '1 paisagem na margem',
-                      'two-left-one-right': '2 esq + 1 dir', 'grid-2x2': 'Grade 2×2',
-                      'duo-portrait-margin': '2 retratos', 'duo-stacked': '2 empilhadas',
-                      'one-left-two-right': '1 esq + 2 dir', 'trio-stagger': '3 escalonados',
-                      'text-photo-r': 'Texto + foto', 'one-top-two-bottom': '1 cima + 2 baixo',
-                      'grid-3x2': 'Grade 3×2 (6 fotos)', 'one-wide-three-below': '1 larga + 3',
-                      'trio-rotated': '3 fotos (1 inclinada)', 'wide-photo-text': 'Foto larga + texto',
-                      'two-top-one-bottom': '2 cima + 1 baixo', 'trio-portrait': '3 retratos',
-                      'photo-caption': 'Foto + legenda', 'text-route': 'Texto + rota',
-                    };
+                    const kindLabel = (k: PageKind) => t(`bp.kind.${k}`);
                     return (
                       <div key={pageIdx} className="bg-[#F5F2EA] rounded-2xl p-4 border border-[#2D3A27]/6">
                         <div className="flex items-center gap-2 mb-3">
                           <span className="text-[0.6rem] uppercase tracking-widest text-[#2D3A27]/30 bg-[#2D3A27]/8 rounded-full px-2 py-0.5">
-                            Pág. {pageIdx + 1}
+                            {t('bp.page')} {pageIdx + 1}
                           </span>
-                          <span className="text-xs text-[#2D3A27]/50">{kindLabel[kind]}</span>
+                          <span className="text-xs text-[#2D3A27]/50">{kindLabel(kind)}</span>
                         </div>
                         {textSlots.map(slotPos => {
                           const key = `${pageIdx}-${slotPos}`;
