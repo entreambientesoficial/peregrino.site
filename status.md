@@ -70,8 +70,9 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 | **Header** | ✅ Concluído | Logo composta: `vieira.png` + "Peregrino" Playfair Display 700 branco. Botão voltar à landing. Botão "Sair" discreto (aparece apenas quando autenticado) que faz logout e reseta para DEMO. |
 | **Step 1 — Revelação** | ✅ Concluído | Livro interativo + botão "Personalizar" + 3 cards de modelo clicáveis + botão "Encomendar" condicional (aparece após personalizar) + aviso de sem fotos (quando autenticado mas galeria vazia) |
 | **3 Modelos de Livro** | ✅ Concluído | **Essencial** 50 pág. €49,90 · **Jornada** 100 pág. €74,90 (destaque) · **Legado** 150 pág. €99,90. Cada modelo gera dinamicamente o número correto de páginas via `generatePageDefs(modelPages)`. |
-| **Step 2 — Personalizar** | ✅ Concluído | Seletor de modelo no topo + abas Capa / Textos / Fotos + "Ver resultado" volta ao Step 1 com `hasCustomized=true`. Aba Textos inclui seção "Textos das páginas" com editor por página. |
-| **Textos por página** | ✅ Concluído | Campos opcionais de texto nos layouts `large-white`, `stacked-2` e `grid-4-white` (topo e rodapé). Cada campo tem seletor de tipologia (5 fontes) e tamanho (PP/P/M/G/GG). Texto vazio = página renderiza sem texto. |
+| **Step 2 — Personalizar** | ✅ Concluído | Seletor de modelo no topo + abas Capa / Textos / Fotos + "Ver resultado" volta ao Step 1 com `hasCustomized=true`. Aba Capa tem campo "Nome do Peregrino" editável (pré-preenchido com displayName do login). |
+| **Editor Editorial de Textos** | ✅ Concluído | Aba Textos reestruturada em 4 seções editoriais com prévia inline e badge de localização. Sistema `TEXT_STYLES` com 3 estilos fixos (Título/Destaque/Corpo). Seletores arbitrários de fonte+tamanho removidos. Ver detalhes no histórico 25/04 parte 5. |
+| **Textos por página** | ✅ Concluído | Slots opcionais nos layouts `photo-text-r`, `text-photo-r`, `wide-photo-text`, `photo-caption`. Seletor de estilo com 3 botões (Título/Destaque/Corpo). Página real indicada com badge. Texto vazio = usa padrão do livro. |
 | **Step 3 — Encomendar** | ✅ Concluído | Resumo dinâmico com nome, páginas e preço do modelo selecionado + Stripe Checkout |
 | **Livro interativo** | ✅ Concluído | Estrutura dinâmica: capa + prefácio + N layouts fotográficos (50/100/150 conforme modelo) + selos + contracapa. `object-contain` nos layouts emoldurados (large-white, stacked-2, grid-4, stagger-4, trio-h/v) — fotos aparecem inteiras. `object-cover` mantido apenas em full-dark e panoramas (sangria intencional). |
 | **Livro demo (sem login)** | ✅ Concluído | 89 fotos reais do Caminho em `public/img-apoio/img-webp/`. Reordenadas por orientação: landscape → slots panorama/stacked/centered, portrait → demais. Otimizadas: 1200px WebP q82, 22MB total. |
@@ -86,6 +87,114 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 ---
 
 ## 🔄 Histórico de Alterações
+
+### Sessão 25/04/2026 (parte 5) — Editor editorial de textos com tipografia padronizada
+
+#### Objetivo
+Transformar a aba Textos de um formulário genérico em um editor editorial organizado, com estilos tipográficos fixos e contexto visual claro sobre onde cada texto aparece no livro impresso.
+
+---
+
+#### 1. Sistema `TEXT_STYLES` — 3 estilos tipográficos fixos
+
+Substituiu os seletores arbitrários de 5 fontes × 5 tamanhos (25 combinações) por 3 estilos editoriais fixos definidos como constante de módulo:
+
+```tsx
+const TEXT_STYLES = {
+  titulo: {
+    fontFamily: "'Playfair Display', serif", fontWeight: 700, fontStyle: 'normal',
+    color: '#1B2616', lineHeight: 1.2, fsRatio: 0.78,
+    label: 'Título', hint: 'Playfair Display · Negrito',
+  },
+  destaque: {
+    fontFamily: "'Dancing Script', cursive", fontWeight: 400, fontStyle: 'italic',
+    color: '#1B2616', lineHeight: 1.45, fsRatio: 0.66,
+    label: 'Destaque', hint: 'Dancing Script · Itálico',
+  },
+  corpo: {
+    fontFamily: "'Lora', serif", fontWeight: 400, fontStyle: 'normal',
+    color: 'rgba(45,58,39,0.72)', lineHeight: 1.6, fsRatio: 0.50,
+    label: 'Corpo', hint: 'Lora · Regular',
+  },
+} as const;
+type TextStyleKey = keyof typeof TEXT_STYLES; // 'titulo' | 'destaque' | 'corpo'
+```
+
+**Mapeamento de estilo por seção do livro:**
+
+| Seção | Estilo | Fonte |
+|---|---|---|
+| Título da capa / prefácio / pág. 46 | Título | Playfair Display 700 |
+| Frase de abertura (pág. 3, 5, 8) | Destaque | Dancing Script itálico |
+| Legenda da foto final (pág. 48) | Destaque | Dancing Script itálico |
+| Reflexão final (pág. 44, 45) | Corpo | Lora regular |
+| Texto opcional nos slots de página | Escolha do usuário (3 opções) | Idem acima |
+
+**Garantia de consistência:** `renderTextSlot` agora usa `TEXT_STYLES[entry.style]` — independente de qual página o slot está, o "Corpo" sempre renderiza em Lora com os mesmos parâmetros.
+
+---
+
+#### 2. `PageTextEntry` — interface simplificada
+
+```tsx
+// ANTES:
+interface PageTextEntry { text: string; fontSize: FontSize; fontFamily: FontFamily; }
+// tipos auxiliares: FontSize (5 valores), FontFamily (5 valores), FONT_SIZE_FS, FONT_SIZE_LABEL, FONT_FAMILIES[]
+
+// DEPOIS:
+interface PageTextEntry { text: string; style: TextStyleKey; }
+// tipos auxiliares: apenas TEXT_STYLES e TextStyleKey
+```
+
+Removidos: `FontSize`, `FontFamily`, `FONT_SIZE_FS`, `FONT_SIZE_LABEL`, `FONT_FAMILIES`.
+
+---
+
+#### 3. Aba Textos — nova estrutura editorial
+
+4 seções organizadas por posição no livro impresso, cada uma com:
+- Badge de localização (ex: "Prefácio · pág. 5 · pág. 8")
+- Badge de estilo (ex: "Destaque")
+- Prévia inline no estilo correto (Dancing Script / Lora / Playfair)
+- Textarea com a fonte do estilo aplicada
+- Contador de caracteres
+
+**Seções:**
+
+| Seção | Campo | Localização | Estilo |
+|---|---|---|---|
+| Frase de Abertura | `openingPhrase` | Prefácio · pág. 5 · pág. 8 | Destaque (Dancing Script) |
+| Reflexão Final | `reflectionText` | Pág. 44 · pág. 45 | Corpo (Lora) |
+| Legenda da Foto Final | `caption3` | Pág. 48 | Destaque (Dancing Script) |
+| Texto Opcional por Página | `pageTexts[key]` | Apenas páginas com slot real | 3 botões de estilo |
+
+**Removido da UI** (campos sem vínculo com página real do livro): `caption1`, `caption2` — estavam listados no formulário mas não renderizavam em nenhuma página. Permanecem em `BookData` para compatibilidade mas ocultos no editor.
+
+---
+
+#### 4. Seção "Texto Opcional por Página"
+
+Cada página com slot (`photo-text-r`, `text-photo-r`, `wide-photo-text`, `photo-caption`) exibe:
+- Badge de página ("Pág. 6")
+- Rótulo contextual ("Foto + Texto · Área de texto à direita da foto")
+- Separador "Área superior" / "Área inferior"
+- **3 botões de estilo** em vez de 5 fontes × 5 tamanhos
+- Textarea com preview do estilo selecionado aplicado
+
+---
+
+#### 5. Aba Capa — campo "Nome do Peregrino"
+
+Adicionado abaixo do campo Título:
+- Input editável com `uppercase tracking-widest` (igual ao render na capa)
+- Pré-preenchido com o `displayName` do login Google via `loadUserData`
+- Permite ajustar antes de imprimir (ex: `"delarco.ada"` → `"Anderson Delarco"`)
+- Max 50 caracteres
+
+#### Commit
+`6b9f024` — feat(book): editor editorial de textos com tipografia padronizada
+
+---
 
 ### Sessão 25/04/2026 (parte 4) — i18n dos textos de conteúdo do livro (frases, legendas, reflexões)
 
