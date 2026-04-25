@@ -76,7 +76,7 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 | **Livro interativo** | ✅ Concluído | Estrutura dinâmica: capa + prefácio + N layouts fotográficos (50/100/150 conforme modelo) + selos + contracapa. `object-contain` nos layouts emoldurados (large-white, stacked-2, grid-4, stagger-4, trio-h/v) — fotos aparecem inteiras. `object-cover` mantido apenas em full-dark e panoramas (sangria intencional). |
 | **Livro demo (sem login)** | ✅ Concluído | 89 fotos reais do Caminho em `public/img-apoio/img-webp/`. Reordenadas por orientação: landscape → slots panorama/stacked/centered, portrait → demais. Otimizadas: 1200px WebP q82, 22MB total. |
 | **Atribuição manual de fotos** | ✅ Concluído | Aba Fotos do Step 2 redesenhada. Galeria + grid de slots do livro. Fluxo: clique numa foto → clique num slot = atribuição. Badge amarelo = manual; × remove; botão limpa tudo. `BookData.photoAssignments: Record<number,string>` sobrepõe o mapeamento automático. |
-| **i18n do /book** | ✅ Concluído | 87 keys `bp.*` em 10 idiomas; Prefácio, selos, tipos de layout e paginação todos dinâmicos via `t()`; `renderBookPage` recebe `t` como parâmetro; `I18nProvider` no `App.tsx` raiz |
+| **i18n do /book** | ✅ Concluído | 54 chaves `bp.*` por idioma (10 idiomas); prefácio, selos, layouts, paginação, frases, legendas e reflexões todos dinâmicos via `t()`; `makeDefaultBookData(t)` garante demo no idioma correto; `useEffect([lang])` atualiza ao trocar idioma sem sobrescrever dados de usuário logado |
 | **Auth Gate + SSO** | ✅ Concluído | `AuthModal` com botão Google OAuth (Supabase `signInWithOAuth`) + formulário email/senha + bypass convidado. `onAuthStateChange` detecta login após redirect OAuth e carrega dados automaticamente. |
 | **Dados reais do peregrino** | ✅ Concluído | `loadUserData` carrega `journeys`, `profiles`, `stamps` e `photos` em paralelo (`Promise.all`). Prioridade de rota: `journeys.route_id` → `profiles.route_id` → `stamps.route_id` → `'frances'`. km: `journeys.total_km` → `stamps.km_accumulated` → `0`. |
 | **Assistente de Preenchimento** | ✅ Concluído | `GapModal` ao clicar "Ver resultado" quando `allPhotos.length < model.pages`. Opções: Upload (FileReader → Data URL, reabre modal se gap persiste) ou "Manter espaços em branco". |
@@ -86,6 +86,125 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 ---
 
 ## 🔄 Histórico de Alterações
+
+### Sessão 25/04/2026 (parte 4) — i18n dos textos de conteúdo do livro (frases, legendas, reflexões)
+
+#### Problema resolvido
+Mesmo após a parte 3 (que traduziu labels estruturais — prefácio, selos, paginação), os **textos de conteúdo** dentro das páginas do livro continuavam em português ao trocar de idioma:
+
+- Frase de abertura: *"Comecei sem saber o que encontraria..."* — hardcoded PT-BR
+- Texto de reflexão: *"Cada passo foi uma escolha..."* — hardcoded PT-BR
+- Legendas 1/2/3 — hardcoded PT-BR
+- Contador de navegação: *"pág. 5 / 50"*, *"Verso da capa"*, *"Contracapa"* — hardcoded PT-BR
+- Nome da rota no livro demo: vinha de `bp.demo.route` já existente (correto), mas não era reinicializado ao trocar idioma
+
+**Causa raiz técnica:** `DEFAULT_BOOK_DATA` era uma **constante de módulo** inicializada uma única vez na carga do arquivo. O `useState(DEFAULT_BOOK_DATA)` em React só usa o valor inicial uma vez — trocar de idioma não disparava nenhuma atualização.
+
+---
+
+#### Solução implementada
+
+##### 1. `src/i18n.ts` — 5 novas chaves `bp.demo.*` em todos os 10 idiomas
+
+Inseridas após `bp.kind.text-route` em cada bloco de idioma (via inserção por número de linha para contornar identidade dos blocos pt-BR e pt-PT):
+
+| Chave | pt-BR | en | de |
+|---|---|---|---|
+| `bp.demo.openingPhrase` | *Comecei sem saber...* | *I started not knowing...* | *Ich begann, ohne zu wissen...* |
+| `bp.demo.reflectionText` | *Cada passo foi uma escolha...* | *Each step was a choice...* | *Jeder Schritt war eine Entscheidung...* |
+| `bp.demo.caption1` | *Os primeiros passos foram...* | *The first steps were...* | *Die ersten Schritte waren...* |
+| `bp.demo.caption2` | *No meio do caminho...* | *Halfway through...* | *Auf halber Strecke...* |
+| `bp.demo.caption3` | *Santiago chegou antes...* | *Santiago came sooner...* | *Santiago kam früher...* |
+
+Idiomas completos: pt-BR, pt-PT, en, es, fr, de, it, ja, ko, zh-CN.
+
+---
+
+##### 2. `src/BookPage.tsx` — `DEFAULT_BOOK_DATA` → `makeDefaultBookData(t)`
+
+```tsx
+// ANTES — constante de módulo, textos fixos em PT-BR:
+const DEFAULT_BOOK_DATA: BookData = {
+  openingPhrase: 'Comecei sem saber o que encontraria...',
+  reflectionText: 'Cada passo foi uma escolha...',
+  caption1: 'Os primeiros passos foram...',
+  ...
+};
+
+// DEPOIS — função que recebe t() e retorna textos no idioma correto:
+function makeDefaultBookData(t: (k: string) => string): BookData {
+  const route = t('bp.demo.route');
+  return {
+    title: `${route}, ${new Date().getFullYear()}`,
+    route,
+    openingPhrase: t('bp.demo.openingPhrase'),
+    reflectionText: t('bp.demo.reflectionText'),
+    caption1: t('bp.demo.caption1'),
+    caption2: t('bp.demo.caption2'),
+    caption3: t('bp.demo.caption3'),
+    ...
+  };
+}
+```
+
+- Estado inicial: `useState<BookData>(() => makeDefaultBookData(t))`
+- Logout (reset para demo): `setBookData(makeDefaultBookData(t))` — já usa t() correto
+- `loadUserData`: substituídas as referências a `DEFAULT_BOOK_DATA.allPhotos` e `.coverPhoto` por `makeDefaultBookData(t)` local
+
+---
+
+##### 3. `BookPage` — `useEffect([lang])` para atualização dinâmica de idioma
+
+```tsx
+const { t, lang } = useT();  // lang agora exposto
+
+useEffect(() => {
+  if (user) return;  // usuário logado: dados reais, não reseta
+  const d = makeDefaultBookData(t);
+  setBookData(p => ({
+    ...p,
+    route: d.route,
+    title: d.title,
+    openingPhrase: d.openingPhrase,
+    reflectionText: d.reflectionText,
+    caption1: d.caption1,
+    caption2: d.caption2,
+    caption3: d.caption3,
+  }));
+}, [lang]);
+```
+
+**Comportamento:**
+- Demo (sem login): troca de idioma atualiza automaticamente todos os textos do livro
+- Usuário logado: `if (user) return` protege os dados reais — a troca de idioma não sobrescreve
+
+---
+
+##### 4. Contador de navegação do livro internacionalizado
+
+```tsx
+// ANTES:
+{page <= 1 ? 'Verso da capa' : page >= TOTAL - 1 ? 'Contracapa' : `pág. ${page - 1} / ${TOTAL - 3}`}
+
+// DEPOIS:
+{page <= 1 ? t('bp.kind.verso-capa') : page >= TOTAL - 1 ? t('bp.kind.back-cover') : `${t('bp.page')} ${page - 1} / ${TOTAL - 3}`}
+```
+
+---
+
+#### Tabela de componentes atualizada
+
+| Componente | Chave i18n | Total de chaves `bp.*` |
+|---|---|---|
+| Labels estruturais (prefácio, selos, paginação, layouts) | `bp.preface.*`, `bp.stamps.title`, `bp.page`, `bp.kind.*` | 48 chaves |
+| Textos de conteúdo demo | `bp.demo.openingPhrase`, `.reflectionText`, `.caption1/2/3` | 5 chaves |
+| **Total por idioma** | — | **53 chaves `bp.*`** (+ `bp.demo.route` que já existia = 54) |
+
+#### Commits desta sessão
+- `7e6c716` — feat(i18n): traduzir todos os textos do livro modelo para 10 idiomas (parte 3)
+- `7013519` — feat(i18n): traduzir textos de conteúdo do livro em 10 idiomas (parte 4)
+
+---
 
 ### Sessão 25/04/2026 (parte 3) — i18n completo do livro modelo em 10 idiomas
 
