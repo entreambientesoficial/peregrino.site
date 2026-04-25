@@ -155,7 +155,7 @@ type PageKind =
   | 'one-wide-three-below' | 'trio-rotated' | 'wide-photo-text'
   | 'two-top-one-bottom' | 'trio-portrait' | 'photo-caption' | 'text-route';
 
-interface PageDef { kind: PageKind; p?: number | number[]; ck?: 'c1' | 'c2' | 'c3'; o?: ('l' | 'p' | 'any')[]; src?: string }
+interface PageDef { kind: PageKind; p?: number | number[]; ck?: 'c1' | 'c2' | 'c3'; o?: ('l' | 'p' | 'any')[]; src?: string; srcs?: (string | null)[] }
 
 // 48 páginas fotográficas (p3–p50 do modelo Canva do usuário)
 // Total: cover + verso-capa + preface + 48 fotos + stamps + verso-back + back-cover = 54 páginas
@@ -173,8 +173,8 @@ const PHOTO_BLOCK: PageDef[] = [
   { kind: 'one-left-two-right',  p: [0,1,2],     o: ['p','l','l']                        }, // p13
   { kind: 'one-landscape-margin',p: 0,           o: ['l']                                }, // p14
   { kind: 'quote-route'                                                                   }, // p15
-  { kind: 'full-bleed',          p: 0,           o: ['any']                              }, // p16
-  { kind: 'two-left-one-right',  p: [0,1,2],     o: ['p','p','l']                        }, // p17
+  { kind: 'full-bleed',          p: 0,           o: ['any'],  src: '/img-apoio/img-webp/20.webp'                                   }, // p16 pág.14
+  { kind: 'two-left-one-right',  p: [0,1,2],     o: ['p','p','l'], srcs: [null, null, '/img-apoio/img-webp/36.webp']               }, // p17 pág.15
   { kind: 'grid-2x2',            p: [0,1,2,3],   o: ['any','any','any','any']            }, // p18
   { kind: 'photo-text-r',        p: 0,           o: ['p']                                }, // p19
   { kind: 'full-bleed',          p: 0,           o: ['any']                              }, // p20
@@ -207,7 +207,7 @@ const PHOTO_BLOCK: PageDef[] = [
   { kind: 'two-top-one-bottom',  p: [0,1,2],     o: ['any','any','l']                    }, // p47
   { kind: 'trio-centered',       p: [0,1,2],     o: ['p','p','p']                        }, // p48
   { kind: 'grid-2x2',            p: [0,1,2,3],   o: ['any','any','any','any']            }, // p49
-  { kind: 'photo-caption',       p: 0,           o: ['l']                                }, // p50
+  { kind: 'photo-caption',       p: 0,           o: ['l'],  src: '/img-apoio/card11-caminho-aragones.webp' }, // p50 pág.48
 ];
 
 // Gera as 54 page defs fixas (modelo 50 páginas do usuário):
@@ -226,26 +226,66 @@ function generatePageDefs(_modelPages?: number): PageDef[] {
 }
 
 // ---------------------------------------------------------------------------
-// Mock de locais para os espaços de carimbo
+// Carimbos de exemplo — dados visuais para renderização SVG
 // ---------------------------------------------------------------------------
 const STAMP_PLACES = [
-  { city: 'Saint-Jean-Pied-de-Port', code: 'SJPP', region: 'França', day: 'Dia 1' },
-  { city: 'Roncesvalles', code: 'RVS', region: 'Navarra', day: 'Dia 2' },
-  { city: 'Pamplona', code: 'PNA', region: 'Navarra', day: 'Dia 3' },
-  { city: 'Puente la Reina', code: 'PLR', region: 'Navarra', day: 'Dia 4' },
-  { city: 'Logroño', code: 'LGN', region: 'La Rioja', day: 'Dia 7' },
-  { city: 'Burgos', code: 'BRG', region: 'Castilla', day: 'Dia 12' },
-  { city: 'León', code: 'LEN', region: 'Castilla', day: 'Dia 18' },
-  { city: 'Astorga', code: 'AST', region: 'Castilla', day: 'Dia 20' },
-  { city: 'Ponferrada', code: 'PNF', region: 'El Bierzo', day: 'Dia 22' },
-  { city: 'O Cebreiro', code: 'OCB', region: 'Galicia', day: 'Dia 25' },
-  { city: 'Sarria', code: 'SAR', region: 'Galicia', day: 'Dia 27' },
-  { city: 'Portomarín', code: 'PTM', region: 'Galicia', day: 'Dia 28' },
-  { city: 'Palas de Rei', code: 'PDR', region: 'Galicia', day: 'Dia 29' },
-  { city: 'Arzúa', code: 'ARZ', region: 'Galicia', day: 'Dia 31' },
-  { city: 'O Pedrouzo', code: 'OPD', region: 'Galicia', day: 'Dia 32' },
-  { city: 'Santiago de Compostela', code: 'SCQ', region: 'Galicia', day: 'Dia 33' },
+  { city: 'Saint-Jean-Pied-de-Port', top: 'BUREAU DES PÈLERINS',   bottom: 'ST-JEAN · FRANCE',      color: '#1a3a8f', icon: 'pilgrim', double: true  },
+  { city: 'Roncesvalles',            top: 'REAL COLEGIATA',         bottom: 'RONCESVALLES · NAV',    color: '#3d2000', icon: 'cross',   double: true  },
+  { city: 'Zubiri',                  top: 'ALBERGUE MUNICIPAL',     bottom: 'ZUBIRI · NAV',          color: '#2d4a00', icon: 'shell',   double: false },
+  { city: 'Pamplona',                top: 'CATEDRAL DE PAMPLONA',   bottom: 'PAMPLONA · NAV',        color: '#6e1010', icon: 'church',  double: false },
+  { city: 'Puente la Reina',         top: 'IGLESIA DEL CRUCIFIJO',  bottom: 'PUENTE LA REINA',       color: '#1a4a1a', icon: 'cross',   double: true  },
+  { city: 'Estella',                 top: 'IGLESIA SAN PEDRO',      bottom: 'ESTELLA · NAV',         color: '#1a1a6a', icon: 'star',    double: false },
+  { city: 'Logroño',                 top: 'CATEDRAL STA. MARÍA',    bottom: 'LOGROÑO · RIOJA',       color: '#5a1a00', icon: 'cross',   double: true  },
+  { city: 'Nájera',                  top: 'MONASTERIO STA. MARÍA',  bottom: 'NÁJERA · RIOJA',        color: '#3a0a5a', icon: 'crown',   double: false },
+  { city: 'Sto. Domingo',            top: 'CATEDRAL',               bottom: 'STO. DOMINGO · RIOJA',  color: '#004040', icon: 'church',  double: true  },
+  { city: 'Burgos',                  top: 'CATEDRAL DE BURGOS',     bottom: 'BURGOS · CYL',          color: '#0a0a4a', icon: 'cross',   double: true  },
+  { city: 'Frómista',                top: 'IGLESIA SAN MARTÍN',     bottom: 'FRÓMISTA · PAL',        color: '#2a4000', icon: 'shell',   double: false },
+  { city: 'Sahagún',                 top: 'MONASTERIO BENEDICTO',   bottom: 'SAHAGÚN · LEÓN',        color: '#3a1500', icon: 'crown',   double: true  },
+  { city: 'León',                    top: 'CATEDRAL DE LEÓN',       bottom: 'LEÓN · CYL',            color: '#00237a', icon: 'church',  double: false },
+  { city: 'Astorga',                 top: 'CATEDRAL DE ASTORGA',    bottom: 'ASTORGA · LEÓN',        color: '#5a0000', icon: 'cross',   double: true  },
+  { city: 'Ponferrada',              top: 'CASTILLO TEMPLARIO',     bottom: 'PONFERRADA · BIER',     color: '#2a1a00', icon: 'crown',   double: false },
+  { city: 'O Cebreiro',              top: 'IGLESIA SANTA MARÍA',    bottom: 'O CEBREIRO · GAL',      color: '#003060', icon: 'cross',   double: true  },
+  { city: 'Sarria',                  top: 'CONVENTO MERCEDARIO',    bottom: 'SARRIA · LUG',          color: '#1a3000', icon: 'pilgrim', double: false },
+  { city: 'Portomarín',              top: 'IGLESIA SAN NICOLÁS',    bottom: 'PORTOMARÍN · LUG',      color: '#003a3a', icon: 'shell',   double: true  },
+  { city: 'Palas de Rei',            top: 'PARROQUIA SAN TIRSO',    bottom: 'PALAS DE REI · LUG',    color: '#2a0a1a', icon: 'star',    double: false },
+  { city: 'Arzúa',                   top: 'PARROQUIA DE ARZÚA',     bottom: 'ARZÚA · COR',           color: '#003a20', icon: 'cross',   double: true  },
+  { city: 'O Pedrouzo',              top: 'ALBERGUE XUNTA',         bottom: 'O PEDROUZO · COR',      color: '#3a2000', icon: 'shell',   double: false },
+  { city: 'Santiago de Compostela',  top: 'OFICINA DEL PEREGRINO',  bottom: 'SANTIAGO · COR',        color: '#4a0a00', icon: 'church',  double: true  },
 ];
+
+function renderStampIcon(icon: string, color: string) {
+  switch (icon) {
+    case 'cross':
+      return <g stroke={color} strokeWidth="2" strokeLinecap="round">
+        <line x1="50" y1="19" x2="50" y2="50"/><line x1="36" y1="29" x2="64" y2="29"/>
+      </g>;
+    case 'shell':
+      return <g stroke={color} strokeWidth="1.5" strokeLinecap="round" fill="none">
+        <path d="M50,47 L50,21 M50,47 L35,26 M50,47 L27,37 M50,47 L65,26 M50,47 L73,37"/>
+        <path d="M35,26 Q50,17 65,26"/>
+      </g>;
+    case 'star':
+      return <polygon points="50,22 52.9,29.9 61.4,30.3 54.8,35.5 57.1,43.7 50,39 42.9,43.7 45.2,35.5 38.6,30.3 47.1,29.9" fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>;
+    case 'church':
+      return <g stroke={color} strokeWidth="1.5" strokeLinecap="round" fill="none">
+        <line x1="50" y1="11" x2="50" y2="17"/><line x1="46" y1="14" x2="54" y2="14"/>
+        <path d="M36,28 L50,17 L64,28"/>
+        <rect x="40" y="28" width="20" height="16" rx="0.5"/>
+        <rect x="46" y="34" width="8" height="10"/>
+      </g>;
+    case 'crown':
+      return <g stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <path d="M33,45 L33,27 L42,36 L50,21 L58,36 L67,27 L67,45 Z"/>
+      </g>;
+    case 'pilgrim':
+      return <g stroke={color} strokeWidth="1.5" strokeLinecap="round" fill="none">
+        <circle cx="50" cy="22" r="4"/>
+        <path d="M50,26 L50,40 M50,31 L43,37 M50,31 L57,37 M50,40 L44,50 M50,40 L55,49"/>
+        <line x1="43" y1="22" x2="43" y2="52"/><line x1="40" y1="48" x2="43" y2="52"/>
+      </g>;
+    default: return null;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Mapeamento de slots — distribuição inteligente por orientação
@@ -323,7 +363,9 @@ function renderBookPage(
   const slots = slotMap.get(pageIdx) ?? [];
   const ph = (n: number) => {
     if (bookData.photoAssignments[n] !== undefined) return bookData.photoAssignments[n];
-    return n < photos.length ? photos[n] : `__stamp__:${n}`;
+    if (photos.length === 0) return `__stamp__:${n}`;
+    // n pode ser -1 (queues esgotadas) ou ≥89 (modo sequencial esgotado) — wrap-around correto
+    return photos[((n % photos.length) + photos.length) % photos.length];
   };
   const getTextEntry = (slot: 'top' | 'bottom'): PageTextEntry | undefined =>
     bookData.pageTexts[`${pageIdx}-${slot}`];
@@ -343,8 +385,8 @@ function renderBookPage(
     <div className={cls} style={{ ...sty, background: '#E8E4D9' }} />
   );
   // Renderiza foto real (object-fit:cover) ou placeholder bege se não disponível
-  const pimg = (slotIdx: number, style?: React.CSSProperties) => {
-    const url = ph(slotIdx);
+  const pimg = (slotIdx: number, style?: React.CSSProperties, overrideUrl?: string | null) => {
+    const url = overrideUrl ?? ph(slotIdx);
     if (url && !url.startsWith('__stamp__')) {
       return <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block', ...style }} />;
     }
@@ -426,7 +468,7 @@ function renderBookPage(
     case 'full-bleed':
       return (
         <div style={{ width: '100%', height: '100%', background: cellBg, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-          {pimg(slots[0])}
+          {pimg(slots[0], undefined, def.src ?? def.srcs?.[0])}
         </div>
       );
 
@@ -589,9 +631,9 @@ function renderBookPage(
     case 'two-left-one-right':
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(5), padding: sp(10) }}>
-          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
-          <div style={{ gridRow: '1 / 3', overflow: 'hidden', background: cellBg }}>{pimg(slots[2])}</div>
-          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[1])}</div>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0], undefined, def.srcs?.[0])}</div>
+          <div style={{ gridRow: '1 / 3', overflow: 'hidden', background: cellBg }}>{pimg(slots[2], undefined, def.srcs?.[2])}</div>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[1], undefined, def.srcs?.[1])}</div>
         </div>
       );
 
@@ -741,7 +783,7 @@ function renderBookPage(
       const botText = renderTextSlot('bottom', bookData.caption3);
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', padding: sp(14), gap: sp(8) }}>
-          <div style={{ flex: '0 0 60%', overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
+          <div style={{ flex: '0 0 80%', overflow: 'hidden', background: cellBg }}>{pimg(slots[0], undefined, def.src ?? def.srcs?.[0])}</div>
           <div style={{ borderTop: '1px solid rgba(45,58,39,0.1)', paddingTop: sp(6) }}>
             {botText ?? <p style={{ fontFamily: "'Dancing Script', cursive", fontStyle: 'italic', fontSize: fs(0.56), color: 'rgba(45,58,39,0.55)', lineHeight: 1.5 }}>{bookData.caption3}</p>}
           </div>
@@ -765,41 +807,44 @@ function renderBookPage(
     // ── Selos — grade dinâmica de carimbos da credencial ────────────────────
     // Slots dinâmicos: refletem os selos reais do peregrino.
     // Rotas longas (Francês ~60-80 selos) → mais slots; rotas curtas (Inglês ~20) → menos.
-    // Mínimo de 16 para não ficar vazio no demo.
+    // Slots dinâmicos por rota: quando logado, usa a quantidade esperada da rota escolhida.
     case 'stamps': {
       const realCount = bookData.stampsCount;
-      const displayCount = Math.max(realCount, 16);
-      // 4 colunas base (como modelo); expande para 5 em rotas longas, 6 em muito longas
-      const cols = displayCount <= 16 ? 4 : displayCount <= 30 ? 5 : 6;
+      const routeSlots: Record<string, number> = {
+        'Camino Francés': 36, 'Camino Português': 22, 'Camino Portugués': 22,
+        'Camino del Norte': 28, 'Via de la Plata': 26, 'Camino Inglés': 16,
+        'Camino Primitivo': 24, 'Camino Aragonés': 18, 'Camino de Madrid': 16,
+        'Camino de Invierno': 20, 'Camino Sanabrés': 22,
+      };
+      const displayCount = Math.max(realCount, routeSlots[bookData.route] ?? 28);
+      // 5 colunas ≤20; 6 colunas ≤36; 7 colunas >36
+      const cols = displayCount <= 20 ? 5 : displayCount <= 36 ? 6 : 7;
       const rows = Math.ceil(displayCount / cols);
       return (
-        <div className="w-full h-full bg-white flex flex-col" style={{ padding: sp(16) }}>
+        <div className="w-full h-full bg-white flex flex-col" style={{ padding: sp(8) }}>
           <p className="text-[#2D3A27]/30 uppercase tracking-[0.28em] text-center font-serif italic"
-            style={{ fontSize: fs(0.42), marginBottom: sp(10) }}>
+            style={{ fontSize: fs(0.42), marginBottom: sp(4) }}>
             Carimbos da Credencial
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)`, gap: sp(4), flex: 1 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)`, gap: sp(2), flex: 1 }}>
             {Array.from({ length: displayCount }).map((_, i) => {
-              const isReal = i < realCount;
               const mock = STAMP_PLACES[i % STAMP_PLACES.length];
               return (
                 <div key={i}
-                  className="flex flex-col items-center justify-center bg-[#F8F6F0] border border-[#2D3A27]/08"
-                  style={{ borderRadius: sp(2), padding: `${sp(2)}px ${sp(3)}px`, gap: sp(1) }}>
-                  {isReal ? (
-                    <p className="font-serif italic text-[#2D3A27]/35" style={{ fontSize: fs(0.48) }}>{i + 1}</p>
-                  ) : (
-                    <>
-                      <span style={{ fontSize: fs(0.26), letterSpacing: '0.12em', color: 'rgba(45,58,39,0.22)', textTransform: 'uppercase' }}>{mock.code}</span>
-                      <span className="font-serif italic" style={{ fontSize: fs(0.30), color: 'rgba(45,58,39,0.32)', textAlign: 'center', lineHeight: 1.1 }}>{mock.city}</span>
-                      <span style={{ fontSize: fs(0.22), color: 'rgba(45,58,39,0.16)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{mock.day}</span>
-                    </>
-                  )}
+                  className="flex items-center justify-center bg-white"
+                  style={{ borderRadius: sp(2), overflow: 'hidden' }}>
+                  <svg viewBox="0 0 100 70" width="100%" height="100%" style={{ display: 'block', opacity: 0.78 }}>
+                    <ellipse cx="50" cy="35" rx="46" ry="30" fill="none" stroke={mock.color} strokeWidth="1.8"/>
+                    {mock.double && <ellipse cx="50" cy="35" rx="40" ry="24" fill="none" stroke={mock.color} strokeWidth="0.7"/>}
+                    <text x="50" y="13.5" textAnchor="middle" fill={mock.color} fontSize="5.5" fontFamily="Georgia, serif" letterSpacing="0.8">{mock.top}</text>
+                    {renderStampIcon(mock.icon, mock.color)}
+                    <text x="50" y="60" textAnchor="middle" fill={mock.color} fontSize="5" fontFamily="Georgia, serif" letterSpacing="0.4">{mock.bottom}</text>
+                  </svg>
                 </div>
               );
             })}
           </div>
-          <p className="text-[#2D3A27]/20 text-center font-serif italic" style={{ fontSize: fs(0.40), marginTop: sp(8) }}>
+          <p className="text-[#2D3A27]/20 text-center font-serif italic" style={{ fontSize: fs(0.40), marginTop: sp(3) }}>
             {bookData.route} · {bookData.startDate} — {bookData.endDate}
           </p>
         </div>

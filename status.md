@@ -87,6 +87,138 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ## 🔄 Histórico de Alterações
 
+### Sessão 25/04/2026 (parte 2) — Fotos fixas por página + selos SVG + layout aprovado
+
+#### ⚠️ DECISÃO FINAL DO USUÁRIO: configuração de modelo e imagens aprovada. Não alterar mais.
+
+---
+
+#### 1. Fix do pool de fotos esgotado (págs. 47 e 48 sem foto)
+
+**Causa raiz:** O `buildPhotoSlotMap` com filas de orientação retorna `-1` quando as filas se esgotam (89 fotos para 91 slots). A função `ph(-1)` retornava `undefined` mesmo após fix anterior porque em JavaScript `-1 % 89 = -1`, e `photos[-1]` é `undefined`.
+
+**Fix correto em `ph()`:**
+```tsx
+// Fórmula correta para wrap-around com índices negativos:
+return photos.length > 0
+  ? photos[((n % photos.length) + photos.length) % photos.length]
+  : `__stamp__:${n}`;
+// n = -1: ((-1 % 89) + 89) % 89 = 88 (última foto) ✓
+// n = 89: (0 + 89) % 89 = 0 (primeira foto) ✓
+```
+
+---
+
+#### 2. Fotos fixas por página — novo campo `srcs` na `PageDef`
+
+Para permitir imagens hardcoded em páginas específicas (independente do pool de fotos do usuário):
+
+**Interface `PageDef` — novo campo:**
+```tsx
+interface PageDef { ...; src?: string; srcs?: (string | null)[] }
+```
+- `src`: override para páginas com 1 foto (já usado no spread)
+- `srcs`: override por slot para páginas com múltiplas fotos; `null` = usa pool normal
+
+**`pimg()` — novo parâmetro `overrideUrl`:**
+```tsx
+const pimg = (slotIdx: number, style?: React.CSSProperties, overrideUrl?: string | null) => {
+  const url = overrideUrl ?? ph(slotIdx);
+  ...
+};
+```
+
+**Render cases atualizados para aceitar override:**
+- `full-bleed`: `pimg(slots[0], undefined, def.src ?? def.srcs?.[0])`
+- `two-left-one-right`: cada slot passa `def.srcs?.[pos]`
+- `photo-caption`: `pimg(slots[0], undefined, def.src ?? def.srcs?.[0])`
+
+**Páginas com foto fixada:**
+
+| Pág. | Índice PHOTO_BLOCK | Slot | Imagem fixada |
+|---|---|---|---|
+| 14 | [13] `full-bleed` | único | `/img-apoio/img-webp/20.webp` |
+| 15 | [14] `two-left-one-right` | slots[2] (imagem grande, coluna direita) | `/img-apoio/img-webp/36.webp` |
+| 48 | [47] `photo-caption` | único | `/img-apoio/card11-caminho-aragones.webp` |
+
+**Pág. 48 também:** `flex: '0 0 60%'` → `flex: '0 0 80%'` (foto maior, menos espaço de texto — pedido do usuário).
+
+---
+
+#### 3. Página de selos (pág. 49) — carimbos SVG completos
+
+**Problema:** `isReal = i < realCount` com `realCount = 28` (demo) fazia todos os 28 slots entrarem no branch `isReal` (que mostrava só o número). O branch mock com SVG nunca executava.
+
+**Fix:** Removida a bifurcação `isReal`/mock — todos os slots renderizam SVG stamp diretamente.
+
+**`STAMP_PLACES` reescrito** com 22 entradas visuais (Camino Francés completo: SJPP → Santiago):
+
+```tsx
+const STAMP_PLACES = [
+  { city: 'Saint-Jean-Pied-de-Port', top: 'BUREAU DES PÈLERINS', bottom: 'ST-JEAN · FRANCE',   color: '#1a3a8f', icon: 'pilgrim', double: true },
+  { city: 'Roncesvalles',            top: 'REAL COLEGIATA',       bottom: 'RONCESVALLES · NAV', color: '#3d2000', icon: 'cross',   double: true },
+  // ... 20 entradas adicionais cobrindo Pamplona, Burgos, León, Sarria, Santiago etc.
+];
+```
+
+**`renderStampIcon(icon, color)`** — função SVG com 6 ícones:
+- `cross`: cruz latina
+- `shell`: concha vieira com linhas irradiando
+- `star`: estrela de 5 pontas (polígono calculado)
+- `church`: silhueta de igreja com portal e cruz no topo
+- `crown`: coroa de 3 pontas
+- `pilgrim`: peregrino com bordão
+
+**SVG stamp por carimbo:**
+```tsx
+<svg viewBox="0 0 100 70" width="100%" height="100%">
+  <ellipse cx="50" cy="35" rx="46" ry="30" fill="none" stroke={color} strokeWidth="1.8"/>
+  {double && <ellipse cx="50" cy="35" rx="40" ry="24" fill="none" stroke={color} strokeWidth="0.7"/>}
+  <text y="13.5">{top}</text>
+  {renderStampIcon(icon, color)}
+  <text y="60">{bottom}</text>
+</svg>
+```
+
+Cada carimbo tem cor única (azul-marinho, castanho, verde, bordô, roxo, teal) e dupla borda opcional — visualmente similar a selos reais da credencial do peregrino.
+
+---
+
+#### 4. Layout dos selos corrigido + contagem dinâmica por rota
+
+**Problema de overflow:** 28 selos em 5 colunas = 6 linhas. Com `padding: sp(16)` e `gap: sp(4)`, extravasava a altura da página (340px).
+
+**Correções de espaçamento:**
+- Padding externo: `sp(16)` → `sp(8)`
+- Gap entre células: `sp(4)` → `sp(2)`
+- Margem do título: `sp(10)` → `sp(4)`
+- Margem do rodapé: `sp(8)` → `sp(3)`
+
+**Nova lógica de colunas:**
+```tsx
+const cols = displayCount <= 20 ? 5 : displayCount <= 36 ? 6 : 7;
+// Para 28 selos (Francés demo): 6 colunas → 5 linhas → cabe na página ✓
+```
+
+**Contagem dinâmica por rota (usuário logado):**
+```tsx
+const routeSlots: Record<string, number> = {
+  'Camino Francés': 36, 'Camino Português': 22, 'Camino del Norte': 28,
+  'Via de la Plata': 26, 'Camino Inglés': 16, 'Camino Primitivo': 24,
+  'Camino Aragonés': 18, 'Camino de Madrid': 16, 'Camino Sanabrés': 22, ...
+};
+const displayCount = Math.max(realCount, routeSlots[bookData.route] ?? 28);
+```
+O álbum exibe o número de slots esperado para a rota — nunca menos que os selos reais coletados.
+
+---
+
+#### 5. Estado final aprovado dos 50 layouts (todas as páginas)
+
+**✅ Todas as 50 páginas de fotos aprovadas pelo usuário. Configuração de modelo e imagens congelada.**
+
+---
+
 ### Sessão 25/04/2026 — Double-page spread corrigido + reposicionamento págs. 13-14 ↔ 25-26
 
 #### 1. Reposicionamento de páginas (PHOTO_BLOCK)
