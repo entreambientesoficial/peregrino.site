@@ -76,7 +76,7 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 | **Livro interativo** | ✅ Concluído | Estrutura dinâmica: capa + prefácio + N layouts fotográficos (50/100/150 conforme modelo) + selos + contracapa. `object-contain` nos layouts emoldurados (large-white, stacked-2, grid-4, stagger-4, trio-h/v) — fotos aparecem inteiras. `object-cover` mantido apenas em full-dark e panoramas (sangria intencional). |
 | **Livro demo (sem login)** | ✅ Concluído | 89 fotos reais do Caminho em `public/img-apoio/img-webp/`. Reordenadas por orientação: landscape → slots panorama/stacked/centered, portrait → demais. Otimizadas: 1200px WebP q82, 22MB total. |
 | **Atribuição manual de fotos** | ✅ Concluído | Aba Fotos do Step 2 redesenhada. Galeria + grid de slots do livro. Fluxo: clique numa foto → clique num slot = atribuição. Badge amarelo = manual; × remove; botão limpa tudo. `BookData.photoAssignments: Record<number,string>` sobrepõe o mapeamento automático. |
-| **i18n do /book** | ✅ Concluído | 39 keys `bp.*` em 10 idiomas; capa usa nome da rota traduzido via `t('bp.demo.route')`; `I18nProvider` no `App.tsx` raiz |
+| **i18n do /book** | ✅ Concluído | 87 keys `bp.*` em 10 idiomas; Prefácio, selos, tipos de layout e paginação todos dinâmicos via `t()`; `renderBookPage` recebe `t` como parâmetro; `I18nProvider` no `App.tsx` raiz |
 | **Auth Gate + SSO** | ✅ Concluído | `AuthModal` com botão Google OAuth (Supabase `signInWithOAuth`) + formulário email/senha + bypass convidado. `onAuthStateChange` detecta login após redirect OAuth e carrega dados automaticamente. |
 | **Dados reais do peregrino** | ✅ Concluído | `loadUserData` carrega `journeys`, `profiles`, `stamps` e `photos` em paralelo (`Promise.all`). Prioridade de rota: `journeys.route_id` → `profiles.route_id` → `stamps.route_id` → `'frances'`. km: `journeys.total_km` → `stamps.km_accumulated` → `0`. |
 | **Assistente de Preenchimento** | ✅ Concluído | `GapModal` ao clicar "Ver resultado" quando `allPhotos.length < model.pages`. Opções: Upload (FileReader → Data URL, reabre modal se gap persiste) ou "Manter espaços em branco". |
@@ -86,6 +86,67 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 ---
 
 ## 🔄 Histórico de Alterações
+
+### Sessão 25/04/2026 (parte 3) — i18n completo do livro modelo em 10 idiomas
+
+#### Problema resolvido
+Ao trocar de idioma, o livro modelo misturava o idioma selecionado com textos fixos em português. Os labels do Prefácio ("Peregrino", "Rota", "Início", etc.), o título da página de selos ("Carimbos da Credencial"), os nomes de tipo de layout na aba de personalização e a paginação ("Pág. X") estavam todos hardcoded em português.
+
+#### Solução implementada
+
+**`src/i18n.ts` — 48 novas chaves `bp.*` em todos os 10 idiomas:**
+
+Chaves adicionadas por bloco de idioma (após `'bp.auth.connecting'`):
+
+| Chave | Descrição |
+|---|---|
+| `bp.preface.pilgrim` | Label "Peregrino" no prefácio |
+| `bp.preface.route` | Label "Rota" |
+| `bp.preface.start` | Label "Início" |
+| `bp.preface.end` | Label "Chegada" |
+| `bp.preface.distance` | Label "Distância" |
+| `bp.preface.duration` | Label "Duração" |
+| `bp.preface.days_unit` | Unidade de dias ("dias", "days", "jours", "Tage", "giorni", "日間", "일", "天") |
+| `bp.preface.stamps` | Label "Carimbos" |
+| `bp.preface.photos` | Label "Fotos" |
+| `bp.stamps.title` | Título da página de selos ("Carimbos da Credencial", "Credential Stamps", etc.) |
+| `bp.page` | Prefixo de paginação ("Pág.", "Pg.", "P.", "S.", "Pag.", "页") |
+| `bp.kind.*` | Nome de cada um dos 30 tipos de layout de página |
+
+**`src/BookPage.tsx` — 4 pontos de uso internacionalizados:**
+
+1. **`renderBookPage` — nova assinatura:** adicionado parâmetro `t: (k: string) => string`
+   ```tsx
+   function renderBookPage(def, pageIdx, bookData, S, sp, fs, slotMap, t) { ... }
+   ```
+
+2. **Call site atualizado** em `InteractiveBook`:
+   ```tsx
+   {renderBookPage(def, idx, bookData, S, sp, fs, slotMap, t)}
+   ```
+   (`InteractiveBook` já tinha `const { t } = useT()`)
+
+3. **`case 'preface'`** — labels dinâmicos:
+   ```tsx
+   [t('bp.preface.pilgrim'), bookData.userName],
+   [t('bp.preface.route'), bookData.route],
+   // ... todos os 8 campos
+   [t('bp.preface.duration'), `${bookData.days} ${t('bp.preface.days_unit')}`],
+   ```
+
+4. **`case 'stamps'`** — título dinâmico:
+   ```tsx
+   {t('bp.stamps.title')}
+   ```
+
+5. **`StepCustomize` — `kindLabel` e paginação:**
+   - Substituído objeto Record<PageKind,string> hardcoded por função: `const kindLabel = (k: PageKind) => t(\`bp.kind.${k}\`)`
+   - `"Pág. {pageIdx + 1}"` → `"{t('bp.page')} {pageIdx + 1}"`
+
+#### Commit
+`7e6c716` — feat(i18n): traduzir todos os textos do livro modelo para 10 idiomas
+
+---
 
 ### Sessão 25/04/2026 (parte 2) — Fotos fixas por página + selos SVG + layout aprovado
 
