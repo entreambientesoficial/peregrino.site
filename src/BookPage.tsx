@@ -155,7 +155,7 @@ type PageKind =
   | 'one-wide-three-below' | 'trio-rotated' | 'wide-photo-text'
   | 'two-top-one-bottom' | 'trio-portrait' | 'photo-caption' | 'text-route';
 
-interface PageDef { kind: PageKind; p?: number | number[]; ck?: 'c1' | 'c2' | 'c3'; o?: ('l' | 'p' | 'any')[] }
+interface PageDef { kind: PageKind; p?: number | number[]; ck?: 'c1' | 'c2' | 'c3'; o?: ('l' | 'p' | 'any')[]; src?: string }
 
 // 48 páginas fotográficas (p3–p50 do modelo Canva do usuário)
 // Total: cover + verso-capa + preface + 48 fotos + stamps + verso-back + back-cover = 54 páginas
@@ -172,8 +172,8 @@ const PHOTO_BLOCK: PageDef[] = [
   { kind: 'one-portrait-margin', p: 0,           o: ['p']                                }, // p12
   { kind: 'one-left-two-right',  p: [0,1,2],     o: ['p','l','l']                        }, // p13
   { kind: 'one-landscape-margin',p: 0,           o: ['l']                                }, // p14
-  { kind: 'spread-l',            p: 0,           o: ['l']                                }, // p15
-  { kind: 'spread-r'                                                                      }, // p16 — slot compartilhado com spread-l
+  { kind: 'quote-route'                                                                   }, // p15
+  { kind: 'full-bleed',          p: 0,           o: ['any']                              }, // p16
   { kind: 'two-left-one-right',  p: [0,1,2],     o: ['p','p','l']                        }, // p17
   { kind: 'grid-2x2',            p: [0,1,2,3],   o: ['any','any','any','any']            }, // p18
   { kind: 'photo-text-r',        p: 0,           o: ['p']                                }, // p19
@@ -184,8 +184,8 @@ const PHOTO_BLOCK: PageDef[] = [
   { kind: 'duo-portrait-margin', p: [0,1],       o: ['p','p']                            }, // p24
   { kind: 'duo-stacked',         p: [0,1],       o: ['l','l']                            }, // p25
   { kind: 'duo-portrait-margin', p: [0,1],       o: ['p','p']                            }, // p26
-  { kind: 'quote-route'                                                                   }, // p27
-  { kind: 'full-bleed',          p: 0,           o: ['any']                              }, // p28
+  { kind: 'spread-l',            p: 0,           o: ['l'],  src: '/img-apoio/card8-granja-de-moreruela.png' }, // p27
+  { kind: 'spread-r',                                       src: '/img-apoio/card8-granja-de-moreruela.png' }, // p28 — slot compartilhado com spread-l
   { kind: 'one-left-two-right',  p: [0,1,2],     o: ['p','l','l']                        }, // p29
   { kind: 'one-landscape-margin',p: 0,           o: ['l']                                }, // p30
   { kind: 'trio-stagger',        p: [0,1,2],     o: ['p','p','p']                        }, // p31
@@ -542,24 +542,38 @@ function renderBookPage(
       );
 
     // ── Spread L — metade esquerda de uma foto que atravessa dois spreads ─────
-    case 'spread-l':
+    case 'spread-l': {
+      const spreadUrl = def.src ?? (slots[0] >= 0 ? ph(slots[0]) : null);
+      const hasSpreadPhoto = spreadUrl && !spreadUrl.startsWith('__stamp__');
       return (
-        <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}>
-          {slots[0] >= 0
-            ? <img src={ph(slots[0])} style={{ position: 'absolute', top: 0, left: 0, width: '200%', height: '100%', objectFit: 'cover', objectPosition: '0% center' }} />
-            : <div style={{ width: '100%', height: '100%', background: '#E8E4D9' }} />}
-        </div>
+        <div style={{
+          width: '100%', height: '100%', backgroundColor: '#E8E4D9',
+          ...(hasSpreadPhoto ? {
+            backgroundImage: `url(${spreadUrl})`,
+            backgroundSize: '200% auto',
+            backgroundPosition: '0% center',
+            backgroundRepeat: 'no-repeat',
+          } : {}),
+        }} />
       );
+    }
 
     // ── Spread R — metade direita da mesma foto do spread-l ─────────────────
-    case 'spread-r':
+    case 'spread-r': {
+      const spreadUrlR = def.src ?? (slots[0] >= 0 ? ph(slots[0]) : null);
+      const hasSpreadPhotoR = spreadUrlR && !spreadUrlR.startsWith('__stamp__');
       return (
-        <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}>
-          {slots[0] >= 0
-            ? <img src={ph(slots[0])} style={{ position: 'absolute', top: 0, right: 0, width: '200%', height: '100%', objectFit: 'cover', objectPosition: '100% center' }} />
-            : <div style={{ width: '100%', height: '100%', background: '#E8E4D9' }} />}
-        </div>
+        <div style={{
+          width: '100%', height: '100%', backgroundColor: '#E8E4D9',
+          ...(hasSpreadPhotoR ? {
+            backgroundImage: `url(${spreadUrlR})`,
+            backgroundSize: '200% auto',
+            backgroundPosition: '100% center',
+            backgroundRepeat: 'no-repeat',
+          } : {}),
+        }} />
       );
+    }
 
     // ── One Landscape Margin — idêntico ao one-portrait-margin (margens finas) ─
     case 'one-landscape-margin':

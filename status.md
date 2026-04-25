@@ -87,6 +87,90 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ## 🔄 Histórico de Alterações
 
+### Sessão 25/04/2026 — Double-page spread corrigido + reposicionamento págs. 13-14 ↔ 25-26
+
+#### 1. Reposicionamento de páginas (PHOTO_BLOCK)
+
+O usuário pediu para trocar as posições das páginas 13-14 com as páginas 25-26:
+
+| Antes | Após | Índice PHOTO_BLOCK |
+|---|---|---|
+| Pág. 13 = `quote-route` (texto de rota) | Pág. 13 = `spread-l` (metade esquerda do spread) | [12] |
+| Pág. 14 = `full-bleed` (1 foto) | Pág. 14 = `spread-r` (metade direita do spread) | [13] |
+| Pág. 25 = `duo-stacked` (2 paisagens empilhadas) | Pág. 25 = `quote-route` (texto de rota) | [24] |
+| Pág. 26 = `duo-portrait-margin` (2 retratos) | Pág. 26 = `one-landscape-margin` (1 paisagem) | [25] |
+
+Resultado: o double-page spread (uma foto dividida em duas páginas) ficou nas págs. 13-14 — posição central do livro, mais impactante visualmente.
+
+---
+
+#### 2. Fix crítico: double-page spread (págs. 13+14) — abordagem background-image
+
+**Problema original:** O spread usava `<img width:200% objectFit:cover>`. Essa abordagem não cria uma divisão matemática precisa — ambas as páginas exibiam o mesmo recorte da imagem (duplicação visual), não meades distintas.
+
+**Causa raiz:** `objectFit:cover` recalcula o recorte relativo ao container de cada página individualmente. Cada página tem seu próprio 440px × 340px — o cálculo de crop é independente, então ambas as páginas "veem" a parte central da imagem.
+
+**Solução implementada — `background-image` com `background-size: 200% auto`:**
+
+```tsx
+// spread-l — mostra a METADE ESQUERDA da imagem
+case 'spread-l': {
+  const spreadUrl = def.src ?? (slots[0] >= 0 ? ph(slots[0]) : null);
+  const hasSpreadPhoto = spreadUrl && !spreadUrl.startsWith('__stamp__');
+  return (
+    <div style={{
+      width: '100%', height: '100%', backgroundColor: '#E8E4D9',
+      ...(hasSpreadPhoto ? {
+        backgroundImage: `url(${spreadUrl})`,
+        backgroundSize: '200% auto',
+        backgroundPosition: '0% center',
+        backgroundRepeat: 'no-repeat',
+      } : {}),
+    }} />
+  );
+}
+
+// spread-r — mostra a METADE DIREITA da mesma imagem
+case 'spread-r': {
+  const spreadUrlR = def.src ?? (slots[0] >= 0 ? ph(slots[0]) : null);
+  const hasSpreadPhotoR = spreadUrlR && !spreadUrlR.startsWith('__stamp__');
+  return (
+    <div style={{
+      width: '100%', height: '100%', backgroundColor: '#E8E4D9',
+      ...(hasSpreadPhotoR ? {
+        backgroundImage: `url(${spreadUrlR})`,
+        backgroundSize: '200% auto',
+        backgroundPosition: '100% center',
+        backgroundRepeat: 'no-repeat',
+      } : {}),
+    }} />
+  );
+}
+```
+
+**Por que funciona:** `background-size: 200% auto` escala a imagem para ocupar exatamente 880px de largura (2× a largura de uma página). `background-position: 0% center` mostra os primeiros 440px (metade esquerda); `background-position: 100% center` mostra os últimos 440px (metade direita). O sistema de coordenadas de `background-position` garante a divisão matemática precisa — ao contrário do `objectFit`.
+
+---
+
+#### 3. Campo `src?: string` na interface `PageDef`
+
+Para fixar uma imagem específica no spread (independente das fotos do usuário), foi adicionado o campo `src` na interface:
+
+```tsx
+interface PageDef { kind: PageKind; p?: number | number[]; ck?: 'c1' | 'c2' | 'c3'; o?: ('l' | 'p' | 'any')[]; src?: string }
+```
+
+As entradas do spread no PHOTO_BLOCK receberam a imagem hardcoded:
+
+```tsx
+{ kind: 'spread-l', p: 0, o: ['l'], src: '/img-apoio/card8-granja-de-moreruela.png' }, // p15 pág. 13
+{ kind: 'spread-r',                  src: '/img-apoio/card8-granja-de-moreruela.png' }, // p16 pág. 14
+```
+
+A imagem `/img-apoio/card8-granja-de-moreruela.png` é uma foto panorâmica da Granja de Moreruela (Caminho Sanabrés), escolhida pelo usuário. A prioridade de resolução é: `def.src` → `ph(slots[0])` → placeholder bege.
+
+---
+
 ### Sessão 24/04/2026 (parte 2) — Layout do livro interativo `/book` — correções e arquitetura
 
 #### 1. Correções de layout aprovadas pelo usuário (via screenshots comparativos)
@@ -194,8 +278,8 @@ Todos os 50 layouts foram revisados. Status por página:
 | 10 | `one-portrait-margin` | ✅ Aprovado |
 | 11 | `one-left-two-right` | ✅ Trocado (era stagger-2) |
 | 12 | `one-landscape-margin` | ✅ Aprovado |
-| 13 | `spread-l` | ✅ Novo — metade esquerda do spread |
-| 14 | `spread-r` | ✅ Novo — metade direita do spread (1 foto compartilhada) |
+| 13 | `spread-l` | ✅ Spread págs. 13-14 — metade esquerda. Imagem: `card8-granja-de-moreruela.png`. Fix: `background-size:200% auto` |
+| 14 | `spread-r` | ✅ Spread págs. 13-14 — metade direita. Mesma imagem. Fix: `background-position:100% center` |
 | 15 | `two-left-one-right` | ✅ Aprovado |
 | 16 | `grid-2x2` | ✅ Aprovado |
 | 17 | `photo-text-r` | ✅ Aprovado |
