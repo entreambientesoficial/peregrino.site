@@ -110,25 +110,47 @@ interface ShippingAddress {
 }
 type CustomizeTab = 'cover' | 'texts' | 'photos';
 type ModelId = 'essential' | 'journey' | 'legacy';
-type FontSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-type FontFamily = 'inter' | 'playfair' | 'lora' | 'dancing' | 'montserrat';
+
+// ── 3 estilos tipográficos fixos do livro ───────────────────────────────────
+const TEXT_STYLES = {
+  titulo: {
+    label: 'Título',
+    hint: 'Playfair Display · Negrito',
+    fontFamily: "'Playfair Display', serif",
+    fontWeight: 700,
+    fontStyle: 'normal'  as const,
+    color: '#1B2616',
+    lineHeight: 1.2,
+    fsRatio: 0.78,
+  },
+  destaque: {
+    label: 'Destaque',
+    hint: 'Dancing Script · Itálico',
+    fontFamily: "'Dancing Script', cursive",
+    fontWeight: 400,
+    fontStyle: 'italic' as const,
+    color: '#1B2616',
+    lineHeight: 1.45,
+    fsRatio: 0.66,
+  },
+  corpo: {
+    label: 'Corpo',
+    hint: 'Lora · Regular',
+    fontFamily: "'Lora', serif",
+    fontWeight: 400,
+    fontStyle: 'normal'  as const,
+    color: 'rgba(45,58,39,0.72)',
+    lineHeight: 1.6,
+    fsRatio: 0.50,
+  },
+} as const;
+
+type TextStyleKey = keyof typeof TEXT_STYLES;
 
 interface PageTextEntry {
   text: string;
-  fontSize: FontSize;
-  fontFamily: FontFamily;
+  style: TextStyleKey;
 }
-
-const FONT_SIZE_FS: Record<FontSize, number> = { xs: 0.36, sm: 0.50, md: 0.64, lg: 0.80, xl: 1.0 };
-const FONT_SIZE_LABEL: Record<FontSize, string> = { xs: 'PP', sm: 'P', md: 'M', lg: 'G', xl: 'GG' };
-
-const FONT_FAMILIES: { id: FontFamily; label: string; css: string }[] = [
-  { id: 'inter', label: 'Inter', css: "'Inter', sans-serif" },
-  { id: 'playfair', label: 'Playfair', css: "'Playfair Display', serif" },
-  { id: 'lora', label: 'Lora', css: "'Lora', serif" },
-  { id: 'dancing', label: 'Dancing', css: "'Dancing Script', cursive" },
-  { id: 'montserrat', label: 'Montserrat', css: "'Montserrat', sans-serif" },
-];
 
 // Layouts que suportam slots de texto personalizados
 const PAGE_TEXT_SLOTS: Partial<Record<PageKind, Array<'top' | 'bottom'>>> = {
@@ -377,10 +399,16 @@ function renderBookPage(
     const entry = getTextEntry(slot);
     const text = entry?.text?.trim() || fallback || '';
     if (!text) return null;
-    const fsNum = FONT_SIZE_FS[entry?.fontSize ?? 'sm'];
-    const fontCss = FONT_FAMILIES.find(f => f.id === entry?.fontFamily)?.css ?? "'Inter', sans-serif";
+    const s = TEXT_STYLES[entry?.style ?? 'corpo'];
     return (
-      <p style={{ fontFamily: fontCss, fontSize: fs(fsNum), color: 'rgba(45,58,39,0.68)', lineHeight: 1.5 }}>
+      <p style={{
+        fontFamily: s.fontFamily,
+        fontWeight: s.fontWeight,
+        fontStyle: s.fontStyle,
+        color: s.color,
+        lineHeight: s.lineHeight,
+        fontSize: fs(s.fsRatio),
+      }}>
         {text}
       </p>
     );
@@ -2090,138 +2118,189 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
                 />
                 <p className="text-xs text-[#2D3A27]/25 mt-2 text-right">{bookData.title.length}/60</p>
               </div>
+              <div>
+                <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Nome do Peregrino</p>
+                <p className="text-xs text-[#2D3A27]/30 mb-3">Aparece na capa e no prefácio · ajuste como prefere ser identificado no livro impresso</p>
+                <input type="text" value={bookData.userName} maxLength={50} onChange={e => onChange({ userName: e.target.value })}
+                  placeholder="Seu nome como deve aparecer no livro"
+                  className="w-full bg-[#F5F2EA] border border-[#2D3A27]/10 rounded-2xl px-5 py-4 uppercase tracking-widest text-[#2D3A27] text-sm focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20"
+                />
+                <p className="text-xs text-[#2D3A27]/25 mt-2 text-right">{bookData.userName.length}/50</p>
+              </div>
             </motion.div>
           )}
 
           {tab === 'texts' && (
-            <motion.div key="texts" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-8">
-              <div>
-                <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Frase de abertura</p>
-                <p className="text-xs text-[#2D3A27]/30 mb-3">Aparece na página 4, logo após a capa</p>
-                <div className="bg-[#F5F2EA] rounded-2xl p-5 mb-3 border border-[#2D3A27]/5">
-                  <p className="text-[#2D3A27]/25 text-xs uppercase tracking-widest mb-2">Prévia</p>
-                  <p className="font-serif italic text-[#2D3A27] text-base leading-relaxed">"{bookData.openingPhrase}"</p>
-                  <p className="text-[#2D3A27]/30 text-xs mt-2">— {bookData.userName}</p>
-                </div>
-                <textarea value={bookData.openingPhrase} maxLength={160} onChange={e => onChange({ openingPhrase: e.target.value })} rows={3}
-                  placeholder="Uma frase que resume o que o Caminho significou para você..."
-                  className="w-full bg-[#F5F2EA] border border-[#2D3A27]/10 rounded-2xl px-5 py-4 font-serif italic text-[#2D3A27] text-base focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none"
-                />
-                <p className="text-xs text-[#2D3A27]/25 mt-1 text-right">{bookData.openingPhrase.length}/160</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Sua reflexão</p>
-                <p className="text-xs text-[#2D3A27]/30 mb-3">Aparece na página 45, próxima à contracapa</p>
-                <div className="bg-[#F5F2EA] rounded-2xl p-5 mb-3 border border-[#2D3A27]/5">
-                  <p className="text-[#2D3A27]/25 text-xs uppercase tracking-widest mb-2">Prévia</p>
-                  <p className="font-serif italic text-[#2D3A27] text-sm leading-relaxed">"{bookData.reflectionText}"</p>
-                </div>
-                <textarea value={bookData.reflectionText} maxLength={400} onChange={e => onChange({ reflectionText: e.target.value })} rows={5}
-                  placeholder="Escreva sobre o que viveu, aprendeu ou sentiu durante o Caminho..."
-                  className="w-full bg-[#F5F2EA] border border-[#2D3A27]/10 rounded-2xl px-5 py-4 font-serif italic text-[#2D3A27] text-sm focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none"
-                />
-                <p className="text-xs text-[#2D3A27]/25 mt-1 text-right">{bookData.reflectionText.length}/400</p>
-              </div>
-              <div className="border-t border-[#2D3A27]/8 pt-6">
-                <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Legendas das fotos</p>
-                <p className="text-xs text-[#2D3A27]/35 mb-5">Três frases curtas distribuídas ao longo do livro, ao lado das fotos em destaque.</p>
-                {([
-                  { key: 'caption1' as const, label: 'Legenda 1', hint: 'Início da jornada — págs. 7–8', val: bookData.caption1 },
-                  { key: 'caption2' as const, label: 'Legenda 2', hint: 'Meio do caminho — págs. 23–24', val: bookData.caption2 },
-                  { key: 'caption3' as const, label: 'Legenda 3', hint: 'Chegada — págs. 39–40', val: bookData.caption3 },
-                ]).map(({ key, label, hint, val }) => (
-                  <div key={key} className="mb-5">
-                    <div className="flex justify-between items-baseline mb-2">
-                      <p className="text-xs font-medium text-[#2D3A27]/50">{label}</p>
-                      <p className="text-[0.6rem] text-[#2D3A27]/25">{hint}</p>
-                    </div>
-                    <textarea value={val} maxLength={120} onChange={e => onChange({ [key]: e.target.value })} rows={2}
-                      placeholder="Uma frase sobre este momento..."
-                      className="w-full bg-[#F5F2EA] border border-[#2D3A27]/10 rounded-xl px-4 py-3 font-serif italic text-[#2D3A27] text-sm focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none"
-                    />
-                    <p className="text-xs text-[#2D3A27]/25 mt-1 text-right">{val.length}/120</p>
+            <motion.div key="texts" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-6">
+
+              {/* ── Legenda dos estilos tipográficos ─────────────────────── */}
+              <div className="flex gap-2 flex-wrap">
+                {(Object.entries(TEXT_STYLES) as [TextStyleKey, typeof TEXT_STYLES[TextStyleKey]][]).map(([key, s]) => (
+                  <div key={key} className="flex items-center gap-1.5 bg-[#F5F2EA] rounded-full px-3 py-1.5 border border-[#2D3A27]/8">
+                    <span className="w-2 h-2 rounded-full" style={{ background: s.color === '#1B2616' ? '#1B2616' : '#2D3A27' }} />
+                    <span style={{ fontFamily: s.fontFamily, fontStyle: s.fontStyle, fontWeight: s.fontWeight }}
+                      className="text-[0.62rem] text-[#2D3A27]/70">{s.label}</span>
+                    <span className="text-[0.55rem] text-[#2D3A27]/30">{s.hint}</span>
                   </div>
                 ))}
               </div>
 
-              {/* ── Textos por página ─────────────────────────────────────── */}
-              <div className="border-t border-[#2D3A27]/8 pt-6">
-                <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-1">Textos das páginas</p>
-                <p className="text-xs text-[#2D3A27]/35 mb-4">
-                  Adicione frases ou textos opcionais por página. Deixe em branco para não exibir. Cada campo permite escolher fonte e tamanho.
-                </p>
-                <div className="flex flex-col gap-4 max-h-[34rem] overflow-y-auto pr-1">
-                  {pageTextSlots.map(({ pageIdx, kind, slots: textSlots }) => {
-                    const kindLabel = (k: PageKind) => t(`bp.kind.${k}`);
-                    return (
-                      <div key={pageIdx} className="bg-[#F5F2EA] rounded-2xl p-4 border border-[#2D3A27]/6">
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className="text-[0.6rem] uppercase tracking-widest text-[#2D3A27]/30 bg-[#2D3A27]/8 rounded-full px-2 py-0.5">
-                            {t('bp.page')} {pageIdx + 1}
-                          </span>
-                          <span className="text-xs text-[#2D3A27]/50">{kindLabel(kind)}</span>
-                        </div>
-                        {textSlots.map(slotPos => {
-                          const key = `${pageIdx}-${slotPos}`;
-                          const entry: PageTextEntry = bookData.pageTexts[key] ?? { text: '', fontSize: 'sm', fontFamily: 'inter' };
-                          const updateEntry = (patch: Partial<PageTextEntry>) => {
-                            const next = { ...bookData.pageTexts, [key]: { ...entry, ...patch } };
-                            if (!patch.text && !entry.text) { delete next[key]; }
-                            onChange({ pageTexts: next });
-                          };
-                          return (
-                            <div key={slotPos} className="mb-3 last:mb-0">
-                              <p className="text-[0.6rem] uppercase tracking-widest text-[#2D3A27]/30 mb-1.5">
-                                {slotPos === 'top' ? 'Topo' : 'Rodapé'}
-                              </p>
-                              <textarea
-                                value={entry.text}
-                                maxLength={140}
-                                rows={2}
-                                onChange={e => updateEntry({ text: e.target.value })}
-                                placeholder="Espaço para texto ou frase..."
-                                className="w-full bg-white border border-[#2D3A27]/10 rounded-xl px-4 py-3 text-[#2D3A27] text-sm focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none mb-2"
-                                style={{ fontFamily: FONT_FAMILIES.find(f => f.id === entry.fontFamily)?.css }}
-                              />
-                              <div className="flex gap-2 flex-wrap">
-                                {/* Seletor de tipologia */}
-                                <div className="flex gap-1">
-                                  {FONT_FAMILIES.map(f => (
-                                    <button key={f.id}
-                                      onClick={() => updateEntry({ fontFamily: f.id })}
-                                      className={`px-2 py-1 rounded-lg text-[0.6rem] border transition-all ${entry.fontFamily === f.id
-                                          ? 'bg-[#2D3A27] text-[#E8E4D9] border-[#2D3A27]'
-                                          : 'bg-white text-[#2D3A27]/50 border-[#2D3A27]/15 hover:border-[#2D3A27]/35'
-                                        }`}
-                                      style={{ fontFamily: f.css }}
-                                    >
-                                      {f.label}
-                                    </button>
-                                  ))}
-                                </div>
-                                {/* Seletor de tamanho */}
-                                <div className="flex gap-1">
-                                  {(Object.keys(FONT_SIZE_LABEL) as FontSize[]).map(sz => (
-                                    <button key={sz}
-                                      onClick={() => updateEntry({ fontSize: sz })}
-                                      className={`w-7 h-7 rounded-lg text-[0.62rem] font-semibold border transition-all ${entry.fontSize === sz
-                                          ? 'bg-[#2D3A27] text-[#E8E4D9] border-[#2D3A27]'
-                                          : 'bg-white text-[#2D3A27]/50 border-[#2D3A27]/15 hover:border-[#2D3A27]/35'
-                                        }`}
-                                    >
-                                      {FONT_SIZE_LABEL[sz]}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
+              {/* ── SEÇÃO 1: Frase de Abertura ────────────────────────────── */}
+              <div className="bg-[#F5F2EA] rounded-3xl p-5 border border-[#2D3A27]/6 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-semibold text-[#2D3A27]/60 uppercase tracking-widest mb-0.5">Frase de Abertura</p>
+                    <p className="text-[0.6rem] text-[#2D3A27]/35">Aparece no Prefácio (pág. 3) · na pág. 5 · e na pág. 8</p>
+                  </div>
+                  <span className="shrink-0 text-[0.55rem] uppercase tracking-wider px-2 py-1 rounded-full border border-[#1B2616]/20 text-[#1B2616]/50"
+                    style={{ fontFamily: TEXT_STYLES.destaque.fontFamily, fontStyle: 'italic' }}>
+                    Destaque
+                  </span>
                 </div>
+                {/* Prévia inline */}
+                <p className="text-[#2D3A27]/70 leading-relaxed border-l-2 border-[#2D3A27]/15 pl-3"
+                  style={{ fontFamily: TEXT_STYLES.destaque.fontFamily, fontStyle: 'italic', fontSize: '0.82rem', lineHeight: 1.5 }}>
+                  "{bookData.openingPhrase || '…'}"
+                </p>
+                <textarea value={bookData.openingPhrase} maxLength={160} onChange={e => onChange({ openingPhrase: e.target.value })} rows={3}
+                  placeholder="Uma frase que resume o que o Caminho significou para você..."
+                  className="w-full bg-white border border-[#2D3A27]/10 rounded-2xl px-4 py-3 text-[#2D3A27] text-sm focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none"
+                  style={{ fontFamily: TEXT_STYLES.destaque.fontFamily, fontStyle: 'italic' }}
+                />
+                <p className="text-[0.6rem] text-[#2D3A27]/25 text-right">{bookData.openingPhrase.length}/160</p>
               </div>
+
+              {/* ── SEÇÃO 2: Reflexão Final ───────────────────────────────── */}
+              <div className="bg-[#F5F2EA] rounded-3xl p-5 border border-[#2D3A27]/6 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-semibold text-[#2D3A27]/60 uppercase tracking-widest mb-0.5">Reflexão Final</p>
+                    <p className="text-[0.6rem] text-[#2D3A27]/35">Aparece na pág. 44 e na pág. 45 · próxima à contracapa</p>
+                  </div>
+                  <span className="shrink-0 text-[0.55rem] uppercase tracking-wider px-2 py-1 rounded-full border border-[#2D3A27]/20 text-[#2D3A27]/50">
+                    Corpo
+                  </span>
+                </div>
+                <p className="text-[#2D3A27]/55 leading-relaxed border-l-2 border-[#2D3A27]/10 pl-3"
+                  style={{ fontFamily: TEXT_STYLES.corpo.fontFamily, fontSize: '0.75rem', lineHeight: 1.6 }}>
+                  {bookData.reflectionText ? `"${bookData.reflectionText.slice(0, 100)}${bookData.reflectionText.length > 100 ? '…' : '"'}` : '…'}
+                </p>
+                <textarea value={bookData.reflectionText} maxLength={400} onChange={e => onChange({ reflectionText: e.target.value })} rows={4}
+                  placeholder="Escreva sobre o que viveu, aprendeu ou sentiu durante o Caminho..."
+                  className="w-full bg-white border border-[#2D3A27]/10 rounded-2xl px-4 py-3 text-[#2D3A27] text-sm focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none"
+                  style={{ fontFamily: TEXT_STYLES.corpo.fontFamily }}
+                />
+                <p className="text-[0.6rem] text-[#2D3A27]/25 text-right">{bookData.reflectionText.length}/400</p>
+              </div>
+
+              {/* ── SEÇÃO 3: Legenda da Foto ──────────────────────────────── */}
+              <div className="bg-[#F5F2EA] rounded-3xl p-5 border border-[#2D3A27]/6 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-semibold text-[#2D3A27]/60 uppercase tracking-widest mb-0.5">Legenda da Foto Final</p>
+                    <p className="text-[0.6rem] text-[#2D3A27]/35">Aparece abaixo da foto na pág. 48 · Caminho Aragonês</p>
+                  </div>
+                  <span className="shrink-0 text-[0.55rem] uppercase tracking-wider px-2 py-1 rounded-full border border-[#1B2616]/20 text-[#1B2616]/50"
+                    style={{ fontFamily: TEXT_STYLES.destaque.fontFamily, fontStyle: 'italic' }}>
+                    Destaque
+                  </span>
+                </div>
+                <p className="text-[#2D3A27]/65 border-l-2 border-[#2D3A27]/15 pl-3"
+                  style={{ fontFamily: TEXT_STYLES.destaque.fontFamily, fontStyle: 'italic', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                  {bookData.caption3 || '…'}
+                </p>
+                <textarea value={bookData.caption3} maxLength={120} onChange={e => onChange({ caption3: e.target.value })} rows={2}
+                  placeholder="Uma frase sobre a chegada ao destino..."
+                  className="w-full bg-white border border-[#2D3A27]/10 rounded-2xl px-4 py-3 text-[#2D3A27] text-sm focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none"
+                  style={{ fontFamily: TEXT_STYLES.destaque.fontFamily, fontStyle: 'italic' }}
+                />
+                <p className="text-[0.6rem] text-[#2D3A27]/25 text-right">{bookData.caption3.length}/120</p>
+              </div>
+
+              {/* ── SEÇÃO 4: Páginas com Texto Opcional ──────────────────── */}
+              {pageTextSlots.length > 0 && (
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-px flex-1 bg-[#2D3A27]/8" />
+                    <p className="text-[0.6rem] uppercase tracking-widest text-[#2D3A27]/30">Texto opcional por página</p>
+                    <div className="h-px flex-1 bg-[#2D3A27]/8" />
+                  </div>
+                  <p className="text-[0.6rem] text-[#2D3A27]/30 text-center -mt-1">
+                    Substitui o texto padrão nestas páginas. Deixe em branco para manter o padrão do livro.
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    {pageTextSlots.map(({ pageIdx, kind, slots: textSlots }) => {
+                      // Mapa de descrição contextual por kind
+                      const kindContext: Partial<Record<PageKind, { area: string; where: string }>> = {
+                        'photo-text-r':   { area: 'Foto + Texto', where: 'Área de texto à direita da foto' },
+                        'text-photo-r':   { area: 'Texto + Foto', where: 'Área de texto à esquerda da foto' },
+                        'wide-photo-text':{ area: 'Foto Larga + Texto', where: 'Coluna de texto à direita' },
+                        'photo-caption':  { area: 'Foto + Legenda', where: 'Linha de legenda abaixo da foto' },
+                      };
+                      const ctx = kindContext[kind];
+                      return (
+                        <div key={pageIdx} className="bg-[#F5F2EA] rounded-2xl p-4 border border-[#2D3A27]/6">
+                          {/* Cabeçalho da página */}
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-[0.55rem] font-semibold uppercase tracking-widest text-white bg-[#2D3A27]/40 rounded-full px-2.5 py-1">
+                              {t('bp.page')} {pageIdx + 1}
+                            </span>
+                            <div>
+                              <p className="text-xs text-[#2D3A27]/60">{ctx?.area ?? t(`bp.kind.${kind}`)}</p>
+                              {ctx?.where && <p className="text-[0.55rem] text-[#2D3A27]/30">{ctx.where}</p>}
+                            </div>
+                          </div>
+                          {/* Slots */}
+                          {textSlots.map(slotPos => {
+                            const key = `${pageIdx}-${slotPos}`;
+                            const entry: PageTextEntry = bookData.pageTexts[key] ?? { text: '', style: slotPos === 'top' ? 'titulo' : 'corpo' };
+                            const updateEntry = (patch: Partial<PageTextEntry>) => {
+                              const next = { ...bookData.pageTexts, [key]: { ...entry, ...patch } };
+                              if (!patch.text && !entry.text) { delete next[key]; }
+                              onChange({ pageTexts: next });
+                            };
+                            const curStyle = TEXT_STYLES[entry.style];
+                            return (
+                              <div key={slotPos} className="mb-3 last:mb-0">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <p className="text-[0.58rem] uppercase tracking-widest text-[#2D3A27]/35">
+                                    {slotPos === 'top' ? 'Área superior' : 'Área inferior'}
+                                  </p>
+                                  {/* Seletor de estilo — 3 botões */}
+                                  <div className="flex gap-1">
+                                    {(Object.keys(TEXT_STYLES) as TextStyleKey[]).map(sk => (
+                                      <button key={sk}
+                                        onClick={() => updateEntry({ style: sk })}
+                                        className={`px-2 py-0.5 rounded-full text-[0.55rem] border transition-all ${entry.style === sk
+                                          ? 'bg-[#2D3A27] text-[#E8E4D9] border-[#2D3A27]'
+                                          : 'bg-white text-[#2D3A27]/45 border-[#2D3A27]/15 hover:border-[#2D3A27]/35'
+                                        }`}
+                                        style={{ fontFamily: TEXT_STYLES[sk].fontFamily, fontStyle: TEXT_STYLES[sk].fontStyle }}
+                                      >
+                                        {TEXT_STYLES[sk].label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                                <textarea
+                                  value={entry.text}
+                                  maxLength={140}
+                                  rows={2}
+                                  onChange={e => updateEntry({ text: e.target.value })}
+                                  placeholder="Deixe em branco para usar o texto padrão do livro…"
+                                  className="w-full bg-white border border-[#2D3A27]/10 rounded-xl px-4 py-3 text-[#2D3A27] text-sm focus:outline-none focus:ring-2 focus:ring-[#2D3A27]/20 placeholder:text-[#2D3A27]/20 resize-none"
+                                  style={{ fontFamily: curStyle.fontFamily, fontStyle: curStyle.fontStyle }}
+                                />
+                                <p className="text-[0.55rem] text-[#2D3A27]/25 text-right mt-0.5">{entry.text.length}/140</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
 
