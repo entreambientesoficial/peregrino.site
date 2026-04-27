@@ -389,9 +389,10 @@ function renderBookPage(
   const slots = slotMap.get(pageIdx) ?? [];
   const ph = (n: number) => {
     if (bookData.photoAssignments[n] !== undefined) return bookData.photoAssignments[n];
-    if (photos.length === 0) return `__stamp__:${n}`;
-    // n pode ser -1 (queues esgotadas) ou ≥89 (modo sequencial esgotado) — wrap-around correto
-    return photos[((n % photos.length) + photos.length) % photos.length];
+    if (photos.length === 0) return `__empty__:${n}`;
+    // Slot sem foto disponível — placeholder, não repetir fotos
+    if (n < 0 || n >= photos.length) return `__empty__:${n}`;
+    return photos[n];
   };
   const getTextEntry = (slot: 'top' | 'bottom'): PageTextEntry | undefined =>
     bookData.pageTexts[`${pageIdx}-${slot}`];
@@ -419,13 +420,18 @@ function renderBookPage(
   // Renderiza foto real (object-fit:cover) ou placeholder bege se não disponível
   const pimg = (slotIdx: number, style?: React.CSSProperties, overrideUrl?: string | null) => {
     const url = overrideUrl ?? ph(slotIdx);
-    if (url && !url.startsWith('__stamp__')) {
+    if (url && !url.startsWith('__stamp__') && !url.startsWith('__empty__')) {
       return <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block', ...style }} />;
     }
     return <div style={{ width: '100%', height: '100%', background: '#E8E4D9', display: 'block', ...style }} />;
   };
   // Cor de fundo neutra para células de foto
   const cellBg = '#f0ede6';
+  // def.src / def.srcs só como fallback quando slot não tem foto do usuário
+  const srcFallback = (slotIdx: number, src?: string | null): string | undefined => {
+    if (!src) return undefined;
+    return ph(slotIdx).startsWith('__empty__') ? src : undefined;
+  };
 
   switch (def.kind) {
 
@@ -500,7 +506,7 @@ function renderBookPage(
     case 'full-bleed':
       return (
         <div style={{ width: '100%', height: '100%', background: cellBg, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-          {pimg(slots[0], undefined, def.src ?? def.srcs?.[0])}
+          {pimg(slots[0], undefined, srcFallback(slots[0], def.src ?? def.srcs?.[0]))}
         </div>
       );
 
@@ -617,8 +623,11 @@ function renderBookPage(
 
     // ── Spread L — metade esquerda de uma foto que atravessa dois spreads ─────
     case 'spread-l': {
-      const spreadUrl = def.src ?? (slots[0] >= 0 ? ph(slots[0]) : null);
-      const hasSpreadPhoto = spreadUrl && !spreadUrl.startsWith('__stamp__');
+      const spreadDynamic = slots[0] >= 0 ? ph(slots[0]) : null;
+      const spreadUrl = (spreadDynamic && !spreadDynamic.startsWith('__empty__') && !spreadDynamic.startsWith('__stamp__'))
+        ? spreadDynamic
+        : (def.src ?? null);
+      const hasSpreadPhoto = spreadUrl && !spreadUrl.startsWith('__stamp__') && !spreadUrl.startsWith('__empty__');
       return (
         <div style={{
           width: '100%', height: '100%', backgroundColor: '#E8E4D9',
@@ -634,8 +643,11 @@ function renderBookPage(
 
     // ── Spread R — metade direita da mesma foto do spread-l ─────────────────
     case 'spread-r': {
-      const spreadUrlR = def.src ?? (slots[0] >= 0 ? ph(slots[0]) : null);
-      const hasSpreadPhotoR = spreadUrlR && !spreadUrlR.startsWith('__stamp__');
+      const spreadDynamicR = slots[0] >= 0 ? ph(slots[0]) : null;
+      const spreadUrlR = (spreadDynamicR && !spreadDynamicR.startsWith('__empty__') && !spreadDynamicR.startsWith('__stamp__'))
+        ? spreadDynamicR
+        : (def.src ?? null);
+      const hasSpreadPhotoR = spreadUrlR && !spreadUrlR.startsWith('__stamp__') && !spreadUrlR.startsWith('__empty__');
       return (
         <div style={{
           width: '100%', height: '100%', backgroundColor: '#E8E4D9',
@@ -663,9 +675,9 @@ function renderBookPage(
     case 'two-left-one-right':
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(5), padding: sp(10) }}>
-          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0], undefined, def.srcs?.[0])}</div>
-          <div style={{ gridRow: '1 / 3', overflow: 'hidden', background: cellBg }}>{pimg(slots[2], undefined, def.srcs?.[2])}</div>
-          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[1], undefined, def.srcs?.[1])}</div>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0], undefined, srcFallback(slots[0], def.srcs?.[0]))}</div>
+          <div style={{ gridRow: '1 / 3', overflow: 'hidden', background: cellBg }}>{pimg(slots[2], undefined, srcFallback(slots[2], def.srcs?.[2]))}</div>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[1], undefined, srcFallback(slots[1], def.srcs?.[1]))}</div>
         </div>
       );
 
@@ -815,7 +827,7 @@ function renderBookPage(
       const botText = renderTextSlot('bottom', bookData.caption3);
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', padding: sp(14), gap: sp(8) }}>
-          <div style={{ flex: '0 0 80%', overflow: 'hidden', background: cellBg }}>{pimg(slots[0], undefined, def.src ?? def.srcs?.[0])}</div>
+          <div style={{ flex: '0 0 80%', overflow: 'hidden', background: cellBg }}>{pimg(slots[0], undefined, srcFallback(slots[0], def.src ?? def.srcs?.[0]))}</div>
           <div style={{ borderTop: '1px solid rgba(45,58,39,0.1)', paddingTop: sp(6) }}>
             {botText ?? <p style={{ fontFamily: "'Dancing Script', cursive", fontStyle: 'italic', fontSize: fs(0.56), color: 'rgba(45,58,39,0.55)', lineHeight: 1.5 }}>{bookData.caption3}</p>}
           </div>
@@ -904,6 +916,37 @@ function renderBookPage(
 // ---------------------------------------------------------------------------
 // Hook — contagem animada
 // ---------------------------------------------------------------------------
+// Conta o total de slots de foto nos pageDefs (para avisar sobre fotos insuficientes)
+function countPhotoSlots(pageDefs: PageDef[]): number {
+  let count = 0;
+  for (const def of pageDefs) {
+    if (def.kind === 'spread-r') continue; // compartilha slot com spread-l, não contar
+    if (def.p === undefined) continue;
+    count += Array.isArray(def.p) ? def.p.length : 1;
+  }
+  return count;
+}
+
+// Redimensiona imagem via Canvas para max 1200px — evita data URLs gigantes
+function resizeForBook(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const imgEl = document.createElement('img') as HTMLImageElement;
+    const blobUrl = URL.createObjectURL(file);
+    imgEl.onload = () => {
+      const maxW = 1200;
+      const scale = imgEl.width > maxW ? maxW / imgEl.width : 1;
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(imgEl.width * scale);
+      canvas.height = Math.round(imgEl.height * scale);
+      canvas.getContext('2d')!.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(blobUrl);
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    imgEl.onerror = () => { URL.revokeObjectURL(blobUrl); reject(); };
+    imgEl.src = blobUrl;
+  });
+}
+
 function useCountUp(target: number, duration = 1200, active = false) {
   const [value, setValue] = useState(0);
   useEffect(() => {
@@ -1299,6 +1342,7 @@ export default function BookPage() {
   const [bookData, setBookData] = useState<BookData>(() => makeDefaultBookData(t));
   const [selectedModel, setSelectedModel] = useState<ModelId>('essential');
   const [hasCustomized, setHasCustomized] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
     name: '', line1: '', line2: '', city: '', state: '', postal_code: '', country: 'PT',
@@ -1484,7 +1528,7 @@ export default function BookPage() {
         console.log('[Auth] Sessão web confirmada. Carregando dados e avançando para personalizar.');
         loadUserData(session.user.id);
         setShowAuthModal(false);
-        setStep('customize');
+        setEditMode(true);
       }
     });
 
@@ -1496,13 +1540,14 @@ export default function BookPage() {
 
   const handleCustomize = () => {
     if (!user) { setShowAuthModal(true); return; }
-    setStep('customize');
+    setEditMode(true);
   };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
     setStep('reveal');
+    setEditMode(false);
     setHasCustomized(false);
     setNoPhotosWarning(false);
     const route = t('bp.demo.route');
@@ -1540,6 +1585,8 @@ export default function BookPage() {
               dataLoading={dataLoading}
               noPhotosWarning={noPhotosWarning}
               user={user}
+              editMode={editMode}
+              onChange={update}
               onCustomize={handleCustomize}
               onOrder={() => setStep('order')} />
           )}
@@ -1572,7 +1619,7 @@ export default function BookPage() {
         {showAuthModal && (
           <AuthModal
             onClose={() => setShowAuthModal(false)}
-            onGuestMode={() => { setShowAuthModal(false); setStep('customize'); }}
+            onGuestMode={() => { setShowAuthModal(false); setEditMode(true); }}
           />
         )}
       </AnimatePresence>
@@ -1722,9 +1769,265 @@ function InteractiveBook({ bookData, selectedModel }: { bookData: BookData; sele
 }
 
 // ---------------------------------------------------------------------------
+// Sidebar de edição — aparece quando editMode=true, ao lado do livro
+// ---------------------------------------------------------------------------
+function SidebarTextInput({ label, value, onChange, multiline }: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  multiline?: boolean;
+}) {
+  return (
+    <div>
+      <p className="text-[#E8E4D9]/35 text-[0.6rem] uppercase tracking-[0.22em] mb-1.5">{label}</p>
+      {multiline ? (
+        <textarea
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          rows={3}
+          className="w-full bg-[#1B2616]/70 border border-[#C8A96E]/18 rounded-xl px-3 py-2.5 text-[#E8E4D9] text-sm resize-none focus:outline-none focus:border-[#C8A96E]/45 placeholder:text-[#E8E4D9]/20 transition-colors leading-relaxed"
+        />
+      ) : (
+        <input
+          type="text"
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="w-full bg-[#1B2616]/70 border border-[#C8A96E]/18 rounded-xl px-3 py-2.5 text-[#E8E4D9] text-sm focus:outline-none focus:border-[#C8A96E]/45 placeholder:text-[#E8E4D9]/20 transition-colors"
+        />
+      )}
+    </div>
+  );
+}
+
+function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder }: {
+  bookData: BookData;
+  onChange: (p: Partial<BookData>) => void;
+  selectedModel: ModelId;
+  onSelectModel: (m: ModelId) => void;
+  onOrder: () => void;
+}) {
+  const model = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const uploadRef = useRef<HTMLInputElement>(null);
+
+  const pageDefs = useMemo(() => generatePageDefs(model.pages), [model.pages]);
+  const totalSlots = useMemo(() => countPhotoSlots(pageDefs), [pageDefs]);
+  const availablePhotos = bookData.allPhotos.length;
+  const missingPhotos = Math.max(0, totalSlots - availablePhotos);
+
+  const handleUpload = async (files: FileList) => {
+    const fileArray = Array.from(files).filter(f => f.type.startsWith('image/'));
+    if (fileArray.length === 0) return;
+    setUploadProgress(0);
+    const dataUrls: string[] = [];
+    for (let i = 0; i < fileArray.length; i++) {
+      try {
+        const url = await resizeForBook(fileArray[i]);
+        dataUrls.push(url);
+      } catch { /* ignora arquivos inválidos */ }
+      setUploadProgress(Math.round(((i + 1) / fileArray.length) * 100));
+    }
+    setUploadProgress(null);
+    const newAllPhotos = [...bookData.allPhotos, ...dataUrls];
+    onChange({
+      uploadedPhotos: [...(bookData.uploadedPhotos ?? []), ...dataUrls],
+      allPhotos: newAllPhotos,
+      photosCount: bookData.photosCount + dataUrls.length,
+      selectedPhotos: newAllPhotos.slice(0, Math.min(newAllPhotos.length, 11)),
+    });
+  };
+
+  const handleAutoOrganize = () => {
+    const rotated = [...bookData.allPhotos.slice(3), ...bookData.allPhotos.slice(0, 3)];
+    onChange({ allPhotos: rotated, photoAssignments: {}, coverPhoto: rotated[0] ?? bookData.coverPhoto });
+  };
+
+  return (
+    <motion.div
+      initial={{ x: 300, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ duration: 0.45, type: 'spring', damping: 22, stiffness: 180 }}
+      className="lg:w-[320px] xl:w-[360px] shrink-0 bg-[#0f1a0b] border-t border-[#C8A96E]/10 lg:border-t-0 lg:border-l lg:border-[#C8A96E]/12 flex flex-col lg:h-[calc(100vh-56px)] lg:sticky lg:top-[56px]"
+    >
+      {/* Header */}
+      <div className="px-6 pt-6 pb-4 border-b border-[#C8A96E]/8 shrink-0">
+        <p className="text-[#C8A96E]/50 text-[0.58rem] uppercase tracking-[0.32em]">Seu livro</p>
+        <p className="font-serif italic text-[#E8E4D9] text-[1.6rem] leading-tight mt-0.5">está pronto.</p>
+        <p className="text-[#E8E4D9]/30 text-xs mt-1.5 leading-relaxed">Criado automaticamente com base na sua jornada.</p>
+        <div className="flex gap-3 mt-3 text-[#E8E4D9]/40 text-[0.68rem] uppercase tracking-wider">
+          <span>{model.pages} páginas</span>
+          <span className="text-[#C8A96E]/25">·</span>
+          <span>{availablePhotos} fotos</span>
+        </div>
+      </div>
+
+      {/* Scrollable body */}
+      <div className="flex-1 overflow-y-auto py-5 px-6 space-y-7 pb-24 lg:pb-6">
+
+        {/* Text editing */}
+        <div>
+          <p className="text-[#C8A96E]/40 text-[0.58rem] uppercase tracking-[0.32em] mb-4">Textos</p>
+          <div className="space-y-5">
+            <SidebarTextInput
+              label="Título da capa"
+              value={bookData.title}
+              onChange={v => onChange({ title: v })}
+            />
+            <SidebarTextInput
+              label="Frase de abertura"
+              value={bookData.openingPhrase}
+              onChange={v => onChange({ openingPhrase: v })}
+              multiline
+            />
+          </div>
+        </div>
+
+        {/* Photo gallery */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[#C8A96E]/40 text-[0.58rem] uppercase tracking-[0.32em]">
+              Fotos ({availablePhotos} / {totalSlots})
+            </p>
+            {availablePhotos > 3 && (
+              <button
+                onClick={handleAutoOrganize}
+                className="text-[#E8E4D9]/35 text-[0.62rem] hover:text-[#C8A96E]/65 transition-colors underline underline-offset-2"
+              >
+                Reorganizar
+              </button>
+            )}
+          </div>
+
+          {/* Aviso de fotos insuficientes */}
+          {missingPhotos > 0 && (
+            <div className="mb-4 rounded-xl border border-[#C8A96E]/20 bg-[#C8A96E]/6 px-4 py-3.5">
+              <p className="text-[#C8A96E] text-[0.72rem] font-medium leading-relaxed mb-1">
+                Você tem {availablePhotos} {availablePhotos === 1 ? 'foto' : 'fotos'}.
+                Faltam {missingPhotos} para preencher todas as páginas.
+              </p>
+              <p className="text-[#E8E4D9]/45 text-[0.65rem] leading-relaxed mb-3">
+                As páginas sem foto ficarão em branco. Você pode adicionar fotos do seu dispositivo — inclusive fotos tiradas fora do app.
+              </p>
+
+              <input
+                ref={uploadRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={e => e.target.files && handleUpload(e.target.files)}
+              />
+
+              {uploadProgress !== null ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1 bg-[#E8E4D9]/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#C8A96E] rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                  <span className="text-[#C8A96E]/70 text-[0.6rem] tabular-nums">{uploadProgress}%</span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => uploadRef.current?.click()}
+                  className="flex items-center gap-1.5 bg-[#C8A96E]/15 hover:bg-[#C8A96E]/25 border border-[#C8A96E]/30 text-[#C8A96E] rounded-lg px-3 py-2 text-[0.68rem] font-medium transition-colors"
+                >
+                  <Upload size={11} /> Adicionar fotos do dispositivo
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Grid de thumbnails */}
+          {availablePhotos > 0 && (
+            <div className="grid grid-cols-3 gap-1.5">
+              {bookData.allPhotos.slice(0, 18).map((url, i) => (
+                <button
+                  key={i}
+                  onClick={() => onChange({ coverPhoto: url })}
+                  title="Usar como capa"
+                  className="relative aspect-square rounded-lg overflow-hidden group"
+                >
+                  <img src={url} className="w-full h-full object-cover" alt="" loading="lazy" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center">
+                    <Camera size={13} className="text-white/0 group-hover:text-white/85 transition-all scale-75 group-hover:scale-100" />
+                  </div>
+                  {bookData.coverPhoto === url && (
+                    <div className="absolute inset-0 ring-2 ring-[#C8A96E] ring-inset rounded-lg" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+          {bookData.allPhotos.length > 18 && (
+            <p className="text-[#E8E4D9]/22 text-[0.65rem] mt-2 text-center">
+              + {bookData.allPhotos.length - 18} fotos distribuídas pelo livro
+            </p>
+          )}
+
+          {/* Upload adicional quando já tem fotos mas ainda faltam */}
+          {missingPhotos > 0 && availablePhotos > 0 && (
+            <div className="mt-3">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                id="sidebar-upload-extra"
+                onChange={e => e.target.files && handleUpload(e.target.files)}
+              />
+              <label
+                htmlFor="sidebar-upload-extra"
+                className="flex items-center justify-center gap-1.5 w-full py-2 border border-dashed border-[#E8E4D9]/15 rounded-xl text-[#E8E4D9]/30 text-[0.65rem] hover:border-[#C8A96E]/30 hover:text-[#C8A96E]/60 transition-colors cursor-pointer"
+              >
+                <Upload size={11} /> Adicionar mais fotos
+              </label>
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* Fixed bottom: model picker + CTA (desktop only — mobile uses fixed bar) */}
+      <div className="hidden lg:block shrink-0 px-6 pt-4 pb-5 border-t border-[#C8A96E]/8">
+        {/* Model picker */}
+        <div className="flex gap-1.5 mb-4">
+          {BOOK_MODELS.map(m => (
+            <button
+              key={m.id}
+              onClick={() => onSelectModel(m.id)}
+              className={`flex-1 py-1.5 rounded-full text-[0.58rem] uppercase tracking-widest transition-all duration-200 ${
+                selectedModel === m.id
+                  ? 'bg-[#C8A96E]/20 text-[#C8A96E] border border-[#C8A96E]/40'
+                  : 'text-[#E8E4D9]/30 hover:text-[#E8E4D9]/55 border border-transparent'
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+
+        {/* CTA */}
+        <button
+          onClick={onOrder}
+          className="w-full bg-[#C8A96E] hover:bg-[#d4b57a] active:scale-[0.98] text-[#0D1509] rounded-full py-4 font-bold text-[0.95rem] transition-all duration-150"
+          style={{ boxShadow: '0 4px 28px rgba(200,169,110,0.32)' }}
+        >
+          Finalizar meu livro · {model.price}
+        </button>
+        <p className="text-center text-[#E8E4D9]/22 text-[0.6rem] mt-2 leading-relaxed">
+          Você poderá revisar antes de pagar
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Step 1 — Revelação
 // ---------------------------------------------------------------------------
-function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dataLoading, noPhotosWarning, user, onCustomize, onOrder }: {
+function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dataLoading, noPhotosWarning, user, editMode, onChange, onCustomize, onOrder }: {
   bookData: BookData;
   selectedModel: ModelId;
   onSelectModel: (m: ModelId) => void;
@@ -1732,6 +2035,8 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
   dataLoading: boolean;
   noPhotosWarning: boolean;
   user: any;
+  editMode: boolean;
+  onChange: (p: Partial<BookData>) => void;
   onCustomize: () => void;
   onOrder: () => void;
 }) {
@@ -1742,6 +2047,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
   const aDays = useCountUp(bookData.days, 900, statsVisible && !dataLoading);
   const aStamps = useCountUp(bookData.stampsCount, 800, statsVisible && !dataLoading);
   const aPhotos = useCountUp(bookData.photosCount, 1100, statsVisible && !dataLoading);
+  const editModel = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
 
   useEffect(() => {
     const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setStatsVisible(true); }, { threshold: 0.3 });
@@ -1749,6 +2055,119 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
     return () => obs.disconnect();
   }, []);
 
+  // ── Edit mode: layout 2 colunas (livro + sidebar) ──────────────────────────
+  if (editMode) {
+    const statsData = [
+      { value: aKm, unit: 'km', label: t('bp.stat.km') },
+      { value: aDays, unit: '', label: t('bp.stat.days') },
+      { value: aStamps, unit: '', label: t('bp.stat.stamps') },
+      { value: aPhotos, unit: '', label: t('bp.stat.photos') },
+    ];
+    return (
+      <>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4 }}
+          className="flex flex-col lg:flex-row lg:h-[calc(100vh-56px)]"
+        >
+          {/* LEFT: book area */}
+          <div className="flex-1 min-w-0 bg-[#1B2616] bg-noise relative lg:overflow-y-auto">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[260px] bg-[#C8A96E]/6 rounded-full blur-[130px] pointer-events-none" />
+
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.6 }}
+              className="relative z-10 text-center px-6 pt-8 pb-4"
+            >
+              <p className="text-[#C8A96E]/45 text-[0.58rem] uppercase tracking-[0.32em] mb-2">
+                Criado com base na sua jornada
+              </p>
+              <h1 className="font-serif text-3xl md:text-4xl text-[#E8E4D9] italic leading-tight tracking-tight">
+                {t('bp.headline')}
+              </h1>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35, duration: 0.9, type: 'spring', damping: 18 }}
+              className="relative z-10 flex justify-center px-4 pb-6"
+            >
+              <InteractiveBook bookData={bookData} selectedModel={selectedModel} />
+            </motion.div>
+
+            {/* Stats */}
+            <div
+              ref={statsRef}
+              className="relative z-10 border-t px-6 py-8"
+              style={{ borderColor: 'rgba(200,169,110,0.12)' }}
+            >
+              <div className="max-w-xl mx-auto grid grid-cols-2 md:grid-cols-4 divide-x"
+                style={{ divideColor: 'rgba(200,169,110,0.10)' } as React.CSSProperties}
+              >
+                {statsData.map((stat, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: statsVisible ? 1 : 0, y: statsVisible ? 0 : 10 }}
+                    transition={{ delay: i * 0.08 }}
+                    className="flex flex-col items-center text-center py-4 px-3"
+                  >
+                    <span className="font-serif italic tabular-nums leading-none" style={{ fontSize: 'clamp(1.7rem, 4vw, 2.5rem)', color: '#C8A96E' }}>
+                      {stat.value}{stat.unit && <span style={{ fontSize: '55%', marginLeft: '0.2em' }}>{stat.unit}</span>}
+                    </span>
+                    <span className="text-[#E8E4D9]/50 text-[0.6rem] uppercase tracking-widest mt-1.5">{stat.label}</span>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT: sidebar */}
+          <EditSidebar
+            bookData={bookData}
+            onChange={onChange}
+            selectedModel={selectedModel}
+            onSelectModel={onSelectModel}
+            onOrder={onOrder}
+          />
+        </motion.div>
+
+        {/* Mobile CTA — fixed at bottom, hidden on desktop */}
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[#0f1a0b]/96 backdrop-blur-sm px-5 py-3.5 border-t border-[#C8A96E]/12">
+          <div className="flex gap-2 mb-2.5">
+            {BOOK_MODELS.map(m => (
+              <button
+                key={m.id}
+                onClick={() => onSelectModel(m.id)}
+                className={`flex-1 py-1 rounded-full text-[0.55rem] uppercase tracking-widest transition-all ${
+                  selectedModel === m.id
+                    ? 'bg-[#C8A96E]/20 text-[#C8A96E] border border-[#C8A96E]/40'
+                    : 'text-[#E8E4D9]/30 border border-transparent'
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={onOrder}
+            className="w-full bg-[#C8A96E] text-[#0D1509] rounded-full py-3.5 font-bold text-sm transition-all active:scale-[0.98]"
+            style={{ boxShadow: '0 4px 20px rgba(200,169,110,0.3)' }}
+          >
+            Finalizar meu livro · {editModel.price}
+          </button>
+          <p className="text-center text-[#E8E4D9]/22 text-[0.58rem] mt-1.5">
+            Você poderá revisar antes de pagar
+          </p>
+        </div>
+      </>
+    );
+  }
+
+  // ── Modo normal (sem edição) ────────────────────────────────────────────────
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.5 }}>
 
@@ -1993,25 +2412,6 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
     if (gap > 0) { setShowGapModal(true); return; }
     onDone();
   };
-
-  // Redimensiona imagem via Canvas para max 1200px — evita data URLs gigantes que travam o browser
-  const resizeForBook = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const img = document.createElement('img') as HTMLImageElement;
-      const blobUrl = URL.createObjectURL(file);
-      img.onload = () => {
-        const maxW = 1200;
-        const scale = img.width > maxW ? maxW / img.width : 1;
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
-        URL.revokeObjectURL(blobUrl);
-        resolve(canvas.toDataURL('image/jpeg', 0.82));
-      };
-      img.onerror = () => { URL.revokeObjectURL(blobUrl); reject(); };
-      img.src = blobUrl;
-    });
 
   const handleUpload = async (files: FileList) => {
     const fileArray = Array.from(files);

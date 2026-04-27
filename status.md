@@ -2145,4 +2145,290 @@ feat: reescrita completa do livro — 52 páginas baseadas no modelo Canva
 
 ---
 
-*Última atualização: 20/04/2026 (noite) — Sessão com Antigravity (Claude Sonnet 4.6)*
+## Sessão 25/04/2026 — Parte 6: UI de Acessibilidade e Preview em Tempo Real
+
+### Problema
+A interface de personalização (`StepCustomize`) estava visualmente inacessível:
+- Fontes minúsculas (muitos elementos abaixo de 12px) tornavam a leitura difícil no PC e impossível no mobile
+- Preços dos cards de modelo (`€49,90 · 50 pág.`) eram o elemento menos visível — exatamente ao contrário do ideal
+- Campos de entrada com fundo cinza lavado (`bg-[#F5F2EA]` + borda `/10`) tinham contraste insuficiente
+- Usuário editava textos "no escuro" — sem visualização da página correspondente do livro
+- Seletores manuais de estilo (Título/Destaque/Corpo) dentro de cada campo criavam ruído desnecessário
+
+### Solução implementada
+
+#### 1. Componente `PagePreview` (novo — antes de `StepCustomize`)
+- Renderiza uma miniatura de qualquer página do livro (`renderBookPage`) a partir do índice e dos dados atuais
+- Escala proporcional ao livro (`w/400`, aspect ratio 440×340)
+- Atualiza em tempo real conforme `bookData` muda
+
+#### 2. Layout duas colunas no desktop (`StepCustomize`)
+- `max-w-2xl` → `max-w-6xl` para acomodar as duas colunas
+- **Esquerda**: formulário de edição (tabs + campos) — `flex-1`
+- **Direita**: painel sticky (`lg:sticky lg:top-24`, 288px) com `PagePreview` mostrando a página correspondente ao campo em foco — oculto no mobile (`hidden lg:flex`)
+
+#### 3. Preview mobile
+- No topo da aba "Textos", adicionado bloco `lg:hidden` com `PagePreview` de 240px
+- Exibe `"Prévia — pág. N"` que atualiza ao focar nos campos
+
+#### 4. Mapeamento campo → página (estado `focusedPageIdx`)
+- `openingPhrase` → `onFocus={() => setFocusedPageIdx(1)}` (preface, pág. 2)
+- `reflectionText` → `onFocus={() => setFocusedPageIdx(43)}` (wide-photo-text, pág. 44)
+- `caption3` → `onFocus={() => setFocusedPageIdx(49)}` (photo-caption, pág. 50)
+- Campos por página → `onFocus={() => setFocusedPageIdx(pageIdx)}` (página exata)
+
+#### 5. Cards de modelo — preço em destaque
+- Preço: `text-[0.65rem]` → **`text-2xl font-bold`** (informação mais visível do card)
+- Label: `text-xs` → `text-sm font-semibold`
+- Badge "Popular" no card Jornada quando não selecionado
+- Escala do card selecionado: `scale-[1.03]` com sombra
+
+#### 6. Campos de entrada — contraste e tamanho
+- `bg-[#F5F2EA] border border-[#2D3A27]/10` → **`bg-white border-2 border-[#2D3A27]/25`**
+- `placeholder:text-[#2D3A27]/20` → `placeholder:text-[#2D3A27]/35`
+- `focus:ring-[#2D3A27]/20` → `focus:border-[#2D3A27]/50 focus:ring-[#2D3A27]/15`
+- `text-sm` → **`text-base`** (16px) nos textareas principais
+- `py-3` → `py-3.5` para melhor área de toque mobile
+
+#### 7. Rótulos das seções — legibilidade
+- Títulos das seções: `text-xs` → **`text-sm font-semibold`** (`text-[#2D3A27]/70`)
+- Hints: `text-[0.6rem]` → `text-xs` (`text-[#2D3A27]/40`)
+
+#### 8. Remoção dos seletores de estilo manuais
+- Removidos os 3 botões (Título/Destaque/Corpo) de dentro de cada campo por página
+- O estilo tipográfico correto já é aplicado automaticamente via `curStyle` (determinado por `slotPos`)
+- Substituído por badge informativo simples mostrando o nome do estilo aplicado
+
+---
+
+*Última atualização: 25/04/2026 (parte 6) — Sessão com Claude Sonnet 4.6*
+
+---
+
+## ⚠️ Pendente — Próxima Sessão: Redesign Completo do StepCustomize
+
+### Diagnóstico (avaliado em 25/04/2026)
+A implementação da parte 6 (preview em tempo real + duas colunas) resolveu o problema técnico mas criou um resultado visualmente amador:
+
+- **Preview inútil**: miniatura estática no canto superior direito. Quando o usuário edita um campo 1500px abaixo, o preview está invisível — o conceito falhou na execução.
+- **Seção "Texto opcional por página" destruiu a usabilidade**: 8 cards × 2 campos = 16 campos empilhados. Domina 70% da tela sendo um recurso secundário.
+- **Sem hierarquia visual**: "Frase de Abertura" (campo nobre) e "Área inferior pág. 5" (campo técnico) têm o mesmo peso visual.
+- **Proporção errada**: coluna de edição 70% / preview 30% — o que o usuário quer *ver* é o minoritário.
+
+### Solução aprovada para próxima sessão
+Redesign completo com arquitetura de **dois painéis fixos** (padrão Canva / Blurb / Shutterfly):
+
+- **Esquerda (~40%)**: campos organizados em **accordion colapsável** por categoria — os campos por página ficam ocultos por padrão, expandem ao clicar
+- **Direita (~60%)**: preview **grande e fixo** do livro — não miniatura, uma página inteira renderizada e sempre visível, atualizando em tempo real
+
+### Prioridade de implementação
+1. Accordion colapsável para a seção "Texto opcional por página" (resolve 80% da sensação de bagunçado)
+2. Painel direito fixo com preview em tamanho real (não coluna sticky — painel fixo como editor)
+3. Hierarquia visual: os 3 campos principais (Frase, Reflexão, Legenda) com visual destacado vs. campos opcionais como secundários
+
+*Sugestão para próxima sessão: reescrever o StepCustomize do zero com essa arquitetura, não corrigir em cima da estrutura atual.*
+
+---
+
+## Sessão 27/04/2026 — Redesign Completo do StepCustomize (Dois Painéis Fixos)
+
+### Implementado
+
+#### Arquitetura dois painéis fixos (estilo Canva/Blurb)
+- `motion.div` substituído por container `lg:h-[calc(100vh-56px)] lg:overflow-hidden`
+- Wrapper flex row divide o espaço em dois painéis
+
+**Painel Esquerdo** (`lg:w-[440px] xl:w-[500px]`, `lg:overflow-y-auto`):
+- Scrollável independentemente no desktop
+- Título oculto no desktop (`lg:hidden`) — mais espaço para o formulário
+- Botões (Voltar / Ver resultado) colados na base do painel (`shrink-0`, borda superior)
+
+**Painel Direito** (`flex-1`, fundo degradê `#EDE9DF → #E4DFD3`):
+- Visível apenas desktop (`hidden lg:flex`)
+- `PagePreview` com `width=560` — preview em tamanho real e legível
+- Sombra editorial: `-8px 16px 60px rgba(0,0,0,0.28)` simulando livro físico
+- Navegação de páginas: botões `ChevronLeft/ChevronRight` + indicador `Pág. X / Y`
+- Atualiza em tempo real ao digitar (via `bookData` prop) e ao focar campos (via `focusedPageIdx`)
+
+#### Accordion para campos de texto por página
+- Seção "Textos por página" colapsada por padrão (`pageTextsOpen = false`)
+- Botão accordion com label + contagem de páginas + `ChevronRight` rotacionado
+- Elimina 16 campos visíveis simultaneamente — página do formulário ficou curta e limpa
+
+#### Remoção do preview mobile inline
+- Bloco `lg:hidden` com `PagePreview` do topo da aba Textos removido (era confuso e ocupava espaço)
+
+*Última atualização: 27/04/2026 — Sessão com Claude Sonnet 4.6*
+
+### ❌ REPROVADO — Código revertido
+
+O usuário reprovou o resultado visual das duas tentativas de redesign (parte 6 e 27/04).  
+O arquivo `src/BookPage.tsx` foi **revertido via `git checkout -- src/BookPage.tsx`** para o estado do commit `6b9f024` (`feat(book): editor editorial de textos com tipografia padronizada`).
+
+**Estado atual do código**: igual ao final da sessão 25/04 parte 5 — sem `PagePreview`, sem `focusedPageIdx`, sem accordion, sem dois painéis. Cards de modelo com fontes pequenas, campos com contraste baixo.
+
+---
+
+## ⚠️ PENDENTE CRÍTICO — Redesign do StepCustomize (próxima sessão)
+
+### Contexto para o próximo desenvolvedor/chat
+
+Duas tentativas de reformular a tela de personalização (`StepCustomize`) foram **rejeitadas pelo usuário**. Não é um problema técnico — é um problema de UX/design. O código funciona, mas o resultado visual é considerado amador.
+
+### O que foi rejeitado e por quê
+
+**Tentativa 1 (parte 6, 25/04):** Duas colunas com preview 288px sticky à direita.
+- Problema: preview ficava invisível ao rolar — inútil na prática
+- Problema: 16 campos de "texto por página" empilhados dominavam 70% da tela
+- Problema: hierarquia visual zero — campo nobre e campo técnico com mesmo peso
+
+**Tentativa 2 (27/04):** Dois painéis fixos com preview 560px à direita, accordion nos campos opcionais.
+- Também reprovado pelo usuário sem detalhamento específico do motivo
+- Suspeita: pode ter ficado muito "particionado" ou a proporção painel esq/dir ainda não agradou
+
+### O que NÃO deve ser feito na próxima tentativa
+- Não fazer layout de colunas com `sticky` — não funciona quando a página é longa
+- Não empilhar todos os campos por página visíveis — accordion ou outra forma de colapso é obrigatório
+- Não fazer preview pequeno (288px) — se houver preview, precisa ser legível (560px+)
+
+### Sugestão de abordagem para próxima sessão
+
+Antes de implementar qualquer coisa, **apresentar ao usuário 2–3 mockups de layout em texto/ASCII** para aprovação prévia. Só implementar após o usuário escolher a direção visual. As últimas duas tentativas foram implementadas sem validação prévia do conceito visual.
+
+Possíveis direções a apresentar:
+1. **Modal fullscreen de edição** — ao clicar "Personalizar", abre overlay 100vw×100vh com editor estilo Canva
+2. **Scroll único com preview flutuante** — formulário em coluna única com botão flutuante "Ver prévia" que abre drawer lateral
+3. **Wizard por etapas** — cada campo em sua própria "tela" com preview da página correspondente ocupando 50% da tela
+
+### Estado atual do BookPage.tsx (commit `6b9f024`)
+- Cards de modelo: preços minúsculos (`text-[0.65rem]`) — sabe-se que precisa mudar
+- Campos de entrada: fundo cinza lavado (`bg-[#F5F2EA]`), contraste baixo — sabe-se que precisa mudar
+- Sem preview em tempo real
+- Seção "Texto opcional por página": 16 campos empilhados sempre visíveis
+- Sem hierarquia visual entre campos principais e opcionais
+
+---
+
+## Sessão 27/04/2026 (parte 2) — Novo paradigma de personalização: editMode inline
+
+### Conceito aprovado pelo usuário
+"Manter exatamente como está, só que quando o usuário clicar em personalizar e fizer o login, fica exatamente na mesma página, porém com as suas próprias imagens ao invés das imagens do modelo."
+
+### O que foi descartado
+- `StepCustomize` (abas + formulários + múltiplas seções) nunca mais é ativado via navegação normal
+- `setStep('customize')` foi substituído por `setEditMode(true)` em todos os pontos de chamada
+
+### O que foi implementado
+
+#### Estado `editMode: boolean` em `BookPage`
+- `false` por padrão — modo revelação normal
+- `true` após login OAuth → `onAuthStateChange` chama `setEditMode(true)` em vez de `setStep('customize')`
+- `true` ao clicar "Personalizar livro" quando já logado
+- `true` ao escolher "modo visitante" no `AuthModal`
+- Volta a `false` ao fazer logout
+
+#### Layout edit mode em `StepReveal`
+Quando `editMode=true`, o `StepReveal` renderiza em 2 colunas via `flex flex-col lg:flex-row`:
+
+**Coluna esquerda** (`flex-1 min-w-0`, scrollável no desktop):
+- Mesma headline, livro interativo (`InteractiveBook`), stats animadas que já existiam
+- Nenhuma alteração ao componente do livro — folhear, zoom, tudo idêntico
+
+**Coluna direita** (`EditSidebar`, 320–360px fixo no desktop):
+- `lg:sticky lg:top-[56px] lg:h-[calc(100vh-56px)]` — fica colada à lateral enquanto o usuário folheia
+- Header: "Seu livro / está pronto." + contagem de páginas e fotos
+- Seção "Textos" com `SidebarTextInput` para: Título da capa, Frase de abertura
+- Seção "Fotos" com grid 3×N de thumbnails clicáveis:
+  - Clique numa foto → define como `coverPhoto`
+  - Foto ativa marcada com ring dourado
+  - Botão "Reorganizar" → rotaciona `allPhotos` (remove `photoAssignments`)
+- Seletor de modelo (Essencial / Jornada / Legado) como tabs pequenos
+- CTA fixo: "Finalizar meu livro · €XX,XX" + sub "Você poderá revisar antes de pagar"
+
+#### Mobile (< lg)
+- Sidebar abaixo do livro (sem `lg:flex-row` no mobile)
+- CTA fixo na barra inferior (`lg:hidden fixed bottom-0`): seletor de modelo + botão CTA
+- Sidebar body com `pb-24` para não ser coberto pela barra fixa
+
+#### Novos componentes adicionados (dentro de `BookPage.tsx`)
+- `SidebarTextInput({ label, value, onChange, multiline? })` — input/textarea minimalista escuro
+- `EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder })` — painel lateral completo
+
+#### Props adicionados a `StepReveal`
+- `editMode: boolean`
+- `onChange: (p: Partial<BookData>) => void`
+
+### Design coerente com a landing
+- Fundo `#0f1a0b` (tom mais escuro que `#1B2616`) para distinguir o painel do livro
+- Borda esquerda `border-[#C8A96E]/12` discreta
+- Tipografia, cores e espaçamentos idênticos ao resto do BookPage
+- CTA em ouro `#C8A96E` — único botão de alta visibilidade
+
+*Última atualização: 27/04/2026 (parte 2) — Sessão com Claude Sonnet 4.6*
+
+---
+
+## Sessão 27/04/2026 (parte 3) — Correção: fotos insuficientes + upload no sidebar
+
+### Bug corrigido: wrap-around de fotos
+
+**Causa**: `ph(n)` em `renderBookPage` fazia `photos[((n % photos.length) + photos.length) % photos.length]`
+- Quando a queue de orientações se esgotava, retornava `n = -1`
+- `-1 mod 12 = 11` → sempre retornava a última foto
+- Slots em modo sequencial além do total também ciclavam as fotos
+
+**Correção**: Slot sem foto → retorna `__empty__:n` (placeholder bege, igual ao `__stamp__`)
+```ts
+if (n < 0 || n >= photos.length) return `__empty__:n`;
+```
+
+`pimg()` também atualizado para tratar `__empty__` como placeholder.
+
+### Novo comportamento com fotos insuficientes
+
+- Slots sem foto → **página em branco** (bege `#E8E4D9`) — não repete fotos
+- `EditSidebar` mostra contador `Fotos (X / Y)` onde Y = total de slots no modelo
+
+### Nova função `countPhotoSlots(pageDefs)` (módulo)
+- Conta todos os slots de foto no layout do livro
+- Ignora `spread-r` (compartilha slot com `spread-l`)
+- Usado para calcular `missingPhotos = totalSlots - availablePhotos`
+
+### `resizeForBook` movida para nível de módulo
+- Antes estava só dentro de `StepCustomize`
+- Agora compartilhada com `EditSidebar`
+
+### Banner de aviso no `EditSidebar`
+Quando `missingPhotos > 0`:
+- Mostra: "Você tem X fotos. Faltam Y para preencher todas as páginas."
+- Explica: "As páginas sem foto ficarão em branco. Você pode adicionar fotos do dispositivo — inclusive fotos tiradas fora do app."
+- Botão "Adicionar fotos do dispositivo" abre `<input type=file multiple accept=image/*>`
+- Upload via Canvas resize (max 1200px, JPEG 0.82) + adiciona a `allPhotos`
+- Progress bar durante o processamento
+- Botão "Adicionar mais fotos" (dashed border) aparece abaixo da galeria quando ainda faltam fotos
+
+*Última atualização: 27/04/2026 (parte 3) — Sessão com Claude Sonnet 4.6*
+
+---
+
+## Sessão 27/04/2026 (parte 4) — Correção: imagens do modelo demo nas páginas 14, 15, 25–26, 48
+
+### Problema
+5 entradas no `PHOTO_BLOCK` têm `src` ou `srcs` hardcoded que apontavam para fotos do demo:
+- `p16 pág.14`: `full-bleed` com `src: '/img-apoio/img-webp/20.webp'`
+- `p17 pág.15`: `two-left-one-right` com `srcs: [null, null, '/img-apoio/img-webp/36.webp']` (3ª imagem)
+- `p27–28 págs.25–26`: `spread-l` / `spread-r` com `src: '/img-apoio/card8-granja-de-moreruela.png'`
+- `p50 pág.48`: `photo-caption` com `src: '/img-apoio/card11-caminho-aragones.webp'`
+
+O código passava `def.src` como `overrideUrl` para `pimg()`, que tem prioridade sobre a foto dinâmica do usuário. Para usuários com <89 fotos, as imagens do demo apareciam nessas páginas.
+
+### Correção
+Adicionado helper `srcFallback(slotIdx, src)` dentro de `renderBookPage`:
+- Se o slot tem foto do usuário (`ph(slotIdx)` não começa com `__empty__`): retorna `undefined` → `pimg` usa a foto do usuário
+- Se o slot está vazio: retorna `src` → usa o demo como fallback
+
+Para `spread-l` e `spread-r` (que não usam `pimg()`): lógica equivalente aplicada diretamente na construção da URL.
+
+**Resultado**: usuário com 12 fotos vê suas 12 fotos nas primeiras páginas e bege nas demais — nenhuma imagem do demo vaza para o livro real.
+
+*Última atualização: 27/04/2026 (parte 4) — Sessão com Claude Sonnet 4.6*
