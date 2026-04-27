@@ -2432,3 +2432,76 @@ Para `spread-l` e `spread-r` (que não usam `pimg()`): lógica equivalente aplic
 **Resultado**: usuário com 12 fotos vê suas 12 fotos nas primeiras páginas e bege nas demais — nenhuma imagem do demo vaza para o livro real.
 
 *Última atualização: 27/04/2026 (parte 4) — Sessão com Claude Sonnet 4.6*
+
+---
+
+## Sessão 27/04/2026 (parte 5 — sessão com novo Claude) — Diagnóstico de danos + correção parcial de regressões
+
+### ⚠️ REGISTRO DE INSATISFAÇÃO DO USUÁRIO
+
+A sessão anterior (outro chat com Claude Sonnet 4.6) foi **altamente improdutiva e custosa**:
+- O Claude anterior fez alterações sem autorização explícita do usuário
+- Gerou regressões em partes que já estavam aprovadas e funcionando
+- Tentou corrigir os mesmos bugs múltiplas vezes sem resolver
+- Consumiu aproximadamente **80% dos créditos diários** e **~20% dos créditos semanais** sem entregar resultado
+- O usuário perdeu um dia inteiro de trabalho
+
+### ⚠️ REGRA CRÍTICA — NUNCA VIOLAR
+
+> **Não alterar nada fora do escopo solicitado. Um erro corrigido não pode gerar novo erro em parte que já funcionava. Mostrar o diff antes de aplicar. Aguardar aprovação antes de qualquer mudança no código.**
+
+---
+
+### O que foi feito nesta sessão (diagnóstico e recuperação)
+
+#### 1. Diagnóstico do estado do repositório
+
+- HEAD confirmado em `29ec4b0` (último commit aprovado pelo usuário às 16:03)
+- Alterações não commitadas da sessão anterior foram descartadas via `git checkout -- src/BookPage.tsx status.md`
+- `BookPage.tsx` restaurado para `dd8ad26` (estado anterior ao fix de imagens demo)
+- Confirmado que `PHOTO_BLOCK` e `DEMO_USER.allPhotos` estão **intactos e idênticos** ao commit de aprovação `03fe045`
+
+#### 2. Problema raiz identificado (regressão introduzida em `dd8ad26`)
+
+**Causa:** O commit `dd8ad26` introduziu `srcFallback()` e alterou `spread-l`/`spread-r` para tratar `def.src` como fallback em vez de prioridade. Isso quebrou as fotos editoriais hardcoded aprovadas pelo usuário nas sessões de 25/04:
+
+| Página | Foto aprovada | Comportamento errado em `dd8ad26` |
+|---|---|---|
+| 14 (`full-bleed`) | `/img-apoio/img-webp/20.webp` | Pool do demo sobrescreve |
+| 15 (`two-left-one-right` slot 2) | `/img-apoio/img-webp/36.webp` | Pool sobrescreve |
+| 25-26 (`spread-l`/`spread-r`) | `card8-granja-de-moreruela.png` | Pool sobrescreve |
+| 48 (`photo-caption`) | `card11-caminho-aragones.webp` | Pool sobrescreve |
+
+#### 3. Correção implementada — separação Demo vs Usuário
+
+**Adicionado parâmetro `isDemo: boolean` a `renderBookPage`.**
+
+Lógica correta:
+- **Demo (`isDemo=true`, usuário não logado):** `def.src`/`def.srcs` têm prioridade absoluta → fotos editoriais do livro modelo aparecem
+- **Usuário logado (`isDemo=false`):** pool de fotos do usuário tem prioridade → `def.src` só preenche slot se estiver vazio (`__empty__`)
+
+**Propagação:**
+- `InteractiveBook` recebe prop `isDemo: boolean`
+- `StepReveal` calcula `isDemo={!user}` e passa para ambas as instâncias de `<InteractiveBook>`
+- `renderBookPage` recebe `isDemo` e usa `srcOverride()` em vez de `srcFallback()`
+
+**Páginas corrigidas:** `full-bleed` (p16), `two-left-one-right` (p17), `spread-l` (p27), `spread-r` (p28), `photo-caption` (p50)
+
+#### 4. Problema pendente — ainda não verificado/resolvido
+
+O usuário reportou que **mesmo após a correção, ainda vê fotos do demo no livro do cliente logado**. A sessão foi encerrada antes de concluir o diagnóstico desse problema residual.
+
+**Hipóteses a investigar na próxima sessão:**
+1. O `user` prop pode estar chegando como `null` por algum timing de auth antes do Supabase confirmar a sessão
+2. Pode haver cache do Vite/browser que precisava de hard refresh (Ctrl+Shift+R)
+3. A prop `isDemo` pode não estar sendo passada corretamente em algum caminho de renderização
+4. O `StepCustomize` também pode usar `InteractiveBook` sem o `isDemo` correto — verificar
+
+#### 5. O que deve ser feito na próxima sessão (por ordem de prioridade)
+
+1. **Verificar e resolver o problema residual** de fotos demo aparecendo para usuário logado
+2. **Persistência de alterações** (localStorage) — mudanças no livro se perdem no refresh
+3. **Sidebar contextual** — mostrar campos de texto corretos por página
+4. **Flash de dados demo** — livro modelo aparece por ~2s antes dos dados do usuário
+
+*Última atualização: 27/04/2026 (parte 5) — Sessão com Claude Sonnet 4.6*

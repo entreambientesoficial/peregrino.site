@@ -384,6 +384,7 @@ function renderBookPage(
   fs: (n: number) => string,
   slotMap: Map<number, number[]>,
   t: (k: string) => string,
+  isDemo: boolean,
 ) {
   const photos = bookData.allPhotos;
   const slots = slotMap.get(pageIdx) ?? [];
@@ -427,13 +428,12 @@ function renderBookPage(
   };
   // Cor de fundo neutra para células de foto
   const cellBg = '#f0ede6';
-  // def.src / def.srcs só são usados no modo demo puro (sem fotos do usuário).
-  // Quando o usuário tem fotos próprias (mesmo que insuficientes), slots vazios
-  // ficam em branco — nunca mostrar imagens demo no livro real.
-  const srcFallback = (slotIdx: number, src?: string | null): string | undefined => {
+  // Demo: def.src tem prioridade (livro modelo editorial).
+  // Usuário logado: pool de fotos tem prioridade; def.src só preenche slot vazio.
+  const srcOverride = (slotIdx: number, src?: string | null): string | undefined => {
     if (!src) return undefined;
-    if (photos.length > 0) return undefined; // modo usuário: ignora fallback demo
-    return ph(slotIdx).startsWith('__empty__') ? src : undefined; // modo demo puro
+    if (isDemo) return src;
+    return ph(slotIdx).startsWith('__empty__') ? src : undefined;
   };
 
   switch (def.kind) {
@@ -509,7 +509,7 @@ function renderBookPage(
     case 'full-bleed':
       return (
         <div style={{ width: '100%', height: '100%', background: cellBg, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-          {pimg(slots[0], undefined, srcFallback(slots[0], def.src ?? def.srcs?.[0]))}
+          {pimg(slots[0], undefined, srcOverride(slots[0], def.src ?? def.srcs?.[0]))}
         </div>
       );
 
@@ -628,8 +628,9 @@ function renderBookPage(
     case 'spread-l': {
       const spreadDynamic = slots[0] >= 0 ? ph(slots[0]) : null;
       const spreadDynamicValid = spreadDynamic && !spreadDynamic.startsWith('__empty__') && !spreadDynamic.startsWith('__stamp__');
-      // Imagem demo só no modo demo puro (sem fotos do usuário)
-      const spreadUrl = spreadDynamicValid ? spreadDynamic : (photos.length === 0 ? (def.src ?? null) : null);
+      const spreadUrl = isDemo
+        ? (def.src ?? (spreadDynamicValid ? spreadDynamic : null))
+        : (spreadDynamicValid ? spreadDynamic : (def.src ?? null));
       const hasSpreadPhoto = spreadUrl && !spreadUrl.startsWith('__stamp__') && !spreadUrl.startsWith('__empty__');
       return (
         <div style={{
@@ -648,7 +649,9 @@ function renderBookPage(
     case 'spread-r': {
       const spreadDynamicR = slots[0] >= 0 ? ph(slots[0]) : null;
       const spreadDynamicRValid = spreadDynamicR && !spreadDynamicR.startsWith('__empty__') && !spreadDynamicR.startsWith('__stamp__');
-      const spreadUrlR = spreadDynamicRValid ? spreadDynamicR : (photos.length === 0 ? (def.src ?? null) : null);
+      const spreadUrlR = isDemo
+        ? (def.src ?? (spreadDynamicRValid ? spreadDynamicR : null))
+        : (spreadDynamicRValid ? spreadDynamicR : (def.src ?? null));
       const hasSpreadPhotoR = spreadUrlR && !spreadUrlR.startsWith('__stamp__') && !spreadUrlR.startsWith('__empty__');
       return (
         <div style={{
@@ -677,9 +680,9 @@ function renderBookPage(
     case 'two-left-one-right':
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(5), padding: sp(10) }}>
-          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0], undefined, srcFallback(slots[0], def.srcs?.[0]))}</div>
-          <div style={{ gridRow: '1 / 3', overflow: 'hidden', background: cellBg }}>{pimg(slots[2], undefined, srcFallback(slots[2], def.srcs?.[2]))}</div>
-          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[1], undefined, srcFallback(slots[1], def.srcs?.[1]))}</div>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0], undefined, srcOverride(slots[0], def.srcs?.[0]))}</div>
+          <div style={{ gridRow: '1 / 3', overflow: 'hidden', background: cellBg }}>{pimg(slots[2], undefined, srcOverride(slots[2], def.srcs?.[2]))}</div>
+          <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[1], undefined, srcOverride(slots[1], def.srcs?.[1]))}</div>
         </div>
       );
 
@@ -829,7 +832,7 @@ function renderBookPage(
       const botText = renderTextSlot('bottom', bookData.caption3);
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', padding: sp(14), gap: sp(8) }}>
-          <div style={{ flex: '0 0 80%', overflow: 'hidden', background: cellBg }}>{pimg(slots[0], undefined, srcFallback(slots[0], def.src ?? def.srcs?.[0]))}</div>
+          <div style={{ flex: '0 0 80%', overflow: 'hidden', background: cellBg }}>{pimg(slots[0], undefined, srcOverride(slots[0], def.src ?? def.srcs?.[0]))}</div>
           <div style={{ borderTop: '1px solid rgba(45,58,39,0.1)', paddingTop: sp(6) }}>
             {botText ?? <p style={{ fontFamily: "'Dancing Script', cursive", fontStyle: 'italic', fontSize: fs(0.56), color: 'rgba(45,58,39,0.55)', lineHeight: 1.5 }}>{bookData.caption3}</p>}
           </div>
@@ -1642,7 +1645,7 @@ FlipPage.displayName = 'FlipPage';
 // ---------------------------------------------------------------------------
 // Livro interativo — 50 páginas
 // ---------------------------------------------------------------------------
-function InteractiveBook({ bookData, selectedModel }: { bookData: BookData; selectedModel: ModelId }) {
+function InteractiveBook({ bookData, selectedModel, isDemo }: { bookData: BookData; selectedModel: ModelId; isDemo: boolean }) {
   const { t } = useT();
   const bookRef = useRef<any>(null);
   const [page, setPage] = useState(0);
@@ -1741,7 +1744,7 @@ function InteractiveBook({ bookData, selectedModel }: { bookData: BookData; sele
             >
               {pageDefs.map((def, idx) => (
                 <FlipPage key={idx}>
-                  {renderBookPage(def, idx, bookData, S, sp, fs, slotMap, t)}
+                  {renderBookPage(def, idx, bookData, S, sp, fs, slotMap, t, isDemo)}
                 </FlipPage>
               ))}
             </HTMLFlipBook>
@@ -2097,7 +2100,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
               transition={{ delay: 0.35, duration: 0.9, type: 'spring', damping: 18 }}
               className="relative z-10 flex justify-center px-4 pb-6"
             >
-              <InteractiveBook bookData={bookData} selectedModel={selectedModel} />
+              <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} />
             </motion.div>
 
             {/* Stats */}
@@ -2220,7 +2223,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
               </div>
             </div>
           ) : (
-            <InteractiveBook bookData={bookData} selectedModel={selectedModel} />
+            <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} />
           )}
         </motion.div>
 
