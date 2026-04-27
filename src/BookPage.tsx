@@ -427,10 +427,13 @@ function renderBookPage(
   };
   // Cor de fundo neutra para células de foto
   const cellBg = '#f0ede6';
-  // def.src / def.srcs só como fallback quando slot não tem foto do usuário
+  // def.src / def.srcs só são usados no modo demo puro (sem fotos do usuário).
+  // Quando o usuário tem fotos próprias (mesmo que insuficientes), slots vazios
+  // ficam em branco — nunca mostrar imagens demo no livro real.
   const srcFallback = (slotIdx: number, src?: string | null): string | undefined => {
     if (!src) return undefined;
-    return ph(slotIdx).startsWith('__empty__') ? src : undefined;
+    if (photos.length > 0) return undefined; // modo usuário: ignora fallback demo
+    return ph(slotIdx).startsWith('__empty__') ? src : undefined; // modo demo puro
   };
 
   switch (def.kind) {
@@ -624,9 +627,9 @@ function renderBookPage(
     // ── Spread L — metade esquerda de uma foto que atravessa dois spreads ─────
     case 'spread-l': {
       const spreadDynamic = slots[0] >= 0 ? ph(slots[0]) : null;
-      const spreadUrl = (spreadDynamic && !spreadDynamic.startsWith('__empty__') && !spreadDynamic.startsWith('__stamp__'))
-        ? spreadDynamic
-        : (def.src ?? null);
+      const spreadDynamicValid = spreadDynamic && !spreadDynamic.startsWith('__empty__') && !spreadDynamic.startsWith('__stamp__');
+      // Imagem demo só no modo demo puro (sem fotos do usuário)
+      const spreadUrl = spreadDynamicValid ? spreadDynamic : (photos.length === 0 ? (def.src ?? null) : null);
       const hasSpreadPhoto = spreadUrl && !spreadUrl.startsWith('__stamp__') && !spreadUrl.startsWith('__empty__');
       return (
         <div style={{
@@ -644,9 +647,8 @@ function renderBookPage(
     // ── Spread R — metade direita da mesma foto do spread-l ─────────────────
     case 'spread-r': {
       const spreadDynamicR = slots[0] >= 0 ? ph(slots[0]) : null;
-      const spreadUrlR = (spreadDynamicR && !spreadDynamicR.startsWith('__empty__') && !spreadDynamicR.startsWith('__stamp__'))
-        ? spreadDynamicR
-        : (def.src ?? null);
+      const spreadDynamicRValid = spreadDynamicR && !spreadDynamicR.startsWith('__empty__') && !spreadDynamicR.startsWith('__stamp__');
+      const spreadUrlR = spreadDynamicRValid ? spreadDynamicR : (photos.length === 0 ? (def.src ?? null) : null);
       const hasSpreadPhotoR = spreadUrlR && !spreadUrlR.startsWith('__stamp__') && !spreadUrlR.startsWith('__empty__');
       return (
         <div style={{
