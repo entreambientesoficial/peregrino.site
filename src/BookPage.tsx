@@ -229,9 +229,9 @@ const PHOTO_BLOCK: PageDef[] = [
   { kind: 'wide-photo-text',     p: 0,           o: ['l']                                }, // p44
   { kind: 'duo-portrait-margin', p: [0,1],       o: ['p','p']                            }, // p45
   { kind: 'text-route'                                                                    }, // p46
-  { kind: 'two-top-one-bottom',  p: [0,1,2],     o: ['any','any','l']                    }, // p47
+  { kind: 'two-top-one-bottom',  p: [0,1,2],     o: ['any','any','l'], srcs: [null, null, '/img-apoio/img-webp/54.webp'] }, // p47
   { kind: 'trio-centered',       p: [0,1,2],     o: ['p','p','p']                        }, // p48
-  { kind: 'grid-2x2',            p: [0,1,2,3],   o: ['any','any','any','any']            }, // p49
+  { kind: 'grid-2x2',            p: [0,1,2,3],   o: ['any','any','any','any'], srcs: [null, null, null, '/img-apoio/img-webp/54.webp'] }, // p49
   { kind: 'photo-caption',       p: 0,           o: ['l'],  src: '/img-apoio/card11-caminho-aragones.webp' }, // p50 pág.48
 ];
 
@@ -371,6 +371,30 @@ function buildPhotoSlotMap(
   }
   return map;
 }
+
+// ---------------------------------------------------------------------------
+// Conteúdo editorial do modelo demo — dois formatos visuais distintos:
+// FORMATO 1: serifado (Lora) — título em destaque + corpo reflexivo
+// FORMATO 2: cursiva (Dancing Script) — citação pura, centralizada, 1.5×
+// ---------------------------------------------------------------------------
+type DemoPage =
+  | { format: 1; title: string; text: string }
+  | { format: 2; text: string };
+
+const DEMO_PAGES: Record<number, DemoPage> = {
+  // FORMATO 1 — layouts de reflexão (photo-text-r, text-photo-r, wide-photo-text, photo-caption)
+  4:  { format: 1, title: 'O Chamado',           text: 'A jornada de mil milhas começa com um único passo e uma mochila cheia de esperança.' },
+  18: { format: 1, title: 'O Silêncio',          text: 'Nas subidas mais íngremes, o silêncio das montanhas fala diretamente ao que a alma precisa ouvir.' },
+  33: { format: 1, title: 'A Catedral Verde',    text: 'Caminhar sob o teto das árvores é como entrar em um santuário natural. Cada passo marca o ritmo de uma oração silenciosa.' },
+  34: { format: 1, title: 'A Partilha',          text: 'Cada concha no caminho é um lembrete de que não caminhamos sozinhos, mas carregamos histórias uns dos outros.' },
+  38: { format: 1, title: 'O Repouso do Caminho', text: 'As cidades se aquietam. É no descanso do crepúsculo que as lições do dia se transformam em sabedoria para o amanhã.' },
+  43: { format: 1, title: 'A Luz que Guia',         text: 'As torres da catedral erguem-se como braços abertos ao céu. Cada pedra guarda o silêncio de mil peregrinos que, antes de nós, chegaram transformados.' },
+  49: { format: 1, title: 'O Encontro com a Chegada', text: 'A silhueta da catedral materializa-se no horizonte. As dores se dissolvem em um sorriso incrédulo; não é o fim, mas um início.' },
+  // FORMATO 2 — citações puras (quote-route pág.6/13, text-route pág.44)
+  7:  { format: 2, text: 'O Caminho se faz ao caminhar.' },
+  14: { format: 2, text: 'O essencial é invisível aos olhos.' },
+  45: { format: 2, text: 'Buen Camino, Peregrino.' },
+};
 
 // ---------------------------------------------------------------------------
 // Renderizador de páginas
@@ -525,15 +549,27 @@ function renderBookPage(
 
     // ── Photo Text R — retrato esquerda + texto direita ──────────────────────
     case 'photo-text-r': {
-      const topText = renderTextSlot('top', bookData.title);
-      const botText = renderTextSlot('bottom', bookData.openingPhrase);
+      const demo = isDemo ? (DEMO_PAGES[pageIdx] ?? null) : null;
+      const topText = demo ? null : renderTextSlot('top', bookData.title);
+      const botText = demo ? null : renderTextSlot('bottom', bookData.openingPhrase);
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '48% 52%' }}>
           <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(16)}`, gap: sp(8) }}>
             <div style={{ width: sp(24), height: '1px', background: 'rgba(45,58,39,0.2)' }} />
-            {topText ?? <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: fs(0.78), color: '#1B2616', lineHeight: 1.25 }}>{bookData.title}</p>}
-            {botText ?? <p style={{ fontFamily: "'Lora', serif", fontStyle: 'italic', fontSize: fs(0.52), color: 'rgba(45,58,39,0.55)', lineHeight: 1.6 }}>{bookData.openingPhrase}</p>}
+            {demo?.format === 1 ? (
+              <>
+                <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.78), color: '#1B2616', lineHeight: 1.2 }}>{demo.title}</p>
+                <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.65)', lineHeight: 1.6 }}>{demo.text}</p>
+              </>
+            ) : demo?.format === 2 ? (
+              <p style={{ fontFamily: "'Dancing Script', cursive", fontSize: fs(1.25), color: '#1B2616', lineHeight: 1.4, textAlign: 'center' }}>{demo.text}</p>
+            ) : (
+              <>
+                {topText ?? <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: fs(0.78), color: '#1B2616', lineHeight: 1.25 }}>{bookData.title}</p>}
+                {botText ?? <p style={{ fontFamily: "'Lora', serif", fontStyle: 'italic', fontSize: fs(0.52), color: 'rgba(45,58,39,0.55)', lineHeight: 1.6 }}>{bookData.openingPhrase}</p>}
+              </>
+            )}
           </div>
         </div>
       );
@@ -553,17 +589,21 @@ function renderBookPage(
       );
 
     // ── Quote Route — texto grande italic + rota/data (sem foto) ────────────
-    case 'quote-route':
+    case 'quote-route': {
+      const demo = isDemo ? (DEMO_PAGES[pageIdx] ?? null) : null;
       return (
-        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(18)} ${sp(22)}` }}>
-          <p style={{ fontFamily: "'Dancing Script', cursive", fontSize: fs(1.05), color: '#1B2616', lineHeight: 1.4, marginBottom: sp(10) }}>
-            {bookData.openingPhrase}
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: demo ? 'center' : 'flex-start', padding: `${sp(14)} ${sp(18)} ${sp(22)}` }}>
+          <p style={{ fontFamily: "'Dancing Script', cursive", fontWeight: demo ? 700 : 400, fontSize: fs(demo ? 1.5 : 1.05), color: '#1B2616', lineHeight: 1.4, marginBottom: demo ? 0 : sp(10), textAlign: demo ? 'center' : 'left' }}>
+            {demo ? demo.text : bookData.openingPhrase}
           </p>
-          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: fs(0.46), color: 'rgba(45,58,39,0.4)', letterSpacing: '0.1em' }}>
-            {bookData.route} · {bookData.startDate}
-          </p>
+          {!demo && (
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: fs(0.46), color: 'rgba(45,58,39,0.4)', letterSpacing: '0.1em' }}>
+              {bookData.route} · {bookData.startDate}
+            </p>
+          )}
         </div>
       );
+    }
 
     // ── Offset Two — foto paisagem baixo-esq + foto retrato alto dir (Canva p9)
     case 'offset-two':
@@ -691,7 +731,7 @@ function renderBookPage(
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(5), padding: sp(10) }}>
           {[0, 1, 2, 3].map(i => (
-            <div key={i} style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[i])}</div>
+            <div key={i} style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[i], undefined, srcOverride(slots[i], def.srcs?.[i]))}</div>
           ))}
         </div>
       );
@@ -738,13 +778,23 @@ function renderBookPage(
 
     // ── Text Photo R — texto esquerda + retrato direita ──────────────────────
     case 'text-photo-r': {
-      const topText = renderTextSlot('top', bookData.title);
-      const botText = renderTextSlot('bottom', bookData.reflectionText);
+      const demo = isDemo ? (DEMO_PAGES[pageIdx] ?? null) : null;
+      const topText = demo ? null : renderTextSlot('top', bookData.title);
+      const botText = demo ? null : renderTextSlot('bottom', bookData.reflectionText);
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '45% 55%' }}>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(16)}`, gap: sp(8) }}>
-            {topText ?? <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: fs(0.82), color: '#1B2616', lineHeight: 1.2 }}>{bookData.title}</p>}
-            {botText ?? <p style={{ fontFamily: "'Inter', sans-serif", fontSize: fs(0.5), color: 'rgba(45,58,39,0.55)', lineHeight: 1.6 }}>{bookData.reflectionText.slice(0, 80)}</p>}
+            {demo?.format === 1 ? (
+              <>
+                <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.82), color: '#1B2616', lineHeight: 1.2 }}>{demo.title}</p>
+                <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.65)', lineHeight: 1.6 }}>{demo.text}</p>
+              </>
+            ) : (
+              <>
+                {topText ?? <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: fs(0.82), color: '#1B2616', lineHeight: 1.2 }}>{bookData.title}</p>}
+                {botText ?? <p style={{ fontFamily: "'Inter', sans-serif", fontSize: fs(0.5), color: 'rgba(45,58,39,0.55)', lineHeight: 1.6 }}>{bookData.reflectionText.slice(0, 80)}</p>}
+              </>
+            )}
           </div>
           <div style={{ overflow: 'hidden', background: '#fff', padding: sp(10) }}>{pimg(slots[0])}</div>
         </div>
@@ -796,12 +846,22 @@ function renderBookPage(
 
     // ── Wide Photo Text — foto larga esq (~65%) + texto script dir ──────────
     case 'wide-photo-text': {
-      const topText = renderTextSlot('top', bookData.reflectionText);
+      const demo = isDemo ? (DEMO_PAGES[pageIdx] ?? null) : null;
+      const topText = demo ? null : renderTextSlot('top', bookData.reflectionText);
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '65% 35%' }}>
           <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(16)}`, gap: sp(8) }}>
-            {topText ?? <p style={{ fontFamily: "'Dancing Script', cursive", fontSize: fs(0.7), color: '#1B2616', lineHeight: 1.5 }}>{bookData.reflectionText.slice(0, 60)}</p>}
+            {demo?.format === 1 ? (
+              <>
+                <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.6), color: '#1B2616', lineHeight: 1.2 }}>{demo.title}</p>
+                <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.8)', lineHeight: 1.55 }}>{demo.text}</p>
+              </>
+            ) : demo?.format === 2 ? (
+              <p style={{ fontFamily: "'Dancing Script', cursive", fontSize: fs(1.1), color: '#1B2616', lineHeight: 1.5, textAlign: 'center' }}>{demo.text}</p>
+            ) : (
+              topText ?? <p style={{ fontFamily: "'Dancing Script', cursive", fontSize: fs(0.7), color: '#1B2616', lineHeight: 1.5 }}>{bookData.reflectionText.slice(0, 60)}</p>
+            )}
           </div>
         </div>
       );
@@ -813,7 +873,7 @@ function renderBookPage(
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: sp(5), padding: sp(10) }}>
           <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
           <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[1])}</div>
-          <div style={{ gridColumn: '1 / 3', overflow: 'hidden', background: cellBg }}>{pimg(slots[2])}</div>
+          <div style={{ gridColumn: '1 / 3', overflow: 'hidden', background: cellBg }}>{pimg(slots[2], undefined, srcOverride(slots[2], def.srcs?.[2]))}</div>
         </div>
       );
 
@@ -829,29 +889,45 @@ function renderBookPage(
 
     // ── Photo Caption — foto paisagem + legenda italic abaixo ───────────────
     case 'photo-caption': {
-      const botText = renderTextSlot('bottom', bookData.caption3);
+      const demo = isDemo ? (DEMO_PAGES[pageIdx] ?? null) : null;
+      const botText = demo ? null : renderTextSlot('bottom', bookData.caption3);
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', padding: sp(14), gap: sp(8) }}>
-          <div style={{ flex: '0 0 80%', overflow: 'hidden', background: cellBg }}>{pimg(slots[0], undefined, srcOverride(slots[0], def.src ?? def.srcs?.[0]))}</div>
+          <div style={{ flex: '0 0 70%', overflow: 'hidden', background: cellBg }}>{pimg(slots[0], undefined, srcOverride(slots[0], def.src ?? def.srcs?.[0]))}</div>
           <div style={{ borderTop: '1px solid rgba(45,58,39,0.1)', paddingTop: sp(6) }}>
-            {botText ?? <p style={{ fontFamily: "'Dancing Script', cursive", fontStyle: 'italic', fontSize: fs(0.56), color: 'rgba(45,58,39,0.55)', lineHeight: 1.5 }}>{bookData.caption3}</p>}
+            {demo?.format === 1 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: sp(4) }}>
+                <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.6), color: '#1B2616', lineHeight: 1.2 }}>{demo.title}</p>
+                <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.65)', lineHeight: 1.5 }}>{demo.text}</p>
+              </div>
+            ) : (
+              botText ?? <p style={{ fontFamily: "'Dancing Script', cursive", fontStyle: 'italic', fontSize: fs(0.56), color: 'rgba(45,58,39,0.55)', lineHeight: 1.5 }}>{bookData.caption3}</p>
+            )}
           </div>
         </div>
       );
     }
 
     // ── Text Route — texto título + rota/data (sem foto) ────────────────────
-    case 'text-route':
+    case 'text-route': {
+      const demo = isDemo ? (DEMO_PAGES[pageIdx] ?? null) : null;
       return (
-        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(18)} ${sp(20)}` }}>
-          <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: fs(1.05), color: '#1B2616', lineHeight: 1.2, marginBottom: sp(8) }}>
-            {bookData.title}
-          </p>
-          <p style={{ fontFamily: "'Dancing Script', cursive", fontStyle: 'italic', fontSize: fs(0.6), color: 'rgba(45,58,39,0.45)' }}>
-            {bookData.route} · {bookData.startDate}
-          </p>
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: demo ? 'center' : 'flex-start', padding: `${sp(14)} ${sp(18)} ${sp(20)}` }}>
+          {demo?.format === 2 ? (
+            <p style={{ fontFamily: "'Dancing Script', cursive", fontWeight: 700, fontSize: fs(1.5), color: '#1B2616', lineHeight: 1.4, textAlign: 'center' }}>{demo.text}</p>
+          ) : (
+            <>
+              <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: fs(1.05), color: '#1B2616', lineHeight: 1.2, marginBottom: sp(8) }}>
+                {bookData.title}
+              </p>
+              <p style={{ fontFamily: "'Dancing Script', cursive", fontStyle: 'italic', fontSize: fs(0.6), color: 'rgba(45,58,39,0.45)' }}>
+                {bookData.route} · {bookData.startDate}
+              </p>
+            </>
+          )}
         </div>
       );
+    }
 
     // ── Selos — grade dinâmica de carimbos da credencial ────────────────────
     // Slots dinâmicos: refletem os selos reais do peregrino.
@@ -1702,7 +1778,7 @@ function InteractiveBook({ bookData, selectedModel, isDemo }: { bookData: BookDa
                 <div>
                   <div style={{ width: sp(30), height: '1px', background: 'rgba(255,255,255,0.28)', marginBottom: sp(12) }} />
                   <p className="font-serif italic text-white leading-tight" style={{ fontSize: fs(1.05) }}>{bookData.title}</p>
-                  <p className="text-white/45 uppercase tracking-wider" style={{ fontSize: fs(0.56), marginTop: sp(8) }}>{bookData.userName}</p>
+                  {!isDemo && <p className="text-white/45 uppercase tracking-wider" style={{ fontSize: fs(0.56), marginTop: sp(8) }}>{bookData.userName}</p>}
                 </div>
               </div>
               <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 45%)' }} />
