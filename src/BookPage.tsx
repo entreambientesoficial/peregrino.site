@@ -126,8 +126,8 @@ const TEXT_STYLES = {
   destaque: {
     label: 'Destaque',
     hint: 'Dancing Script · Itálico',
-    fontFamily: "'Dancing Script', cursive",
-    fontWeight: 400,
+    fontFamily: "'Playfair Display', serif",
+    fontWeight: 700,
     fontStyle: 'italic' as const,
     color: '#1B2616',
     lineHeight: 1.45,
@@ -559,11 +559,11 @@ function renderBookPage(
             <div style={{ width: sp(24), height: '1px', background: 'rgba(45,58,39,0.2)' }} />
             {demo?.format === 1 ? (
               <>
-                <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.78), color: '#1B2616', lineHeight: 1.2 }}>{demo.title}</p>
+                <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.80), color: '#1B2616', lineHeight: 1.2 }}>{demo.title}</p>
                 <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.65)', lineHeight: 1.6 }}>{demo.text}</p>
               </>
             ) : demo?.format === 2 ? (
-              <p style={{ fontFamily: "'Dancing Script', cursive", fontSize: fs(1.25), color: '#1B2616', lineHeight: 1.4, textAlign: 'center' }}>{demo.text}</p>
+              <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontSize: fs(1.25), color: '#1B2616', lineHeight: 1.4, textAlign: 'center' }}>{demo.text}</p>
             ) : (
               <>
                 {topText ?? <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: fs(0.78), color: '#1B2616', lineHeight: 1.25 }}>{bookData.title}</p>}
@@ -593,7 +593,7 @@ function renderBookPage(
       const demo = isDemo ? (DEMO_PAGES[pageIdx] ?? null) : null;
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: demo ? 'center' : 'flex-start', padding: `${sp(14)} ${sp(18)} ${sp(22)}` }}>
-          <p style={{ fontFamily: "'Dancing Script', cursive", fontWeight: demo ? 700 : 400, fontSize: fs(demo ? 1.5 : 1.05), color: '#1B2616', lineHeight: 1.4, marginBottom: demo ? 0 : sp(10), textAlign: demo ? 'center' : 'left' }}>
+          <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: demo ? 700 : 400, fontSize: fs(demo ? 1.5 : 1.05), color: '#1B2616', lineHeight: 1.4, marginBottom: demo ? 0 : sp(10), textAlign: demo ? 'center' : 'left' }}>
             {demo ? demo.text : bookData.openingPhrase}
           </p>
           {!demo && (
@@ -786,7 +786,7 @@ function renderBookPage(
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(16)}`, gap: sp(8) }}>
             {demo?.format === 1 ? (
               <>
-                <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.82), color: '#1B2616', lineHeight: 1.2 }}>{demo.title}</p>
+                <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.80), color: '#1B2616', lineHeight: 1.2 }}>{demo.title}</p>
                 <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.65)', lineHeight: 1.6 }}>{demo.text}</p>
               </>
             ) : (
@@ -854,11 +854,11 @@ function renderBookPage(
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(16)}`, gap: sp(8) }}>
             {demo?.format === 1 ? (
               <>
-                <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.6), color: '#1B2616', lineHeight: 1.2 }}>{demo.title}</p>
-                <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.8)', lineHeight: 1.55 }}>{demo.text}</p>
+                <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.60), color: '#1B2616', lineHeight: 1.2 }}>{demo.title}</p>
+                <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.65)', lineHeight: 1.6 }}>{demo.text}</p>
               </>
             ) : demo?.format === 2 ? (
-              <p style={{ fontFamily: "'Dancing Script', cursive", fontSize: fs(1.1), color: '#1B2616', lineHeight: 1.5, textAlign: 'center' }}>{demo.text}</p>
+              <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontSize: fs(1.1), color: '#1B2616', lineHeight: 1.5, textAlign: 'center' }}>{demo.text}</p>
             ) : (
               topText ?? <p style={{ fontFamily: "'Dancing Script', cursive", fontSize: fs(0.7), color: '#1B2616', lineHeight: 1.5 }}>{bookData.reflectionText.slice(0, 60)}</p>
             )}
@@ -897,8 +897,8 @@ function renderBookPage(
           <div style={{ borderTop: '1px solid rgba(45,58,39,0.1)', paddingTop: sp(6) }}>
             {demo?.format === 1 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: sp(4) }}>
-                <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.6), color: '#1B2616', lineHeight: 1.2 }}>{demo.title}</p>
-                <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.65)', lineHeight: 1.5 }}>{demo.text}</p>
+                <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.60), color: '#1B2616', lineHeight: 1.2 }}>{demo.title}</p>
+                <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.65)', lineHeight: 1.6 }}>{demo.text}</p>
               </div>
             ) : (
               botText ?? <p style={{ fontFamily: "'Dancing Script', cursive", fontStyle: 'italic', fontSize: fs(0.56), color: 'rgba(45,58,39,0.55)', lineHeight: 1.5 }}>{bookData.caption3}</p>
@@ -914,7 +914,7 @@ function renderBookPage(
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: demo ? 'center' : 'flex-start', padding: `${sp(14)} ${sp(18)} ${sp(20)}` }}>
           {demo?.format === 2 ? (
-            <p style={{ fontFamily: "'Dancing Script', cursive", fontWeight: 700, fontSize: fs(1.5), color: '#1B2616', lineHeight: 1.4, textAlign: 'center' }}>{demo.text}</p>
+            <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: fs(1.5), color: '#1B2616', lineHeight: 1.4, textAlign: 'center' }}>{demo.text}</p>
           ) : (
             <>
               <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: fs(1.05), color: '#1B2616', lineHeight: 1.2, marginBottom: sp(8) }}>
