@@ -2,6 +2,32 @@
 
 Este documento serve como a "Fonte da Verdade" para o estado atual do desenvolvimento da Landing Page do App Peregrino. Se este projeto for transferido para outra IA ou desenvolvedor, este arquivo deve ser lido integralmente primeiro.
 
+---
+
+## 🚨🚨🚨 REGRA ABSOLUTA — LEIA ANTES DE QUALQUER COISA 🚨🚨🚨
+
+> ### ⛔ O BOOK MODELO (isDemo) ESTÁ CONGELADO. NENHUMA ALTERAÇÃO É PERMITIDA SEM PEDIDO EXPLÍCITO DO DONO DO PROJETO.
+
+**ISTO SIGNIFICA:**
+
+- ❌ **NÃO ALTERE** `DEMO_PAGES` — nenhuma entrada, nenhum texto, nenhum formato
+- ❌ **NÃO ALTERE** `DEMO_USER.allPhotos` — nem ordem, nem quantidade, nem quais fotos
+- ❌ **NÃO ALTERE** os `srcs` editoriais do `PHOTO_BLOCK` (p16, p17, p47, p49, p50)
+- ❌ **NÃO ALTERE** a tipografia dos blocos `format === 1` ou `format === 2` no `renderBookPage`
+- ❌ **NÃO ALTERE** o `objectPosition` específico de nenhuma página do livro
+- ❌ **NÃO ALTERE** o `flex: '0 0 70%'` da foto em `photo-caption`
+- ❌ **NÃO ALTERE** o livro real do usuário logado — a flag `isDemo` protege tudo, não a contorne
+
+**ESTA REGRA SE APLICA A:**
+- Qualquer refactor "de limpeza"
+- Qualquer "melhoria" tipográfica não solicitada
+- Qualquer correção de foto que não seja pedida pelo dono
+- Qualquer alteração automática de tamanho, cor, fonte ou layout das páginas do livro
+
+**SÓ EXISTE UMA EXCEÇÃO:** pedido direto e explícito do dono do projeto nesta conversa.
+
+---
+
 ## 🎯 Escopo do Projeto
 Criar uma Landing Page de alto impacto (Premium/Editorial) para o aplicativo **Peregrino**. O objetivo é transmitir uma sensação de "Guia de Luxo" e "Diário de Viagem", focando em texturas orgânicas, tipografia elegante e interações fluidas baseadas em scroll (storytelling).
 
@@ -87,6 +113,80 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 ---
 
 ## 🔄 Histórico de Alterações
+
+### Sessão 28/04/2026 — Design editorial do book modelo (isDemo) — SESSÃO DE CONGELAMENTO
+
+#### Objetivo
+Elevar o nível editorial do livro modelo exibido para visitantes não logados (`isDemo = true`), separando o conteúdo em dois formatos visuais distintos e garantindo que nenhuma alteração afete o livro real do usuário logado.
+
+#### Estado final do book modelo (CONGELADO)
+
+##### Sistema de formatos editoriais (`DEMO_PAGES`)
+
+Tipo discriminado que mapeia `pageIdx → DemoPage`:
+
+```tsx
+type DemoPage =
+  | { format: 1; title: string; text: string }  // reflexão: Lora 600 + Lora 400
+  | { format: 2; text: string };                 // citação: Playfair Display italic
+
+const DEMO_PAGES: Record<number, DemoPage> = {
+  // FORMATO 1 — foto + reflexão editorial (Lora)
+  4:  { format: 1, title: 'O Chamado',             text: '...' },  // pág. 3  · photo-text-r
+  18: { format: 1, title: 'O Silêncio',            text: '...' },  // pág. 17 · photo-text-r
+  33: { format: 1, title: 'A Catedral Verde',       text: '...' },  // pág. 32 · photo-text-r
+  34: { format: 1, title: 'A Partilha',             text: '...' },  // pág. 33 · text-photo-r
+  38: { format: 1, title: 'O Repouso do Caminho',  text: '...' },  // pág. 37 · text-photo-r
+  43: { format: 1, title: 'A Luz que Guia',         text: '...' },  // pág. 42 · wide-photo-text
+  49: { format: 1, title: 'O Encontro com a Chegada', text: '...' }, // pág. 48 · photo-caption
+  // FORMATO 2 — citação pura (Playfair Display italic)
+  7:  { format: 2, text: 'O Caminho se faz ao caminhar.' },        // pág. 6  · quote-route
+  14: { format: 2, text: 'O essencial é invisível aos olhos.' },   // pág. 13 · quote-route
+  45: { format: 2, text: 'Buen Camino, Peregrino.' },              // pág. 44 · text-route
+};
+```
+
+##### Tipografia dos formatos (CONGELADA)
+
+| Elemento | Fonte | Peso | Estilo | Tamanho |
+|---|---|---|---|---|
+| FORMATO 1 — Título | Lora | 600 | normal | fs(0.78–0.82) conforme layout |
+| FORMATO 1 — Corpo | Lora | 400 | normal (sem italic) | fs(0.52) |
+| FORMATO 2 — Citação | Playfair Display | 700 | italic | fs(1.5) |
+
+##### Layouts que suportam demo editorial
+
+| Layout | Suporte F1 | Suporte F2 | Notas |
+|---|---|---|---|
+| `photo-text-r` | ✅ | ✅ (fs 1.25) | Coluna direita 52% |
+| `text-photo-r` | ✅ | — | Coluna esquerda 45% |
+| `wide-photo-text` | ✅ | ✅ (fs 1.1) | Coluna direita 35% |
+| `photo-caption` | ✅ (flex col) | — | foto 70% + texto 30% |
+| `quote-route` | — | ✅ (fs 1.5) | centralizado, sem rota |
+| `text-route` | — | ✅ (fs 1.5) | centralizado |
+
+##### Fotos editoriais fixas (srcOverride — CONGELADAS)
+
+| Página | PHOTO_BLOCK | Layout | Foto editorial |
+|---|---|---|---|
+| pág. 14 | p16 | full-bleed | `/img-apoio/img-webp/20.webp` |
+| pág. 15 | p17 | two-left-one-right | `/img-apoio/img-webp/36.webp` (slot[2]) |
+| pág. 45 | p47 | two-top-one-bottom | `/img-apoio/img-webp/54.webp` (slot[2]) |
+| pág. 47 | p49 | grid-2x2 | `/img-apoio/img-webp/54.webp` (slot[3]) |
+| pág. 48 | p50 | photo-caption | `/img-apoio/card11-caminho-aragones.webp` |
+
+##### Pool de fotos demo (CONGELADO)
+- **89 fotos** (`DEMO_USER.allPhotos`) — números 1–90 exceto 43
+- **91 slots** no livro → últimos 2 slots naturalmente vazios (cobertos por srcs editoriais)
+- Fotos 20, 36, 54 presentes no pool (aparecem 2× no livro — aceitável vs slots vazios)
+
+##### Ajustes pontuais (CONGELADOS)
+- `photo-caption` foto: `flex: '0 0 70%'` (reduzido de 80% para dar espaço ao texto)
+- `text-photo-r` pág. 37 (pageIdx 38): `objectPosition: 'top'` para preservar cabeça da pessoa
+
+#### ⚠️ Esta sessão marca o CONGELAMENTO do book modelo. Ver regra no topo do documento.
+
+---
 
 ### Sessão 25/04/2026 (parte 5) — Editor editorial de textos com tipografia padronizada
 

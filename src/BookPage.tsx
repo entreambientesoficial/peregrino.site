@@ -796,7 +796,7 @@ function renderBookPage(
               </>
             )}
           </div>
-          <div style={{ overflow: 'hidden', background: '#fff', padding: sp(10) }}>{pimg(slots[0])}</div>
+          <div style={{ overflow: 'hidden', background: '#fff', padding: sp(10) }}>{pimg(slots[0], pageIdx === 38 ? { objectPosition: 'top' } : undefined)}</div>
         </div>
       );
     }
