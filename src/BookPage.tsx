@@ -115,17 +115,17 @@ type ModelId = 'essential' | 'journey' | 'legacy';
 const TEXT_STYLES = {
   titulo: {
     label: 'Título',
-    hint: 'Playfair Display · Negrito',
-    fontFamily: "'Playfair Display', serif",
-    fontWeight: 700,
+    hint: 'Lora · Semibold',
+    fontFamily: "'Lora', serif",
+    fontWeight: 600,
     fontStyle: 'normal'  as const,
     color: '#1B2616',
     lineHeight: 1.2,
-    fsRatio: 0.78,
+    fsRatio: 0.80,
   },
   destaque: {
     label: 'Destaque',
-    hint: 'Dancing Script · Itálico',
+    hint: 'Playfair Display · Itálico',
     fontFamily: "'Playfair Display', serif",
     fontWeight: 700,
     fontStyle: 'italic' as const,
@@ -139,9 +139,9 @@ const TEXT_STYLES = {
     fontFamily: "'Lora', serif",
     fontWeight: 400,
     fontStyle: 'normal'  as const,
-    color: 'rgba(45,58,39,0.72)',
+    color: 'rgba(45,58,39,0.65)',
     lineHeight: 1.6,
-    fsRatio: 0.50,
+    fsRatio: 0.52,
   },
 } as const;
 
@@ -552,8 +552,8 @@ function renderBookPage(
     // ── Photo Text R — retrato esquerda + texto direita ──────────────────────
     case 'photo-text-r': {
       const demo = isDemo ? (DEMO_PAGES[pageIdx] ?? null) : null;
-      const topText = demo ? null : renderTextSlot('top', bookData.title);
-      const botText = demo ? null : renderTextSlot('bottom', bookData.openingPhrase);
+      const topText = demo ? null : renderTextSlot('top');
+      const botText = demo ? null : renderTextSlot('bottom');
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '48% 52%' }}>
           <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
@@ -568,8 +568,8 @@ function renderBookPage(
               <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontSize: fs(1.25), color: '#1B2616', lineHeight: 1.4, textAlign: 'center' }}>{demo.text}</p>
             ) : (
               <>
-                {topText ?? <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: fs(0.78), color: '#1B2616', lineHeight: 1.25 }}>{bookData.title}</p>}
-                {botText ?? <p style={{ fontFamily: "'Lora', serif", fontStyle: 'italic', fontSize: fs(0.52), color: 'rgba(45,58,39,0.55)', lineHeight: 1.6 }}>{bookData.openingPhrase}</p>}
+                {topText ?? <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.80), color: 'rgba(45,58,39,0.35)', lineHeight: 1.2 }}>Preencha o título desta página…</p>}
+                {botText ?? <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.35)', lineHeight: 1.6 }}>Escreva uma reflexão, memória ou descoberta desta etapa do Caminho…</p>}
               </>
             )}
           </div>
@@ -593,14 +593,14 @@ function renderBookPage(
     // ── Quote Route — texto grande italic + rota/data (sem foto) ────────────
     case 'quote-route': {
       const demo = isDemo ? (DEMO_PAGES[pageIdx] ?? null) : null;
-      const userQuote = !isDemo ? (getTextEntry('top')?.text?.trim() || bookData.openingPhrase) : null;
+      const userQuote = !isDemo ? getTextEntry('top')?.text?.trim() : null;
       return (
-        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: demo ? 'center' : 'flex-start', padding: `${sp(14)} ${sp(18)} ${sp(22)}` }}>
-          <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: demo ? 700 : 400, fontSize: fs(demo ? 1.5 : 1.05), color: '#1B2616', lineHeight: 1.4, marginBottom: demo ? 0 : sp(10), textAlign: demo ? 'center' : 'left' }}>
-            {demo ? demo.text : userQuote}
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: `${sp(14)} ${sp(18)} ${sp(22)}` }}>
+          <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: fs(1.5), color: '#1B2616', lineHeight: 1.4, marginBottom: !demo ? sp(10) : 0, textAlign: 'center' }}>
+            {demo ? demo.text : (userQuote || <span style={{ color: 'rgba(45,58,39,0.35)' }}>Uma citação ou pensamento que marcou o seu Caminho…</span>)}
           </p>
           {!demo && (
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: fs(0.46), color: 'rgba(45,58,39,0.4)', letterSpacing: '0.1em' }}>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: fs(0.46), color: 'rgba(45,58,39,0.4)', letterSpacing: '0.1em', textAlign: 'center' }}>
               {bookData.route} · {bookData.startDate}
             </p>
           )}
@@ -782,8 +782,8 @@ function renderBookPage(
     // ── Text Photo R — texto esquerda + retrato direita ──────────────────────
     case 'text-photo-r': {
       const demo = isDemo ? (DEMO_PAGES[pageIdx] ?? null) : null;
-      const topText = demo ? null : renderTextSlot('top', bookData.title);
-      const botText = demo ? null : renderTextSlot('bottom', bookData.reflectionText);
+      const topText = demo ? null : renderTextSlot('top');
+      const botText = demo ? null : renderTextSlot('bottom');
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '45% 55%' }}>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(16)}`, gap: sp(8) }}>
@@ -794,8 +794,8 @@ function renderBookPage(
               </>
             ) : (
               <>
-                {topText ?? <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: fs(0.82), color: '#1B2616', lineHeight: 1.2 }}>{bookData.title}</p>}
-                {botText ?? <p style={{ fontFamily: "'Inter', sans-serif", fontSize: fs(0.5), color: 'rgba(45,58,39,0.55)', lineHeight: 1.6 }}>{bookData.reflectionText.slice(0, 80)}</p>}
+                {topText ?? <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.80), color: 'rgba(45,58,39,0.35)', lineHeight: 1.2 }}>Preencha o título desta página…</p>}
+                {botText ?? <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.35)', lineHeight: 1.6 }}>Escreva uma reflexão, memória ou descoberta desta etapa do Caminho…</p>}
               </>
             )}
           </div>
@@ -850,7 +850,7 @@ function renderBookPage(
     // ── Wide Photo Text — foto larga esq (~65%) + texto script dir ──────────
     case 'wide-photo-text': {
       const demo = isDemo ? (DEMO_PAGES[pageIdx] ?? null) : null;
-      const topText = demo ? null : renderTextSlot('top', bookData.reflectionText);
+      const topText = demo ? null : renderTextSlot('top');
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '65% 35%' }}>
           <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
@@ -863,7 +863,7 @@ function renderBookPage(
             ) : demo?.format === 2 ? (
               <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontSize: fs(1.1), color: '#1B2616', lineHeight: 1.5, textAlign: 'center' }}>{demo.text}</p>
             ) : (
-              topText ?? <p style={{ fontFamily: "'Dancing Script', cursive", fontSize: fs(0.7), color: '#1B2616', lineHeight: 1.5 }}>{bookData.reflectionText.slice(0, 60)}</p>
+              topText ?? <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.35)', lineHeight: 1.6, fontStyle: 'italic' }}>Escreva uma reflexão, memória ou descoberta desta etapa do Caminho…</p>
             )}
           </div>
         </div>
@@ -893,7 +893,7 @@ function renderBookPage(
     // ── Photo Caption — foto paisagem + legenda italic abaixo ───────────────
     case 'photo-caption': {
       const demo = isDemo ? (DEMO_PAGES[pageIdx] ?? null) : null;
-      const botText = demo ? null : renderTextSlot('bottom', bookData.caption3);
+      const botText = demo ? null : renderTextSlot('bottom');
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', padding: sp(14), gap: sp(8) }}>
           <div style={{ flex: '0 0 70%', overflow: 'hidden', background: cellBg }}>{pimg(slots[0], undefined, srcOverride(slots[0], def.src ?? def.srcs?.[0]))}</div>
@@ -904,7 +904,7 @@ function renderBookPage(
                 <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.65)', lineHeight: 1.6 }}>{demo.text}</p>
               </div>
             ) : (
-              botText ?? <p style={{ fontFamily: "'Dancing Script', cursive", fontStyle: 'italic', fontSize: fs(0.56), color: 'rgba(45,58,39,0.55)', lineHeight: 1.5 }}>{bookData.caption3}</p>
+              botText ?? <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontStyle: 'italic', fontSize: fs(0.52), color: 'rgba(45,58,39,0.35)', lineHeight: 1.6 }}>Uma frase sobre o momento registado nesta foto…</p>
             )}
           </div>
         </div>
@@ -914,17 +914,17 @@ function renderBookPage(
     // ── Text Route — texto título + rota/data (sem foto) ────────────────────
     case 'text-route': {
       const demo = isDemo ? (DEMO_PAGES[pageIdx] ?? null) : null;
-      const userTitle = !isDemo ? (getTextEntry('top')?.text?.trim() || bookData.title) : null;
+      const userTitle = !isDemo ? getTextEntry('top')?.text?.trim() : null;
       return (
-        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: demo ? 'center' : 'flex-start', padding: `${sp(14)} ${sp(18)} ${sp(20)}` }}>
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: `${sp(14)} ${sp(18)} ${sp(20)}` }}>
           {demo?.format === 2 ? (
             <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: fs(1.5), color: '#1B2616', lineHeight: 1.4, textAlign: 'center' }}>{demo.text}</p>
           ) : (
             <>
-              <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: fs(1.05), color: '#1B2616', lineHeight: 1.2, marginBottom: sp(8) }}>
-                {userTitle}
+              <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: fs(1.5), color: '#1B2616', lineHeight: 1.4, textAlign: 'center', marginBottom: sp(10) }}>
+                {userTitle || <span style={{ color: 'rgba(45,58,39,0.35)' }}>Uma frase que define a sua jornada…</span>}
               </p>
-              <p style={{ fontFamily: "'Dancing Script', cursive", fontStyle: 'italic', fontSize: fs(0.6), color: 'rgba(45,58,39,0.45)' }}>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: fs(0.46), color: 'rgba(45,58,39,0.4)', letterSpacing: '0.1em', textAlign: 'center' }}>
                 {bookData.route} · {bookData.startDate}
               </p>
             </>
@@ -1892,14 +1892,24 @@ const AUTO_KINDS: PageKind[] = ['verso-capa', 'verso-back', 'back-cover', 'prefa
 // ---------------------------------------------------------------------------
 // PageTextEditor — seção de texto contextual na sidebar, baseada na página atual
 // ---------------------------------------------------------------------------
-function PageTextEditor({ pageIdx, pageDef, bookData, onChange }: {
+function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, onChange }: {
   pageIdx: number;
   pageDef: PageDef | undefined;
+  nextPageIdx: number;
+  nextPageDef: PageDef | undefined;
   bookData: BookData;
   onChange: (p: Partial<BookData>) => void;
 }) {
   if (!pageDef) return null;
-  const kind = pageDef.kind;
+
+  // Spread: página esquerda não é editável → usar página direita se tiver texto editável
+  const EDITABLE_KINDS: PageKind[] = [...FMT1_KINDS, ...FMT2_KINDS, 'verso-capa'];
+  const leftEditable = EDITABLE_KINDS.includes(pageDef.kind);
+  const rightEditable = !!nextPageDef && EDITABLE_KINDS.includes(nextPageDef.kind);
+  const activeIdx  = (!leftEditable && rightEditable) ? nextPageIdx  : pageIdx;
+  const activeDef  = (!leftEditable && rightEditable) ? nextPageDef! : pageDef;
+
+  const kind = activeDef.kind;
 
   const isAuto = AUTO_KINDS.includes(kind);
   const isFmt1 = FMT1_KINDS.includes(kind);
@@ -1909,7 +1919,7 @@ function PageTextEditor({ pageIdx, pageDef, bookData, onChange }: {
   const inputClass = "w-full bg-[#1B2616]/70 border border-[#C8A96E]/18 rounded-xl px-3 py-2.5 text-[#E8E4D9] text-sm resize-none focus:outline-none focus:border-[#C8A96E]/45 placeholder:text-[#E8E4D9]/20 transition-colors leading-relaxed";
 
   const updatePageText = (slot: 'top' | 'bottom', text: string, style: TextStyleKey) => {
-    const key = `${pageIdx}-${slot}`;
+    const key = `${activeIdx}-${slot}`;
     const next = { ...bookData.pageTexts };
     if (text.trim()) {
       next[key] = { text, style };
@@ -1987,7 +1997,7 @@ function PageTextEditor({ pageIdx, pageDef, bookData, onChange }: {
         return (
           <div className="space-y-5">
             {slots.map(slot => {
-              const key = `${pageIdx}-${slot}`;
+              const key = `${activeIdx}-${slot}`;
               const entry = bookData.pageTexts[key];
               const isTop = slot === 'top';
               const isCaption = kind === 'photo-caption';
@@ -2024,7 +2034,7 @@ function PageTextEditor({ pageIdx, pageDef, bookData, onChange }: {
 
       {/* FORMATO 2 — Citação única */}
       {isFmt2 && (() => {
-        const key = `${pageIdx}-top`;
+        const key = `${activeIdx}-top`;
         const entry = bookData.pageTexts[key];
         const isTextRoute = kind === 'text-route';
         const placeholder = isTextRoute
@@ -2124,6 +2134,8 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
         <PageTextEditor
           pageIdx={currentPage}
           pageDef={pageDefs[currentPage]}
+          nextPageIdx={currentPage + 1}
+          nextPageDef={pageDefs[currentPage + 1]}
           bookData={bookData}
           onChange={onChange}
         />
