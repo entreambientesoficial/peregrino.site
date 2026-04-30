@@ -2056,9 +2056,6 @@ function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, 
               style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic' }}
             />
             <p className="text-[#E8E4D9]/20 text-[0.55rem] text-right mt-1">{(entry?.text ?? '').length}/160</p>
-            <p className="text-[#E8E4D9]/18 text-[0.58rem] mt-2 leading-relaxed">
-              Se deixar em branco, usará a frase de abertura definida no seu perfil.
-            </p>
           </div>
         );
       })()}
@@ -2276,7 +2273,7 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
         >
           Finalizar meu livro · {model.price}
         </button>
-        <p className="text-center text-[#E8E4D9]/22 text-[0.6rem] mt-2 leading-relaxed">
+        <p className="text-center text-[#E8E4D9]/55 text-[0.6rem] mt-2 leading-relaxed">
           Você poderá revisar antes de pagar
         </p>
       </div>
@@ -2421,7 +2418,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
           >
             Finalizar meu livro · {editModel.price}
           </button>
-          <p className="text-center text-[#E8E4D9]/22 text-[0.58rem] mt-1.5">
+          <p className="text-center text-[#E8E4D9]/55 text-[0.58rem] mt-1.5">
             Você poderá revisar antes de pagar
           </p>
         </div>
