@@ -154,10 +154,12 @@ interface PageTextEntry {
 
 // Layouts que suportam slots de texto personalizados
 const PAGE_TEXT_SLOTS: Partial<Record<PageKind, Array<'top' | 'bottom'>>> = {
-  'photo-text-r': ['top', 'bottom'],
-  'text-photo-r': ['top', 'bottom'],
-  'wide-photo-text': ['top'],
-  'photo-caption': ['bottom'],
+  'photo-text-r':   ['top', 'bottom'],
+  'text-photo-r':   ['top', 'bottom'],
+  'wide-photo-text':['top'],
+  'photo-caption':  ['bottom'],
+  'quote-route':    ['top'],
+  'text-route':     ['top'],
 };
 
 const BOOK_MODELS: { id: ModelId; label: string; pages: number; price: string; desc: string; featured?: true }[] = [
@@ -591,10 +593,11 @@ function renderBookPage(
     // ── Quote Route — texto grande italic + rota/data (sem foto) ────────────
     case 'quote-route': {
       const demo = isDemo ? (DEMO_PAGES[pageIdx] ?? null) : null;
+      const userQuote = !isDemo ? (getTextEntry('top')?.text?.trim() || bookData.openingPhrase) : null;
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: demo ? 'center' : 'flex-start', padding: `${sp(14)} ${sp(18)} ${sp(22)}` }}>
           <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: demo ? 700 : 400, fontSize: fs(demo ? 1.5 : 1.05), color: '#1B2616', lineHeight: 1.4, marginBottom: demo ? 0 : sp(10), textAlign: demo ? 'center' : 'left' }}>
-            {demo ? demo.text : bookData.openingPhrase}
+            {demo ? demo.text : userQuote}
           </p>
           {!demo && (
             <p style={{ fontFamily: "'Inter', sans-serif", fontSize: fs(0.46), color: 'rgba(45,58,39,0.4)', letterSpacing: '0.1em' }}>
@@ -911,6 +914,7 @@ function renderBookPage(
     // ── Text Route — texto título + rota/data (sem foto) ────────────────────
     case 'text-route': {
       const demo = isDemo ? (DEMO_PAGES[pageIdx] ?? null) : null;
+      const userTitle = !isDemo ? (getTextEntry('top')?.text?.trim() || bookData.title) : null;
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: demo ? 'center' : 'flex-start', padding: `${sp(14)} ${sp(18)} ${sp(20)}` }}>
           {demo?.format === 2 ? (
@@ -918,7 +922,7 @@ function renderBookPage(
           ) : (
             <>
               <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: fs(1.05), color: '#1B2616', lineHeight: 1.2, marginBottom: sp(8) }}>
-                {bookData.title}
+                {userTitle}
               </p>
               <p style={{ fontFamily: "'Dancing Script', cursive", fontStyle: 'italic', fontSize: fs(0.6), color: 'rgba(45,58,39,0.45)' }}>
                 {bookData.route} · {bookData.startDate}
@@ -1721,7 +1725,7 @@ FlipPage.displayName = 'FlipPage';
 // ---------------------------------------------------------------------------
 // Livro interativo — 50 páginas
 // ---------------------------------------------------------------------------
-function InteractiveBook({ bookData, selectedModel, isDemo }: { bookData: BookData; selectedModel: ModelId; isDemo: boolean }) {
+function InteractiveBook({ bookData, selectedModel, isDemo, onPageChange }: { bookData: BookData; selectedModel: ModelId; isDemo: boolean; onPageChange?: (page: number) => void }) {
   const { t } = useT();
   const bookRef = useRef<any>(null);
   const [page, setPage] = useState(0);
@@ -1816,7 +1820,7 @@ function InteractiveBook({ bookData, selectedModel, isDemo }: { bookData: BookDa
               startZIndex={10} autoSize={false} clickEventForward={true}
               useMouseEvents={true} swipeDistance={30} showPageCorners={true}
               disableFlipByClick={false} style={{}} className="" startPage={1}
-              onFlip={(e: any) => setPage(e.data)}
+              onFlip={(e: any) => { setPage(e.data); onPageChange?.(e.data); }}
             >
               {pageDefs.map((def, idx) => (
                 <FlipPage key={idx}>
@@ -1880,12 +1884,183 @@ function SidebarTextInput({ label, value, onChange, multiline }: {
   );
 }
 
-function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder }: {
+// Formatos reconhecidos na sidebar
+const FMT1_KINDS: PageKind[] = ['photo-text-r', 'text-photo-r', 'wide-photo-text', 'photo-caption'];
+const FMT2_KINDS: PageKind[] = ['quote-route', 'text-route'];
+const AUTO_KINDS: PageKind[] = ['verso-capa', 'verso-back', 'back-cover', 'preface', 'stamps', 'spread-l', 'spread-r'];
+
+// ---------------------------------------------------------------------------
+// PageTextEditor — seção de texto contextual na sidebar, baseada na página atual
+// ---------------------------------------------------------------------------
+function PageTextEditor({ pageIdx, pageDef, bookData, onChange }: {
+  pageIdx: number;
+  pageDef: PageDef | undefined;
+  bookData: BookData;
+  onChange: (p: Partial<BookData>) => void;
+}) {
+  if (!pageDef) return null;
+  const kind = pageDef.kind;
+
+  const isAuto = AUTO_KINDS.includes(kind);
+  const isFmt1 = FMT1_KINDS.includes(kind);
+  const isFmt2 = FMT2_KINDS.includes(kind);
+  const hasText = isFmt1 || isFmt2;
+
+  const inputClass = "w-full bg-[#1B2616]/70 border border-[#C8A96E]/18 rounded-xl px-3 py-2.5 text-[#E8E4D9] text-sm resize-none focus:outline-none focus:border-[#C8A96E]/45 placeholder:text-[#E8E4D9]/20 transition-colors leading-relaxed";
+
+  const updatePageText = (slot: 'top' | 'bottom', text: string, style: TextStyleKey) => {
+    const key = `${pageIdx}-${slot}`;
+    const next = { ...bookData.pageTexts };
+    if (text.trim()) {
+      next[key] = { text, style };
+    } else {
+      delete next[key];
+    }
+    onChange({ pageTexts: next });
+  };
+
+  // Capa: campos globais título + nome
+  if (kind === 'verso-capa') {
+    return (
+      <div>
+        <p className="text-[#C8A96E]/40 text-[0.58rem] uppercase tracking-[0.32em] mb-4">Capa do Livro</p>
+        <div className="space-y-5">
+          <div>
+            <p className="text-[#E8E4D9]/35 text-[0.6rem] uppercase tracking-[0.22em] mb-2">Título da Capa</p>
+            <input
+              type="text"
+              maxLength={60}
+              value={bookData.title}
+              placeholder="Preencha o título do seu livro…"
+              onChange={e => onChange({ title: e.target.value })}
+              className={inputClass}
+              style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700 }}
+            />
+            <p className="text-[#E8E4D9]/20 text-[0.55rem] text-right mt-1">{bookData.title.length}/60</p>
+          </div>
+          <div>
+            <p className="text-[#E8E4D9]/35 text-[0.6rem] uppercase tracking-[0.22em] mb-2">Nome do Peregrino</p>
+            <input
+              type="text"
+              maxLength={60}
+              value={bookData.userName}
+              placeholder="O seu nome tal como aparecerá na capa…"
+              onChange={e => onChange({ userName: e.target.value })}
+              className={inputClass}
+              style={{ fontFamily: "'Lora', serif" }}
+            />
+            <p className="text-[#E8E4D9]/20 text-[0.55rem] text-right mt-1">{bookData.userName.length}/60</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Label do eyebrow da seção
+  const eyebrow = isAuto
+    ? 'Página especial'
+    : hasText
+      ? `Texto · Pág. ${pageIdx + 1}`
+      : `Foto · Pág. ${pageIdx + 1}`;
+
+  return (
+    <div>
+      <p className="text-[#C8A96E]/40 text-[0.58rem] uppercase tracking-[0.32em] mb-4">{eyebrow}</p>
+
+      {/* Páginas automáticas (exceto capa tratada acima) */}
+      {isAuto && (
+        <p className="text-[#E8E4D9]/25 text-xs leading-relaxed">
+          Esta página é gerada automaticamente com os dados da sua jornada. Navegue para uma página com texto ou foto para editar.
+        </p>
+      )}
+
+      {/* Páginas só fotográficas */}
+      {!isAuto && !hasText && (
+        <p className="text-[#E8E4D9]/25 text-xs leading-relaxed">
+          Esta é uma página fotográfica. Navegue para uma página com texto para editar.
+        </p>
+      )}
+
+      {/* FORMATO 1 — Título + Texto/Legenda */}
+      {isFmt1 && (() => {
+        const slots = PAGE_TEXT_SLOTS[kind] ?? [];
+        return (
+          <div className="space-y-5">
+            {slots.map(slot => {
+              const key = `${pageIdx}-${slot}`;
+              const entry = bookData.pageTexts[key];
+              const isTop = slot === 'top';
+              const isCaption = kind === 'photo-caption';
+
+              const label = isTop ? 'Título' : isCaption ? 'Legenda da foto' : 'Texto';
+              const placeholder = isTop
+                ? 'Preencha o título desta página…'
+                : isCaption
+                  ? 'Uma frase sobre o momento registado nesta foto…'
+                  : 'Escreva uma reflexão, memória ou descoberta desta etapa do Caminho…';
+              const rows = isTop ? 2 : 4;
+              const maxLen = isTop ? 60 : 220;
+              const defaultStyle: TextStyleKey = isTop ? 'titulo' : 'corpo';
+
+              return (
+                <div key={slot}>
+                  <p className="text-[#E8E4D9]/35 text-[0.6rem] uppercase tracking-[0.22em] mb-2">{label}</p>
+                  <textarea
+                    rows={rows}
+                    maxLength={maxLen}
+                    value={entry?.text ?? ''}
+                    placeholder={placeholder}
+                    onChange={e => updatePageText(slot, e.target.value, entry?.style ?? defaultStyle)}
+                    className={inputClass}
+                    style={isTop ? { fontFamily: "'Playfair Display', serif", fontWeight: 700 } : { fontFamily: "'Lora', serif" }}
+                  />
+                  <p className="text-[#E8E4D9]/20 text-[0.55rem] text-right mt-1">{(entry?.text ?? '').length}/{maxLen}</p>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
+
+      {/* FORMATO 2 — Citação única */}
+      {isFmt2 && (() => {
+        const key = `${pageIdx}-top`;
+        const entry = bookData.pageTexts[key];
+        const isTextRoute = kind === 'text-route';
+        const placeholder = isTextRoute
+          ? 'Uma frase que define a sua jornada…'
+          : 'Uma citação ou pensamento que marcou o seu Caminho…';
+
+        return (
+          <div>
+            <p className="text-[#E8E4D9]/35 text-[0.6rem] uppercase tracking-[0.22em] mb-2">Citação</p>
+            <textarea
+              rows={3}
+              maxLength={160}
+              value={entry?.text ?? ''}
+              placeholder={placeholder}
+              onChange={e => updatePageText('top', e.target.value, 'destaque')}
+              className={inputClass}
+              style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic' }}
+            />
+            <p className="text-[#E8E4D9]/20 text-[0.55rem] text-right mt-1">{(entry?.text ?? '').length}/160</p>
+            <p className="text-[#E8E4D9]/18 text-[0.58rem] mt-2 leading-relaxed">
+              Se deixar em branco, usará a frase de abertura definida no seu perfil.
+            </p>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder, currentPage }: {
   bookData: BookData;
   onChange: (p: Partial<BookData>) => void;
   selectedModel: ModelId;
   onSelectModel: (m: ModelId) => void;
   onOrder: () => void;
+  currentPage: number;
 }) {
   const model = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -1945,23 +2120,13 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto py-5 px-6 space-y-7 pb-24 lg:pb-6">
 
-        {/* Text editing */}
-        <div>
-          <p className="text-[#C8A96E]/40 text-[0.58rem] uppercase tracking-[0.32em] mb-4">Textos</p>
-          <div className="space-y-5">
-            <SidebarTextInput
-              label="Título da capa"
-              value={bookData.title}
-              onChange={v => onChange({ title: v })}
-            />
-            <SidebarTextInput
-              label="Frase de abertura"
-              value={bookData.openingPhrase}
-              onChange={v => onChange({ openingPhrase: v })}
-              multiline
-            />
-          </div>
-        </div>
+        {/* Texto contextual — varia conforme a página atual do livro */}
+        <PageTextEditor
+          pageIdx={currentPage}
+          pageDef={pageDefs[currentPage]}
+          bookData={bookData}
+          onChange={onChange}
+        />
 
         {/* Photo gallery */}
         <div>
@@ -2123,6 +2288,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
 }) {
   const { t } = useT();
   const [statsVisible, setStatsVisible] = useState(false);
+  const [currentBookPage, setCurrentBookPage] = useState(0);
   const statsRef = useRef<HTMLDivElement>(null);
   const aKm = useCountUp(bookData.km, 1200, statsVisible && !dataLoading);
   const aDays = useCountUp(bookData.days, 900, statsVisible && !dataLoading);
@@ -2176,7 +2342,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
               transition={{ delay: 0.35, duration: 0.9, type: 'spring', damping: 18 }}
               className="relative z-10 flex justify-center px-4 pb-6"
             >
-              <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} />
+              <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} onPageChange={setCurrentBookPage} />
             </motion.div>
 
             {/* Stats */}
@@ -2213,6 +2379,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
             selectedModel={selectedModel}
             onSelectModel={onSelectModel}
             onOrder={onOrder}
+            currentPage={currentBookPage}
           />
         </motion.div>
 
