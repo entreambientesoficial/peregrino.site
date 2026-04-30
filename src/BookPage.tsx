@@ -601,9 +601,9 @@ function renderBookPage(
           <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: fs(1.5), color: '#1B2616', lineHeight: 1.4, marginBottom: !demo ? sp(10) : 0, textAlign: 'center', wordBreak: 'break-word', overflowWrap: 'break-word', width: '100%' }}>
             {demo ? demo.text : (userQuote || <span style={{ color: 'rgba(45,58,39,0.35)' }}>Uma citação ou pensamento que marcou o seu Caminho…</span>)}
           </p>
-          {!demo && (
+          {!demo && userQuote && bookData.route && (
             <p style={{ fontFamily: "'Inter', sans-serif", fontSize: fs(0.46), color: 'rgba(45,58,39,0.4)', letterSpacing: '0.1em', textAlign: 'center' }}>
-              {bookData.route} · {bookData.startDate}
+              {bookData.route}{bookData.startDate ? ` · ${bookData.startDate}` : ''}
             </p>
           )}
         </div>
