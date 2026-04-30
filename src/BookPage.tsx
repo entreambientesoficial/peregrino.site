@@ -436,6 +436,8 @@ function renderBookPage(
         color: s.color,
         lineHeight: s.lineHeight,
         fontSize: fs(s.fsRatio),
+        wordBreak: 'break-word',
+        overflowWrap: 'break-word',
       }}>
         {text}
       </p>
@@ -557,7 +559,7 @@ function renderBookPage(
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '48% 52%' }}>
           <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(16)}`, gap: sp(8) }}>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(16)}`, gap: sp(8), overflow: 'hidden' }}>
             <div style={{ width: sp(24), height: '1px', background: 'rgba(45,58,39,0.2)' }} />
             {demo?.format === 1 ? (
               <>
@@ -595,8 +597,8 @@ function renderBookPage(
       const demo = isDemo ? (DEMO_PAGES[pageIdx] ?? null) : null;
       const userQuote = !isDemo ? getTextEntry('top')?.text?.trim() : null;
       return (
-        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: `${sp(14)} ${sp(18)} ${sp(22)}` }}>
-          <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: fs(1.5), color: '#1B2616', lineHeight: 1.4, marginBottom: !demo ? sp(10) : 0, textAlign: 'center' }}>
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: `${sp(14)} ${sp(18)} ${sp(22)}`, overflow: 'hidden' }}>
+          <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: fs(1.5), color: '#1B2616', lineHeight: 1.4, marginBottom: !demo ? sp(10) : 0, textAlign: 'center', wordBreak: 'break-word', overflowWrap: 'break-word', width: '100%' }}>
             {demo ? demo.text : (userQuote || <span style={{ color: 'rgba(45,58,39,0.35)' }}>Uma citação ou pensamento que marcou o seu Caminho…</span>)}
           </p>
           {!demo && (
@@ -786,7 +788,7 @@ function renderBookPage(
       const botText = demo ? null : renderTextSlot('bottom');
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '45% 55%' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(16)}`, gap: sp(8) }}>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(16)}`, gap: sp(8), overflow: 'hidden' }}>
             {demo?.format === 1 ? (
               <>
                 <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.80), color: '#1B2616', lineHeight: 1.2 }}>{demo.title}</p>
@@ -916,12 +918,12 @@ function renderBookPage(
       const demo = isDemo ? (DEMO_PAGES[pageIdx] ?? null) : null;
       const userTitle = !isDemo ? getTextEntry('top')?.text?.trim() : null;
       return (
-        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: `${sp(14)} ${sp(18)} ${sp(20)}` }}>
+        <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: `${sp(14)} ${sp(18)} ${sp(20)}`, overflow: 'hidden' }}>
           {demo?.format === 2 ? (
-            <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: fs(1.5), color: '#1B2616', lineHeight: 1.4, textAlign: 'center' }}>{demo.text}</p>
+            <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: fs(1.5), color: '#1B2616', lineHeight: 1.4, textAlign: 'center', wordBreak: 'break-word', overflowWrap: 'break-word', width: '100%' }}>{demo.text}</p>
           ) : (
             <>
-              <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: fs(1.5), color: '#1B2616', lineHeight: 1.4, textAlign: 'center', marginBottom: sp(10) }}>
+              <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: fs(1.5), color: '#1B2616', lineHeight: 1.4, textAlign: 'center', marginBottom: sp(10), wordBreak: 'break-word', overflowWrap: 'break-word', width: '100%' }}>
                 {userTitle || <span style={{ color: 'rgba(45,58,39,0.35)' }}>Uma frase que define a sua jornada…</span>}
               </p>
               <p style={{ fontFamily: "'Inter', sans-serif", fontSize: fs(0.46), color: 'rgba(45,58,39,0.4)', letterSpacing: '0.1em', textAlign: 'center' }}>
