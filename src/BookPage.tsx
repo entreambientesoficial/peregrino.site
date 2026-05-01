@@ -237,15 +237,16 @@ const PHOTO_BLOCK: PageDef[] = [
   { kind: 'photo-caption',       p: 0,           o: ['l'],  src: '/img-apoio/card11-caminho-aragones.webp' }, // p50 pág.48
 ];
 
-// Gera as 54 page defs fixas (modelo 50 páginas do usuário):
-// cover + verso-capa + preface + 48 fotos + stamps + verso-back + back-cover
-function generatePageDefs(_modelPages?: number): PageDef[] {
-  // A capa NÃO entra no flipbook — é exibida apenas no preview do livro fechado.
-  // O flipbook começa em verso-capa (idx 0) + prefácio (idx 1) como primeiro spread.
+// Gera page defs conforme o modelo selecionado:
+// Essencial (50) → 1× PHOTO_BLOCK | Jornada (100) → 2× | Legado (150) → 3×
+function generatePageDefs(modelPages?: number): PageDef[] {
+  const cycles = modelPages === 150 ? 3 : modelPages === 100 ? 2 : 1;
+  const photoPages: PageDef[] = [];
+  for (let i = 0; i < cycles; i++) photoPages.push(...PHOTO_BLOCK);
   return [
     { kind: 'verso-capa' },
     { kind: 'preface' },
-    ...PHOTO_BLOCK,
+    ...photoPages,
     { kind: 'stamps' },
     { kind: 'verso-back' },
     { kind: 'back-cover' },
@@ -2073,7 +2074,7 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
   const pageDefs = useMemo(() => generatePageDefs(model.pages), [model.pages]);
   const totalSlots = useMemo(() => countPhotoSlots(pageDefs), [pageDefs]);
   const availablePhotos = bookData.allPhotos.length;
-  const missingPhotos = Math.max(0, totalSlots - availablePhotos);
+  const missingPhotos = Math.max(0, model.pages - availablePhotos);
 
   const handleUpload = async (files: FileList) => {
     const fileArray = Array.from(files).filter(f => f.type.startsWith('image/'));
@@ -2138,7 +2139,7 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
         <div>
           <div className="flex items-center justify-between mb-3">
             <p className="text-[#C8A96E]/40 text-[0.58rem] uppercase tracking-[0.32em]">
-              Fotos ({availablePhotos} / {totalSlots})
+              Fotos ({availablePhotos} / {model.pages})
             </p>
             {availablePhotos > 3 && (
               <button
@@ -2154,8 +2155,7 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
           {missingPhotos > 0 && (
             <div className="mb-4 rounded-xl border border-[#C8A96E]/20 bg-[#C8A96E]/6 px-4 py-3.5">
               <p className="text-[#C8A96E] text-[0.72rem] font-medium leading-relaxed mb-1">
-                Você tem {availablePhotos} {availablePhotos === 1 ? 'foto' : 'fotos'}.
-                Faltam {missingPhotos} para preencher todas as páginas.
+                Você tem {availablePhotos} {availablePhotos === 1 ? 'foto' : 'fotos'}. Faltam {missingPhotos} para preencher as {model.pages} páginas do {model.label}.
               </p>
               <p className="text-[#E8E4D9]/45 text-[0.65rem] leading-relaxed mb-3">
                 As páginas sem foto ficarão em branco. Você pode adicionar fotos do seu dispositivo — inclusive fotos tiradas fora do app.
