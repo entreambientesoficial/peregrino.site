@@ -459,9 +459,8 @@ function renderBookPage(
   // Demo: def.src tem prioridade (livro modelo editorial).
   // Usuário logado: pool de fotos tem prioridade; def.src só preenche slot vazio.
   const srcOverride = (slotIdx: number, src?: string | null): string | undefined => {
-    if (!src) return undefined;
-    if (isDemo) return src;
-    return ph(slotIdx).startsWith('__empty__') ? src : undefined;
+    if (!src || !isDemo) return undefined;
+    return src;
   };
 
   switch (def.kind) {
@@ -670,7 +669,7 @@ function renderBookPage(
       const spreadDynamicValid = spreadDynamic && !spreadDynamic.startsWith('__empty__') && !spreadDynamic.startsWith('__stamp__');
       const spreadUrl = isDemo
         ? (def.src ?? (spreadDynamicValid ? spreadDynamic : null))
-        : (spreadDynamicValid ? spreadDynamic : (def.src ?? null));
+        : (spreadDynamicValid ? spreadDynamic : null);
       const hasSpreadPhoto = spreadUrl && !spreadUrl.startsWith('__stamp__') && !spreadUrl.startsWith('__empty__');
       return (
         <div style={{
@@ -691,7 +690,7 @@ function renderBookPage(
       const spreadDynamicRValid = spreadDynamicR && !spreadDynamicR.startsWith('__empty__') && !spreadDynamicR.startsWith('__stamp__');
       const spreadUrlR = isDemo
         ? (def.src ?? (spreadDynamicRValid ? spreadDynamicR : null))
-        : (spreadDynamicRValid ? spreadDynamicR : (def.src ?? null));
+        : (spreadDynamicRValid ? spreadDynamicR : null);
       const hasSpreadPhotoR = spreadUrlR && !spreadUrlR.startsWith('__stamp__') && !spreadUrlR.startsWith('__empty__');
       return (
         <div style={{
