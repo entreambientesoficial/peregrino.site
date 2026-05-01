@@ -1921,15 +1921,23 @@ function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, 
   const hasText = isFmt1 || isFmt2;
 
   // Slots de foto desta página
+  // buildPhotoSlotMap retorna -1 quando esgota as filas (mais slots que fotos disponíveis).
+  // Nunca permitir atribuição ao índice -1 — vários slots compartilham esse valor e
+  // qualquer assignment replicaria a mesma foto em todas as páginas sem foto.
   const pageSlots = slotMap.get(activeIdx) ?? [];
-  const hasPhotoSlots = pageSlots.length > 0 && activeDef.p !== undefined;
+  const validSlots = pageSlots.filter(s => s >= 0);
+  const hasPhotoSlots = validSlots.length > 0 && activeDef.p !== undefined;
+  const pageHasSlotDef = activeDef.p !== undefined; // esta página tem slots, mas podem não ter fotos
   const getSlotPhoto = (slotIdx: number): string | null => {
+    if (slotIdx < 0) return null;
     if (bookData.photoAssignments[slotIdx] !== undefined) return bookData.photoAssignments[slotIdx];
-    return slotIdx >= 0 && slotIdx < bookData.allPhotos.length ? bookData.allPhotos[slotIdx] : null;
+    return slotIdx < bookData.allPhotos.length ? bookData.allPhotos[slotIdx] : null;
   };
-  const assignSlotPhoto = (slotIdx: number, url: string) =>
+  const assignSlotPhoto = (slotIdx: number, url: string) => {
+    if (slotIdx < 0) return; // guard: nunca atribuir ao índice sentinela -1
     onChange({ photoAssignments: { ...bookData.photoAssignments, [slotIdx]: url } });
-  const effectiveTarget = targetSlot !== null ? targetSlot : (pageSlots[0] ?? null);
+  };
+  const effectiveTarget = (targetSlot !== null && targetSlot >= 0) ? targetSlot : (validSlots[0] ?? null);
 
   const inputClass = "w-full bg-[#1B2616]/70 border border-[#C8A96E]/18 rounded-xl px-3 py-2.5 text-[#E8E4D9] text-sm resize-none focus:outline-none focus:border-[#C8A96E]/45 placeholder:text-[#E8E4D9]/20 transition-colors leading-relaxed";
 
@@ -1941,20 +1949,34 @@ function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, 
   };
 
   const renderPhotoPanel = (label: string) => {
-    if (!hasPhotoSlots || bookData.allPhotos.length === 0) return null;
+    if (!pageHasSlotDef) return null; // página sem slots de foto por definição
+    if (bookData.allPhotos.length === 0) return null;
+
+    // Fotos insuficientes: slots existem mas todos têm índice -1
+    if (!hasPhotoSlots) {
+      return (
+        <div>
+          <p className="text-[#E8E4D9]/35 text-[0.6rem] uppercase tracking-[0.22em] mb-2">{label}</p>
+          <p className="text-[#E8E4D9]/25 text-xs leading-relaxed">
+            Fotos insuficientes para esta página. Adicione mais fotos na galeria abaixo.
+          </p>
+        </div>
+      );
+    }
+
     return (
       <div>
         <p className="text-[#E8E4D9]/35 text-[0.6rem] uppercase tracking-[0.22em] mb-2">{label}</p>
 
-        {/* Seletor de slot quando há múltiplas fotos na página */}
-        {pageSlots.length > 1 && (
+        {/* Seletor de slot quando há múltiplas fotos válidas na página */}
+        {validSlots.length > 1 && (
           <div className="flex gap-1.5 mb-3">
-            {pageSlots.map((slotIdx, pos) => {
+            {validSlots.map((slotIdx, pos) => {
               const url = getSlotPhoto(slotIdx);
               const isTarget = slotIdx === effectiveTarget;
               return (
                 <button
-                  key={pos}
+                  key={slotIdx}
                   onClick={() => setTargetSlot(slotIdx)}
                   title={`Editar foto ${pos + 1}`}
                   className={`relative flex-1 aspect-square rounded-lg overflow-hidden transition-all ${
@@ -2098,9 +2120,9 @@ function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, 
                 </div>
               );
             })}
-            {hasPhotoSlots && (
+            {pageHasSlotDef && (
               <div className="pt-1 border-t border-[#C8A96E]/10">
-                {renderPhotoPanel(pageSlots.length > 1 ? 'Fotos desta página' : 'Foto desta página')}
+                {renderPhotoPanel(validSlots.length > 1 ? 'Fotos desta página' : 'Foto desta página')}
               </div>
             )}
           </div>
@@ -2140,7 +2162,7 @@ function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, 
       })()}
 
       {/* Páginas fotográficas — painel de troca de foto */}
-      {!isAuto && !hasText && renderPhotoPanel(pageSlots.length > 1 ? 'Fotos desta página' : 'Foto desta página')}
+      {!isAuto && !hasText && renderPhotoPanel(validSlots.length > 1 ? 'Fotos desta página' : 'Foto desta página')}
     </div>
   );
 }
