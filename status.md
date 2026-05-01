@@ -122,9 +122,17 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 **Causa raiz:** `ph()` nunca retorna vazio; recomeça do índice 0 quando os slots superam o total de fotos.
 
-**Fix planejado:** Para `isDemo === false`, `ph(n)` deve retornar `'__empty__'` quando `n >= photos.length`, em vez de fazer wrap-around. Slots sem foto → placeholder bege. O wrap-around fica só no demo.
+**Observações adicionais (01/05/2026):** Após upload de fotos para completar o livro, comportamento observado:
+- Pág. 10 (`one-portrait-margin`): repetindo 1 foto das 12 originais da galeria
+- Pág. 11 (`one-left-two-right`): 1 das 3 fotos é repetição das 12 originais
+- Pág. 15 (`two-left-one-right`): 2 das 3 fotos são repetições das 12 originais
+- Págs. 23 em diante: completamente vazias (fotos uploadadas não popularam)
 
-**Arquivo:** `src/BookPage.tsx` — função `ph()` e `buildPhotoSlotMap`.
+**Diagnóstico provável:** `ph()` já tem guarda `n >= photos.length → __empty__`. O problema está em `buildPhotoSlotMap` — as filas de orientação (`lQueue`/`pQueue`) são montadas a partir de `photoOrientations`, que é detectado assincronamente via `usePhotoOrientations`. Fotos uploadadas como Data URLs podem não ter orientação detectada a tempo, ficando fora das filas. Fotos das 12 originais (já com orientação) preenchem os slots que deveriam ser das uploadadas.
+
+**Fix planejado:** Para `isDemo === false`, garantir que fotos uploadadas entrem nas filas de orientação corretamente. Se `photoOrientations` ainda não detectou a orientação de uma foto, usar `'any'` como fallback em vez de excluir da fila.
+
+**Arquivo:** `src/BookPage.tsx` — `buildPhotoSlotMap`, `usePhotoOrientations`, função `ph()`.
 
 ---
 
