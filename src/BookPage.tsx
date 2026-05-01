@@ -1890,54 +1890,28 @@ const AUTO_KINDS: PageKind[] = ['verso-capa', 'verso-back', 'back-cover', 'prefa
 // ---------------------------------------------------------------------------
 // PageTextEditor — seção de texto contextual na sidebar, baseada na página atual
 // ---------------------------------------------------------------------------
-function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, onChange, slotMap }: {
+function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, onChange }: {
   pageIdx: number;
   pageDef: PageDef | undefined;
   nextPageIdx: number;
   nextPageDef: PageDef | undefined;
   bookData: BookData;
   onChange: (p: Partial<BookData>) => void;
-  slotMap: Map<number, number[]>;
 }) {
-  // Hooks devem vir antes de qualquer return condicional
-  const [targetSlot, setTargetSlot] = useState<number | null>(null);
+  if (!pageDef) return null;
 
   // Spread: página esquerda não é editável → usar página direita se tiver texto editável
   const EDITABLE_KINDS: PageKind[] = [...FMT1_KINDS, ...FMT2_KINDS, 'verso-capa'];
-  const leftEditable = !!pageDef && EDITABLE_KINDS.includes(pageDef.kind);
+  const leftEditable = EDITABLE_KINDS.includes(pageDef.kind);
   const rightEditable = !!nextPageDef && EDITABLE_KINDS.includes(nextPageDef.kind);
-  const useRight = !leftEditable && rightEditable;
-  const activeIdx = useRight ? nextPageIdx : pageIdx;
-  const activeDef = (useRight ? nextPageDef : pageDef) ?? pageDef ?? nextPageDef;
-
-  useEffect(() => { setTargetSlot(null); }, [activeIdx]);
-
-  if (!activeDef) return null;
+  const activeIdx = (!leftEditable && rightEditable) ? nextPageIdx : pageIdx;
+  const activeDef = (!leftEditable && rightEditable) ? nextPageDef! : pageDef;
 
   const kind = activeDef.kind;
   const isAuto = AUTO_KINDS.includes(kind);
   const isFmt1 = FMT1_KINDS.includes(kind);
   const isFmt2 = FMT2_KINDS.includes(kind);
   const hasText = isFmt1 || isFmt2;
-
-  // Slots de foto desta página
-  // buildPhotoSlotMap retorna -1 quando esgota as filas (mais slots que fotos disponíveis).
-  // Nunca permitir atribuição ao índice -1 — vários slots compartilham esse valor e
-  // qualquer assignment replicaria a mesma foto em todas as páginas sem foto.
-  const pageSlots = slotMap.get(activeIdx) ?? [];
-  const validSlots = pageSlots.filter(s => s >= 0);
-  const hasPhotoSlots = validSlots.length > 0 && activeDef.p !== undefined;
-  const pageHasSlotDef = activeDef.p !== undefined; // esta página tem slots, mas podem não ter fotos
-  const getSlotPhoto = (slotIdx: number): string | null => {
-    if (slotIdx < 0) return null;
-    if (bookData.photoAssignments[slotIdx] !== undefined) return bookData.photoAssignments[slotIdx];
-    return slotIdx < bookData.allPhotos.length ? bookData.allPhotos[slotIdx] : null;
-  };
-  const assignSlotPhoto = (slotIdx: number, url: string) => {
-    if (slotIdx < 0) return; // guard: nunca atribuir ao índice sentinela -1
-    onChange({ photoAssignments: { ...bookData.photoAssignments, [slotIdx]: url } });
-  };
-  const effectiveTarget = (targetSlot !== null && targetSlot >= 0) ? targetSlot : (validSlots[0] ?? null);
 
   const inputClass = "w-full bg-[#1B2616]/70 border border-[#C8A96E]/18 rounded-xl px-3 py-2.5 text-[#E8E4D9] text-sm resize-none focus:outline-none focus:border-[#C8A96E]/45 placeholder:text-[#E8E4D9]/20 transition-colors leading-relaxed";
 
@@ -1946,82 +1920,6 @@ function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, 
     const next = { ...bookData.pageTexts };
     if (text.trim()) { next[key] = { text, style }; } else { delete next[key]; }
     onChange({ pageTexts: next });
-  };
-
-  const renderPhotoPanel = (label: string) => {
-    if (!pageHasSlotDef) return null; // página sem slots de foto por definição
-    if (bookData.allPhotos.length === 0) return null;
-
-    // Fotos insuficientes: slots existem mas todos têm índice -1
-    if (!hasPhotoSlots) {
-      return (
-        <div>
-          <p className="text-[#E8E4D9]/35 text-[0.6rem] uppercase tracking-[0.22em] mb-2">{label}</p>
-          <p className="text-[#E8E4D9]/25 text-xs leading-relaxed">
-            Fotos insuficientes para esta página. Adicione mais fotos na galeria abaixo.
-          </p>
-        </div>
-      );
-    }
-
-    return (
-      <div>
-        <p className="text-[#E8E4D9]/35 text-[0.6rem] uppercase tracking-[0.22em] mb-2">{label}</p>
-
-        {/* Seletor de slot quando há múltiplas fotos válidas na página */}
-        {validSlots.length > 1 && (
-          <div className="flex gap-1.5 mb-3">
-            {validSlots.map((slotIdx, pos) => {
-              const url = getSlotPhoto(slotIdx);
-              const isTarget = slotIdx === effectiveTarget;
-              return (
-                <button
-                  key={slotIdx}
-                  onClick={() => setTargetSlot(slotIdx)}
-                  title={`Editar foto ${pos + 1}`}
-                  className={`relative flex-1 aspect-square rounded-lg overflow-hidden transition-all ${
-                    isTarget ? 'ring-2 ring-[#C8A96E]' : 'ring-1 ring-[#E8E4D9]/10 hover:ring-[#C8A96E]/40'
-                  }`}
-                >
-                  {url ? <img src={url} className="w-full h-full object-cover" alt="" /> : (
-                    <div className="w-full h-full bg-[#1B2616]/50 flex items-center justify-center">
-                      <span className="text-[#E8E4D9]/20 text-[0.6rem]">{pos + 1}</span>
-                    </div>
-                  )}
-                  {isTarget && (
-                    <div className="absolute bottom-0.5 right-0.5 bg-[#C8A96E] text-[#0D1509] text-[0.45rem] font-bold px-1 rounded-sm leading-tight">✓</div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Galeria de seleção */}
-        <div className="grid grid-cols-4 gap-1">
-          {bookData.allPhotos.slice(0, 24).map((url, i) => {
-            const isActive = effectiveTarget !== null && getSlotPhoto(effectiveTarget) === url;
-            return (
-              <button
-                key={i}
-                onClick={() => effectiveTarget !== null && assignSlotPhoto(effectiveTarget, url)}
-                title="Usar esta foto"
-                className={`aspect-square rounded-md overflow-hidden transition-all ${
-                  isActive ? 'ring-2 ring-[#C8A96E]' : 'ring-1 ring-transparent hover:ring-[#C8A96E]/50'
-                }`}
-              >
-                <img src={url} className="w-full h-full object-cover" alt="" loading="lazy" />
-              </button>
-            );
-          })}
-        </div>
-        {bookData.allPhotos.length > 24 && (
-          <p className="text-[#E8E4D9]/20 text-[0.58rem] mt-1.5 text-center">
-            + {bookData.allPhotos.length - 24} fotos adicionais
-          </p>
-        )}
-      </div>
-    );
   };
 
   // Capa: campos globais título + nome
@@ -2079,11 +1977,18 @@ function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, 
       {/* Páginas automáticas */}
       {isAuto && (
         <p className="text-[#E8E4D9]/25 text-xs leading-relaxed">
-          Esta página é gerada automaticamente com os dados da sua jornada. Navegue para uma página com foto ou texto para editar.
+          Esta página é gerada automaticamente com os dados da sua jornada.
         </p>
       )}
 
-      {/* FORMATO 1 — Título + Texto/Legenda + Foto */}
+      {/* Páginas só fotográficas */}
+      {!isAuto && !hasText && (
+        <p className="text-[#E8E4D9]/25 text-xs leading-relaxed">
+          Esta é uma página fotográfica. Use a galeria abaixo para adicionar fotos ao livro.
+        </p>
+      )}
+
+      {/* FORMATO 1 — Título + Texto/Legenda */}
       {isFmt1 && (() => {
         const slots = PAGE_TEXT_SLOTS[kind] ?? [];
         return (
@@ -2120,11 +2025,6 @@ function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, 
                 </div>
               );
             })}
-            {pageHasSlotDef && (
-              <div className="pt-1 border-t border-[#C8A96E]/10">
-                {renderPhotoPanel(validSlots.length > 1 ? 'Fotos desta página' : 'Foto desta página')}
-              </div>
-            )}
           </div>
         );
       })()}
@@ -2160,9 +2060,6 @@ function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, 
           </div>
         );
       })()}
-
-      {/* Páginas fotográficas — painel de troca de foto */}
-      {!isAuto && !hasText && renderPhotoPanel(validSlots.length > 1 ? 'Fotos desta página' : 'Foto desta página')}
     </div>
   );
 }
@@ -2181,13 +2078,10 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
 
   const pageDefs = useMemo(() => generatePageDefs(model.pages), [model.pages]);
   const totalSlots = useMemo(() => countPhotoSlots(pageDefs), [pageDefs]);
-  const photoOrientations = usePhotoOrientations(bookData.allPhotos);
-  const slotMap = useMemo(
-    () => buildPhotoSlotMap(pageDefs, photoOrientations.length > 0 ? photoOrientations : undefined),
-    [pageDefs, photoOrientations],
-  );
   const availablePhotos = bookData.allPhotos.length;
-  const missingPhotos = Math.max(0, model.pages - availablePhotos);
+  // Usa totalSlots (espaços reais de foto) e não model.pages (número comercial do produto),
+  // pois um livro de 50 páginas tem ~91 slots de foto (muitas páginas têm 2–6 fotos).
+  const missingPhotos = Math.max(0, totalSlots - availablePhotos);
 
   const handleUpload = async (files: FileList) => {
     const fileArray = Array.from(files).filter(f => f.type.startsWith('image/'));
@@ -2246,14 +2140,13 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
           nextPageDef={pageDefs[currentPage + 1]}
           bookData={bookData}
           onChange={onChange}
-          slotMap={slotMap}
         />
 
         {/* Photo gallery */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <p className="text-[#C8A96E]/40 text-[0.58rem] uppercase tracking-[0.32em]">
-              Fotos ({availablePhotos} / {model.pages})
+              Fotos ({availablePhotos} / {totalSlots})
             </p>
             {availablePhotos > 3 && (
               <button
@@ -2269,7 +2162,7 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
           {missingPhotos > 0 && (
             <div className="mb-4 rounded-xl border border-[#C8A96E]/20 bg-[#C8A96E]/6 px-4 py-3.5">
               <p className="text-[#C8A96E] text-[0.72rem] font-medium leading-relaxed mb-1">
-                Você tem {availablePhotos} {availablePhotos === 1 ? 'foto' : 'fotos'}. Faltam {missingPhotos} para preencher as {model.pages} páginas do {model.label}.
+                Você tem {availablePhotos} {availablePhotos === 1 ? 'foto' : 'fotos'}. O {model.label} tem {totalSlots} espaços de foto — faltam {missingPhotos}.
               </p>
               <p className="text-[#E8E4D9]/45 text-[0.65rem] leading-relaxed mb-3">
                 As páginas sem foto ficarão em branco. Você pode adicionar fotos do seu dispositivo — inclusive fotos tiradas fora do app.
