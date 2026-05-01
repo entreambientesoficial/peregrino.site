@@ -1890,41 +1890,116 @@ const AUTO_KINDS: PageKind[] = ['verso-capa', 'verso-back', 'back-cover', 'prefa
 // ---------------------------------------------------------------------------
 // PageTextEditor — seção de texto contextual na sidebar, baseada na página atual
 // ---------------------------------------------------------------------------
-function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, onChange }: {
+function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, onChange, slotMap }: {
   pageIdx: number;
   pageDef: PageDef | undefined;
   nextPageIdx: number;
   nextPageDef: PageDef | undefined;
   bookData: BookData;
   onChange: (p: Partial<BookData>) => void;
+  slotMap: Map<number, number[]>;
 }) {
-  if (!pageDef) return null;
+  // Hooks devem vir antes de qualquer return condicional
+  const [targetSlot, setTargetSlot] = useState<number | null>(null);
 
   // Spread: página esquerda não é editável → usar página direita se tiver texto editável
   const EDITABLE_KINDS: PageKind[] = [...FMT1_KINDS, ...FMT2_KINDS, 'verso-capa'];
-  const leftEditable = EDITABLE_KINDS.includes(pageDef.kind);
+  const leftEditable = !!pageDef && EDITABLE_KINDS.includes(pageDef.kind);
   const rightEditable = !!nextPageDef && EDITABLE_KINDS.includes(nextPageDef.kind);
-  const activeIdx  = (!leftEditable && rightEditable) ? nextPageIdx  : pageIdx;
-  const activeDef  = (!leftEditable && rightEditable) ? nextPageDef! : pageDef;
+  const useRight = !leftEditable && rightEditable;
+  const activeIdx = useRight ? nextPageIdx : pageIdx;
+  const activeDef = (useRight ? nextPageDef : pageDef) ?? pageDef ?? nextPageDef;
+
+  useEffect(() => { setTargetSlot(null); }, [activeIdx]);
+
+  if (!activeDef) return null;
 
   const kind = activeDef.kind;
-
   const isAuto = AUTO_KINDS.includes(kind);
   const isFmt1 = FMT1_KINDS.includes(kind);
   const isFmt2 = FMT2_KINDS.includes(kind);
   const hasText = isFmt1 || isFmt2;
+
+  // Slots de foto desta página
+  const pageSlots = slotMap.get(activeIdx) ?? [];
+  const hasPhotoSlots = pageSlots.length > 0 && activeDef.p !== undefined;
+  const getSlotPhoto = (slotIdx: number): string | null => {
+    if (bookData.photoAssignments[slotIdx] !== undefined) return bookData.photoAssignments[slotIdx];
+    return slotIdx >= 0 && slotIdx < bookData.allPhotos.length ? bookData.allPhotos[slotIdx] : null;
+  };
+  const assignSlotPhoto = (slotIdx: number, url: string) =>
+    onChange({ photoAssignments: { ...bookData.photoAssignments, [slotIdx]: url } });
+  const effectiveTarget = targetSlot !== null ? targetSlot : (pageSlots[0] ?? null);
 
   const inputClass = "w-full bg-[#1B2616]/70 border border-[#C8A96E]/18 rounded-xl px-3 py-2.5 text-[#E8E4D9] text-sm resize-none focus:outline-none focus:border-[#C8A96E]/45 placeholder:text-[#E8E4D9]/20 transition-colors leading-relaxed";
 
   const updatePageText = (slot: 'top' | 'bottom', text: string, style: TextStyleKey) => {
     const key = `${activeIdx}-${slot}`;
     const next = { ...bookData.pageTexts };
-    if (text.trim()) {
-      next[key] = { text, style };
-    } else {
-      delete next[key];
-    }
+    if (text.trim()) { next[key] = { text, style }; } else { delete next[key]; }
     onChange({ pageTexts: next });
+  };
+
+  const renderPhotoPanel = (label: string) => {
+    if (!hasPhotoSlots || bookData.allPhotos.length === 0) return null;
+    return (
+      <div>
+        <p className="text-[#E8E4D9]/35 text-[0.6rem] uppercase tracking-[0.22em] mb-2">{label}</p>
+
+        {/* Seletor de slot quando há múltiplas fotos na página */}
+        {pageSlots.length > 1 && (
+          <div className="flex gap-1.5 mb-3">
+            {pageSlots.map((slotIdx, pos) => {
+              const url = getSlotPhoto(slotIdx);
+              const isTarget = slotIdx === effectiveTarget;
+              return (
+                <button
+                  key={pos}
+                  onClick={() => setTargetSlot(slotIdx)}
+                  title={`Editar foto ${pos + 1}`}
+                  className={`relative flex-1 aspect-square rounded-lg overflow-hidden transition-all ${
+                    isTarget ? 'ring-2 ring-[#C8A96E]' : 'ring-1 ring-[#E8E4D9]/10 hover:ring-[#C8A96E]/40'
+                  }`}
+                >
+                  {url ? <img src={url} className="w-full h-full object-cover" alt="" /> : (
+                    <div className="w-full h-full bg-[#1B2616]/50 flex items-center justify-center">
+                      <span className="text-[#E8E4D9]/20 text-[0.6rem]">{pos + 1}</span>
+                    </div>
+                  )}
+                  {isTarget && (
+                    <div className="absolute bottom-0.5 right-0.5 bg-[#C8A96E] text-[#0D1509] text-[0.45rem] font-bold px-1 rounded-sm leading-tight">✓</div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Galeria de seleção */}
+        <div className="grid grid-cols-4 gap-1">
+          {bookData.allPhotos.slice(0, 24).map((url, i) => {
+            const isActive = effectiveTarget !== null && getSlotPhoto(effectiveTarget) === url;
+            return (
+              <button
+                key={i}
+                onClick={() => effectiveTarget !== null && assignSlotPhoto(effectiveTarget, url)}
+                title="Usar esta foto"
+                className={`aspect-square rounded-md overflow-hidden transition-all ${
+                  isActive ? 'ring-2 ring-[#C8A96E]' : 'ring-1 ring-transparent hover:ring-[#C8A96E]/50'
+                }`}
+              >
+                <img src={url} className="w-full h-full object-cover" alt="" loading="lazy" />
+              </button>
+            );
+          })}
+        </div>
+        {bookData.allPhotos.length > 24 && (
+          <p className="text-[#E8E4D9]/20 text-[0.58rem] mt-1.5 text-center">
+            + {bookData.allPhotos.length - 24} fotos adicionais
+          </p>
+        )}
+      </div>
+    );
   };
 
   // Capa: campos globais título + nome
@@ -1964,32 +2039,29 @@ function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, 
     );
   }
 
-  // Label do eyebrow da seção
-  const eyebrow = isAuto
-    ? 'Página especial'
-    : hasText
-      ? `Texto · Pág. ${pageIdx + 1}`
-      : `Foto · Pág. ${pageIdx + 1}`;
+  // Eyebrow contextual por tipo de layout
+  const KIND_EYEBROW: Partial<Record<PageKind, string>> = {
+    'photo-text-r':    'Reflexão',
+    'text-photo-r':    'Reflexão',
+    'wide-photo-text': 'Reflexão Panorâmica',
+    'photo-caption':   'Legenda Final',
+    'quote-route':     'Citação',
+    'text-route':      'Destaque',
+  };
+  const eyebrow = isAuto ? 'Página especial' : (KIND_EYEBROW[kind] ?? 'Fotografia');
 
   return (
-    <div>
-      <p className="text-[#C8A96E]/40 text-[0.58rem] uppercase tracking-[0.32em] mb-4">{eyebrow}</p>
+    <div className="space-y-5">
+      <p className="text-[#C8A96E]/40 text-[0.58rem] uppercase tracking-[0.32em]">{eyebrow}</p>
 
-      {/* Páginas automáticas (exceto capa tratada acima) */}
+      {/* Páginas automáticas */}
       {isAuto && (
         <p className="text-[#E8E4D9]/25 text-xs leading-relaxed">
-          Esta página é gerada automaticamente com os dados da sua jornada. Navegue para uma página com texto ou foto para editar.
+          Esta página é gerada automaticamente com os dados da sua jornada. Navegue para uma página com foto ou texto para editar.
         </p>
       )}
 
-      {/* Páginas só fotográficas */}
-      {!isAuto && !hasText && (
-        <p className="text-[#E8E4D9]/25 text-xs leading-relaxed">
-          Esta é uma página fotográfica. Navegue para uma página com texto para editar.
-        </p>
-      )}
-
-      {/* FORMATO 1 — Título + Texto/Legenda */}
+      {/* FORMATO 1 — Título + Texto/Legenda + Foto */}
       {isFmt1 && (() => {
         const slots = PAGE_TEXT_SLOTS[kind] ?? [];
         return (
@@ -2000,7 +2072,7 @@ function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, 
               const isTop = slot === 'top';
               const isCaption = kind === 'photo-caption';
 
-              const label = isTop ? 'Título' : 'Texto';
+              const label = isTop ? 'Título' : (isCaption ? 'Legenda' : 'Texto');
               const placeholder = isTop
                 ? 'Preencha o título desta página…'
                 : isCaption
@@ -2026,6 +2098,11 @@ function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, 
                 </div>
               );
             })}
+            {hasPhotoSlots && (
+              <div className="pt-1 border-t border-[#C8A96E]/10">
+                {renderPhotoPanel(pageSlots.length > 1 ? 'Fotos desta página' : 'Foto desta página')}
+              </div>
+            )}
           </div>
         );
       })()}
@@ -2038,6 +2115,9 @@ function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, 
         const placeholder = isTextRoute
           ? 'Uma frase que define a sua jornada…'
           : 'Uma citação ou pensamento que marcou o seu Caminho…';
+        const fallbackNote = isTextRoute
+          ? 'Se deixar em branco, será exibido o título do livro.'
+          : 'Se deixar em branco, será exibida a frase de abertura.';
 
         return (
           <div>
@@ -2051,10 +2131,16 @@ function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, 
               className={inputClass}
               style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic' }}
             />
-            <p className="text-[#E8E4D9]/20 text-[0.55rem] text-right mt-1">{(entry?.text ?? '').length}/160</p>
+            <div className="flex items-start justify-between mt-1 gap-3">
+              <p className="text-[#E8E4D9]/20 text-[0.55rem] leading-relaxed">{fallbackNote}</p>
+              <p className="text-[#E8E4D9]/20 text-[0.55rem] shrink-0">{(entry?.text ?? '').length}/160</p>
+            </div>
           </div>
         );
       })()}
+
+      {/* Páginas fotográficas — painel de troca de foto */}
+      {!isAuto && !hasText && renderPhotoPanel(pageSlots.length > 1 ? 'Fotos desta página' : 'Foto desta página')}
     </div>
   );
 }
@@ -2073,6 +2159,11 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
 
   const pageDefs = useMemo(() => generatePageDefs(model.pages), [model.pages]);
   const totalSlots = useMemo(() => countPhotoSlots(pageDefs), [pageDefs]);
+  const photoOrientations = usePhotoOrientations(bookData.allPhotos);
+  const slotMap = useMemo(
+    () => buildPhotoSlotMap(pageDefs, photoOrientations.length > 0 ? photoOrientations : undefined),
+    [pageDefs, photoOrientations],
+  );
   const availablePhotos = bookData.allPhotos.length;
   const missingPhotos = Math.max(0, model.pages - availablePhotos);
 
@@ -2133,6 +2224,7 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
           nextPageDef={pageDefs[currentPage + 1]}
           bookData={bookData}
           onChange={onChange}
+          slotMap={slotMap}
         />
 
         {/* Photo gallery */}
