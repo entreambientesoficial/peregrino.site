@@ -905,7 +905,7 @@ function renderBookPage(
                 <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.65)', lineHeight: 1.6 }}>{demo.text}</p>
               </div>
             ) : (
-              botText ?? <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.35)', lineHeight: 1.6 }}>Uma frase sobre o momento registado nesta foto…</p>
+              botText ?? <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.80), color: 'rgba(45,58,39,0.35)', lineHeight: 1.2 }}>Escreva um texto final para encerrar o seu livro…</p>
             )}
           </div>
         </div>
@@ -2000,15 +2000,15 @@ function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, 
               const isTop = slot === 'top';
               const isCaption = kind === 'photo-caption';
 
-              const label = isTop ? 'Título' : isCaption ? 'Legenda da foto' : 'Texto';
+              const label = isTop ? 'Título' : 'Texto';
               const placeholder = isTop
                 ? 'Preencha o título desta página…'
                 : isCaption
-                  ? 'Uma frase sobre o momento registado nesta foto…'
+                  ? 'Escreva um texto final para encerrar o seu livro…'
                   : 'Escreva uma reflexão, memória ou descoberta desta etapa do Caminho…';
-              const rows = isTop ? 2 : 4;
-              const maxLen = isTop ? 60 : 220;
-              const defaultStyle: TextStyleKey = isTop ? 'titulo' : 'corpo';
+              const rows = isTop || isCaption ? 2 : 4;
+              const maxLen = isTop || isCaption ? 60 : 220;
+              const defaultStyle: TextStyleKey = isTop || isCaption ? 'titulo' : 'corpo';
 
               return (
                 <div key={slot}>
