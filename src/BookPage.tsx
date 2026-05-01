@@ -904,7 +904,7 @@ function renderBookPage(
                 <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.65)', lineHeight: 1.6 }}>{demo.text}</p>
               </div>
             ) : (
-              botText ?? <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.80), color: 'rgba(45,58,39,0.35)', lineHeight: 1.2 }}>Escreva um texto final para encerrar o seu livro…</p>
+              botText ?? <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.35)', lineHeight: 1.6 }}>Escreva um texto final para encerrar o seu livro…</p>
             )}
           </div>
         </div>
@@ -2005,9 +2005,9 @@ function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, 
                 : isCaption
                   ? 'Escreva um texto final para encerrar o seu livro…'
                   : 'Escreva uma reflexão, memória ou descoberta desta etapa do Caminho…';
-              const rows = isTop || isCaption ? 2 : 4;
-              const maxLen = isTop || isCaption ? 60 : 220;
-              const defaultStyle: TextStyleKey = isTop || isCaption ? 'titulo' : 'corpo';
+              const rows = isTop ? 2 : 4;
+              const maxLen = isTop ? 60 : 220;
+              const defaultStyle: TextStyleKey = isTop ? 'titulo' : 'corpo';
 
               return (
                 <div key={slot}>
