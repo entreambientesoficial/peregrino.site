@@ -112,7 +112,228 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 
 ---
 
+## 🐛 Backlog — Correções e Melhorias Pendentes
+
+> Ordenado por prioridade. Itens marcados 🔴 são bugs que afetam diretamente a experiência do usuário logado.
+
+### P1 🔴 — Wrap-around de fotos no livro real (duplicação)
+
+**Problema:** A função `ph(n)` usa wrap-around (`n % photos.length`) para nunca retornar vazio. No demo isso é aceitável (89 fotos, 91 slots, quase sem repetição). No livro real, um usuário com 12 fotos vê as mesmas fotos repetidas em vários slots — páginas duplicadas.
+
+**Causa raiz:** `ph()` nunca retorna vazio; recomeça do índice 0 quando os slots superam o total de fotos.
+
+**Fix planejado:** Para `isDemo === false`, `ph(n)` deve retornar `'__empty__'` quando `n >= photos.length`, em vez de fazer wrap-around. Slots sem foto → placeholder bege. O wrap-around fica só no demo.
+
+**Arquivo:** `src/BookPage.tsx` — função `ph()` e `buildPhotoSlotMap`.
+
+---
+
+### P2 🔴 — Perda de dados no refresh (sem persistência local)
+
+**Problema:** Fotos adicionadas via upload e textos editados são perdidos ao recarregar a página. Não há `localStorage` em nenhum ponto do projeto.
+
+**Campos perdidos no refresh:**
+
+| Campo | Perdido? |
+|---|---|
+| `uploadedPhotos` (Data URLs de upload local) | **Sim** |
+| `pageTexts` (textos editados por página) | **Sim** |
+| `photoAssignments` (atribuições manuais de foto) | **Sim** |
+| `openingPhrase`, `reflectionText`, `caption1/2/3` | **Sim** |
+| Fotos do Supabase (`allPhotos` via `loadUserData`) | Não — recarregam via auth |
+
+**Fix planejado:**
+- Salvar `bookData` no `localStorage` via `useEffect([bookData])` a cada alteração
+- Chave separada por usuário: `peregrino_book_<userId>` (logado) ou `peregrino_book_anon` (anônimo)
+- No `useState` inicial: tentar carregar do `localStorage` antes de usar `makeDefaultBookData(t)`
+- `loadUserData` do Supabase sobrepõe apenas os campos que vêm do servidor (fotos, rota, km, datas) — preserva `pageTexts`, `uploadedPhotos`, `photoAssignments`
+- Logout: limpa a chave do `localStorage` do usuário
+
+**Arquivo:** `src/BookPage.tsx` — `useState` inicial, `useEffect` de persistência, `loadUserData`.
+
+---
+
+### P3 🔴 — Contagem errada de slots na sidebar de Fotos
+
+**Problema:** A sidebar exibe "Você tem 12 fotos. Faltam 79 para preencher todas as páginas." usando 91 slots fixos, independente do modelo selecionado (Essencial / Jornada / Legado).
+
+**Causa raiz:** `generatePageDefs(_modelPages?)` **ignora o parâmetro** e sempre retorna o `PHOTO_BLOCK` completo (48 páginas, 91 slots). A sidebar calcula `totalSlots = countPhotoSlots(generatePageDefs(model.pages))` mas o resultado nunca varia.
+
+**Fix planejado:** Fazer `generatePageDefs(modelPages)` retornar um subconjunto/múltiplo do `PHOTO_BLOCK` proporcional ao modelo:
+- Essencial (50 pág.) → PHOTO_BLOCK completo (48 layouts, ~91 slots) — base
+- Jornada (100 pág.) → PHOTO_BLOCK × 2 (96 layouts, ~182 slots)
+- Legado (150 pág.) → PHOTO_BLOCK × 3 (144 layouts, ~273 slots)
+
+A sequência de layouts se repete — o usuário vê os mesmos estilos de página em ciclos, preenchidos com suas fotos na ordem.
+
+**Arquivo:** `src/BookPage.tsx` — `generatePageDefs()`, linhas ~189–238.
+
+---
+
+### P4 🟡 — Reposicionamento e zoom de foto por slot (nova funcionalidade)
+
+**Descrição:** O usuário pode ter fotos que não se encaixam bem no formato do slot do livro (ex: foto portrait num slot landscape). Precisa poder ajustar o enquadramento sem perder a foto original.
+
+**Funcionalidade planejada em 3 camadas:**
+
+| Camada | O que faz | Implementação |
+|---|---|---|
+| **1 — Atribuição** | Arrastar foto da galeria para um slot | ✅ Já existe (`photoAssignments`) |
+| **2 — Reposicionamento** | Arrastar a foto dentro do slot (mudar foco) | Salvar `objectPosition: 'x% y%'` por slot em `BookData`. Drag com `pointermove` no preview do slot. |
+| **3 — Zoom** | Ampliar a foto dentro do slot | Salvar `objectScale: number` (1.0–2.0) por slot. Slider ou botões +/−. |
+
+**Novos campos em `BookData`:**
+```typescript
+photoPositions: Record<number, { x: number; y: number }>;  // % por slot
+photoScales:    Record<number, number>;                     // 1.0–2.0 por slot
+```
+
+**UX:** Ao clicar numa foto já atribuída no livro (Step 1), abre painel lateral com preview do slot, drag para mover e slider de zoom. Confirmar salva posição/escala.
+
+**Arquivo:** `src/BookPage.tsx` — `BookData`, `pimg()`, novo componente `PhotoFrameEditor`.
+
+**Dependência:** Implementar após P1 e P2.
+
+---
+
 ## 🔄 Histórico de Alterações
+
+### Sessão 01/05/2026 (parte 2) — Investigação de bugs + backlog priorizado
+
+#### Objetivo
+Mapear novos problemas detectados pelo usuário no livro real (após login) e registrar plano de implementação para as próximas sessões. Nenhum código alterado nesta parte.
+
+#### Problemas identificados e mapeados
+
+| # | Prioridade | Problema | Causa raiz localizada |
+|---|---|---|---|
+| P1 | 🔴 Crítico | Fotos duplicadas no livro real (wrap-around) | `ph()` recomeça do índice 0 quando slots > fotos |
+| P2 | 🔴 Crítico | Perda de dados no refresh (sem localStorage) | Nenhum ponto de persistência local no projeto |
+| P3 | 🔴 Crítico | Contagem errada de slots na sidebar | `generatePageDefs()` ignora o parâmetro `modelPages` |
+| P4 | 🟡 Melhoria | Reposicionamento/zoom de foto por slot | Funcionalidade nova — não existe ainda |
+
+Ver detalhes técnicos completos na seção **Backlog** acima.
+
+---
+
+### Sessão 01/05/2026 — Correções páginas 42/44/48 + remoção de fotos do modelo no livro real
+
+#### Objetivo
+Corrigir três páginas com layout/texto incorretos no livro do usuário logado, e eliminar um bug crítico que fazia fotos do book modelo aparecerem nas páginas reais do peregrino.
+
+---
+
+#### 1. Página 42 — `wide-photo-text` com dois slots de texto
+
+**Problema:** `PAGE_TEXT_SLOTS['wide-photo-text']` tinha apenas `['top']`. A página 42 renderizava só o título; não havia campo de reflexão/corpo.
+
+**Correção em `PAGE_TEXT_SLOTS`:**
+```tsx
+'wide-photo-text': ['top', 'bottom'],  // era ['top'] apenas
+```
+
+**Rendering do usuário real (`wide-photo-text`):**
+```tsx
+const topText = demo ? null : renderTextSlot('top');
+const botText = demo ? null : renderTextSlot('bottom');
+// Placeholder título (vazio):
+fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.60), color: 'rgba(45,58,39,0.35)'
+// Placeholder corpo (vazio):
+fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.35)'
+```
+
+---
+
+#### 2. Página 44 — `text-route` sem linha de rota/data
+
+**Problema:** A renderização para usuário real incluía a linha de rota e data (copiada do demo), que não faz sentido no livro personalizado.
+
+**Correção:** Linha rota/data removida inteiramente do branch real. Apenas o texto do usuário (`userTitle`) é exibido:
+```tsx
+<p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700,
+  fontSize: fs(1.5), color: '#1B2616', lineHeight: 1.4, textAlign: 'center',
+  wordBreak: 'break-word', overflowWrap: 'break-word', width: '100%' }}>
+  {userTitle || <span style={{ color: 'rgba(45,58,39,0.35)' }}>Uma frase que define a sua jornada…</span>}
+</p>
+```
+
+---
+
+#### 3. Página 48 — `photo-caption` com estilo Texto (corpo)
+
+**Problema 1 — Label errado:** Sidebar exibia o label "Legenda da foto" → corrigido para "Texto".
+
+**Problema 2 — Estilo errado:** `defaultStyle` estava como `'titulo'` (Playfair Display 700, tamanho grande). Deve ser `'corpo'` — texto final do livro, tom mais sóbrio.
+
+**Correção no `PageTextEditor`:**
+```tsx
+const isTop = slot === 'top';
+const isCaption = kind === 'photo-caption';
+const label = isTop ? 'Título' : 'Texto';                   // era "Legenda da foto" para bottom
+const placeholder = isTop
+  ? 'Preencha o título desta página…'
+  : isCaption
+    ? 'Escreva um texto final para encerrar o seu livro…'
+    : 'Escreva uma reflexão, memória ou descoberta desta etapa do Caminho…';
+const rows = isTop ? 2 : 4;
+const maxLen = isTop ? 60 : 220;
+const defaultStyle: TextStyleKey = isTop ? 'titulo' : 'corpo';   // era 'titulo' para bottom
+```
+
+**Estilo final confirmado** (texto digitado pelo usuário via `renderTextSlot('bottom')`):
+- Fonte: Lora, serif
+- Peso: 400 (Regular)
+- Tamanho: `fs(0.52)` via `TEXT_STYLES.corpo`
+- Cor: `rgba(45,58,39,0.65)`
+- O **placeholder** usa `rgba(45,58,39,0.35)` — mais claro para distinguir de conteúdo real (comportamento padrão em todo o livro)
+
+---
+
+#### 4. Bug crítico — fotos do book modelo aparecendo no livro real (págs. 14, 15, 25/26, 45, 47, 48)
+
+**Causa raiz:** `srcOverride()` retornava `def.src` para slots com foto vazia no livro do usuário (`ph(slotIdx).startsWith('__empty__') ? src : undefined`). Resultado: o usuário logado via as fotos hardcoded do demo (`/img-apoio/img-webp/20.webp`, `/img-apoio/img-webp/36.webp`, etc.) no próprio livro.
+
+**Correção em `srcOverride`:**
+```tsx
+// ANTES — fallback para def.src quando slot vazio no livro real:
+const srcOverride = (slotIdx, src) =>
+  !src ? undefined : (isDemo ? src : (ph(slotIdx).startsWith('__empty__') ? src : undefined));
+
+// DEPOIS — livro real nunca usa def.src:
+const srcOverride = (slotIdx: number, src?: string | null): string | undefined => {
+  if (!src || !isDemo) return undefined;
+  return src;
+};
+```
+
+**Correção adicional no `spread-l` (pág. 13):**
+```tsx
+// ANTES: spread-l usava def.src mesmo para usuário real
+const spreadUrl = def.src ?? (spreadDynamicValid ? spreadDynamic : null);
+
+// DEPOIS: def.src só para demo
+const spreadUrl = isDemo
+  ? (def.src ?? (spreadDynamicValid ? spreadDynamic : null))
+  : (spreadDynamicValid ? spreadDynamic : null);
+```
+
+**Mesma correção no `spread-r` (pág. 14).**
+
+**Comportamento pós-fix:**
+- Usuário logado com foto atribuída → exibe a foto real
+- Usuário logado sem foto → exibe placeholder bege (vazio)
+- Demo (`isDemo=true`) → continua exibindo as fotos editoriais hardcoded (imutável)
+
+---
+
+#### Commits desta sessão
+- `4d8fdee` — fix(book): remover linha rota/data da página de citação
+- `046d127` — fix(book): corrigir páginas 42/44/48 — wide-photo-text 2 slots, text-route sem rota, photo-caption padrão Lora
+- `c413ae7` — fix(book): photo-caption — texto final com Lora 600 fs(0.80) em vez de legenda pequena *(intermediário)*
+- `b96ebbd` — fix(book): remover imagens do modelo nas páginas do livro real
+- `018b99c` — fix(book): photo-caption usa estilo corpo (Lora 400 fs0.52 cinza) em vez de título
+
+---
 
 ### Sessão 28/04/2026 — Design editorial do book modelo (isDemo) — SESSÃO DE CONGELAMENTO
 
