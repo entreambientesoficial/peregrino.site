@@ -156,7 +156,7 @@ interface PageTextEntry {
 const PAGE_TEXT_SLOTS: Partial<Record<PageKind, Array<'top' | 'bottom'>>> = {
   'photo-text-r':   ['top', 'bottom'],
   'text-photo-r':   ['top', 'bottom'],
-  'wide-photo-text':['top'],
+  'wide-photo-text':['top', 'bottom'],
   'photo-caption':  ['bottom'],
   'quote-route':    ['top'],
   'text-route':     ['top'],
@@ -848,10 +848,11 @@ function renderBookPage(
     case 'wide-photo-text': {
       const demo = isDemo ? (DEMO_PAGES[pageIdx] ?? null) : null;
       const topText = demo ? null : renderTextSlot('top');
+      const botText = demo ? null : renderTextSlot('bottom');
       return (
         <div style={{ width: '100%', height: '100%', background: '#fff', display: 'grid', gridTemplateColumns: '65% 35%' }}>
           <div style={{ overflow: 'hidden', background: cellBg }}>{pimg(slots[0])}</div>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(16)}`, gap: sp(8) }}>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${sp(14)} ${sp(16)}`, gap: sp(8), overflow: 'hidden' }}>
             {demo?.format === 1 ? (
               <>
                 <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.60), color: '#1B2616', lineHeight: 1.2 }}>{demo.title}</p>
@@ -860,7 +861,10 @@ function renderBookPage(
             ) : demo?.format === 2 ? (
               <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontSize: fs(1.1), color: '#1B2616', lineHeight: 1.5, textAlign: 'center' }}>{demo.text}</p>
             ) : (
-              topText ?? <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.35)', lineHeight: 1.6, fontStyle: 'italic' }}>Escreva uma reflexão, memória ou descoberta desta etapa do Caminho…</p>
+              <>
+                {topText ?? <p style={{ fontFamily: "'Lora', serif", fontWeight: 600, fontSize: fs(0.60), color: 'rgba(45,58,39,0.35)', lineHeight: 1.2 }}>Preencha o título desta página…</p>}
+                {botText ?? <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.35)', lineHeight: 1.6 }}>Escreva uma reflexão, memória ou descoberta desta etapa do Caminho…</p>}
+              </>
             )}
           </div>
         </div>
@@ -901,7 +905,7 @@ function renderBookPage(
                 <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.65)', lineHeight: 1.6 }}>{demo.text}</p>
               </div>
             ) : (
-              botText ?? <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontStyle: 'italic', fontSize: fs(0.52), color: 'rgba(45,58,39,0.35)', lineHeight: 1.6 }}>Uma frase sobre o momento registado nesta foto…</p>
+              botText ?? <p style={{ fontFamily: "'Lora', serif", fontWeight: 400, fontSize: fs(0.52), color: 'rgba(45,58,39,0.35)', lineHeight: 1.6 }}>Uma frase sobre o momento registado nesta foto…</p>
             )}
           </div>
         </div>
@@ -918,11 +922,8 @@ function renderBookPage(
             <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: fs(1.5), color: '#1B2616', lineHeight: 1.4, textAlign: 'center', wordBreak: 'break-word', overflowWrap: 'break-word', width: '100%' }}>{demo.text}</p>
           ) : (
             <>
-              <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: fs(1.5), color: '#1B2616', lineHeight: 1.4, textAlign: 'center', marginBottom: sp(10), wordBreak: 'break-word', overflowWrap: 'break-word', width: '100%' }}>
+              <p style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: fs(1.5), color: '#1B2616', lineHeight: 1.4, textAlign: 'center', wordBreak: 'break-word', overflowWrap: 'break-word', width: '100%' }}>
                 {userTitle || <span style={{ color: 'rgba(45,58,39,0.35)' }}>Uma frase que define a sua jornada…</span>}
-              </p>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: fs(0.46), color: 'rgba(45,58,39,0.4)', letterSpacing: '0.1em', textAlign: 'center' }}>
-                {bookData.route} · {bookData.startDate}
               </p>
             </>
           )}
