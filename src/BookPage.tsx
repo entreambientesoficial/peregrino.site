@@ -97,37 +97,24 @@ function makeDefaultBookData(t: (k: string) => string): BookData {
   };
 }
 
-// --- localStorage persistence ---
-type SavedBookData = {
-  title?: string;
-  userName?: string;
-  openingPhrase?: string;
-  reflectionText?: string;
-  caption3?: string;
-  pageTexts?: Record<string, PageTextEntry>;
-  photoAssignments?: Record<number, string>;
-  uploadedPhotos?: string[];
-};
-
-function bookStorageKey(userId: string) { return `peregrino_book_v1_${userId}`; }
-
-function loadSavedBookData(userId: string): SavedBookData {
-  try {
-    const raw = localStorage.getItem(bookStorageKey(userId));
-    return raw ? (JSON.parse(raw) as SavedBookData) : {};
-  } catch { return {}; }
-}
-
-function saveBookData(userId: string, data: SavedBookData) {
-  try {
-    localStorage.setItem(bookStorageKey(userId), JSON.stringify(data));
-  } catch {
-    // Quota exceeded — retry without uploaded photos (large Data URLs)
-    try {
-      const { uploadedPhotos: _p, ...textOnly } = data;
-      localStorage.setItem(bookStorageKey(userId), JSON.stringify(textOnly));
-    } catch {}
-  }
+// --- Supabase persistence ---
+async function saveBookDataToDb(userId: string, data: {
+  title: string; userName: string; openingPhrase: string;
+  reflectionText: string; caption3: string;
+  pageTexts: Record<string, PageTextEntry>;
+  photoAssignments: Record<number, string>;
+}) {
+  await supabase.from('book_data').upsert({
+    pilgrim_id: userId,
+    title: data.title,
+    user_name: data.userName,
+    opening_phrase: data.openingPhrase,
+    reflection_text: data.reflectionText,
+    caption3: data.caption3,
+    page_texts: data.pageTexts,
+    photo_assignments: data.photoAssignments,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'pilgrim_id' });
 }
 
 type Step = 'reveal' | 'customize' | 'order' | 'shipping';
@@ -1044,7 +1031,7 @@ function countPhotoSlots(pageDefs: PageDef[]): number {
 }
 
 // Redimensiona imagem via Canvas para max 1200px — evita data URLs gigantes
-function resizeForBook(file: File): Promise<string> {
+function resizeForBook(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const imgEl = document.createElement('img') as HTMLImageElement;
     const blobUrl = URL.createObjectURL(file);
@@ -1056,11 +1043,26 @@ function resizeForBook(file: File): Promise<string> {
       canvas.height = Math.round(imgEl.height * scale);
       canvas.getContext('2d')!.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
       URL.revokeObjectURL(blobUrl);
-      resolve(canvas.toDataURL('image/jpeg', 0.82));
+      canvas.toBlob(blob => {
+        if (blob) resolve(blob);
+        else reject(new Error('toBlob failed'));
+      }, 'image/webp', 0.82);
     };
-    imgEl.onerror = () => { URL.revokeObjectURL(blobUrl); reject(); };
+    imgEl.onerror = () => { URL.revokeObjectURL(blobUrl); reject(new Error('load failed')); };
     imgEl.src = blobUrl;
   });
+}
+
+async function uploadPhotoToStorage(file: File, userId: string): Promise<string> {
+  const blob = await resizeForBook(file);
+  const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
+  const { error: upErr } = await supabase.storage
+    .from('pilgrim-photos')
+    .upload(path, blob, { contentType: 'image/webp', upsert: false });
+  if (upErr) throw upErr;
+  const { data: { publicUrl } } = supabase.storage.from('pilgrim-photos').getPublicUrl(path);
+  await supabase.from('book_uploads').insert({ pilgrim_id: userId, storage_url: publicUrl });
+  return publicUrl;
 }
 
 function useCountUp(target: number, duration = 1200, active = false) {
@@ -1468,20 +1470,24 @@ export default function BookPage() {
   const [noPhotosWarning, setNoPhotosWarning] = useState(false);
   const update = (patch: Partial<BookData>) => setBookData(p => ({ ...p, ...patch }));
 
-  // Auto-save dados do usuário no localStorage a cada alteração de bookData.
-  // user intencionalmente fora das deps: evita salvar dados vazios antes de loadUserData terminar.
+  // Auto-save textos e atribuições no banco após 1,5s de inatividade.
+  // user fora das deps: evita salvar dados vazios antes de loadUserData terminar.
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!user?.id) return;
-    saveBookData(user.id, {
-      title: bookData.title,
-      userName: bookData.userName,
-      openingPhrase: bookData.openingPhrase,
-      reflectionText: bookData.reflectionText,
-      caption3: bookData.caption3,
-      pageTexts: bookData.pageTexts,
-      photoAssignments: bookData.photoAssignments,
-      uploadedPhotos: bookData.uploadedPhotos,
-    });
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveBookDataToDb(user.id, {
+        title: bookData.title,
+        userName: bookData.userName,
+        openingPhrase: bookData.openingPhrase,
+        reflectionText: bookData.reflectionText,
+        caption3: bookData.caption3,
+        pageTexts: bookData.pageTexts,
+        photoAssignments: bookData.photoAssignments,
+      });
+    }, 1500);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [bookData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Quando o idioma muda em modo demo (sem login), atualiza os textos do livro
@@ -1531,12 +1537,13 @@ export default function BookPage() {
         { data: latestStamps, count: stampCount },
         { data: firstStamps },
         { data: photos, count: photoCount, error: photosError },
+        { data: bookSaved },
+        { data: uploadRows },
       ] = await Promise.all([
         // Perfil — nome e route_id cadastrado
         supabase.from('profiles').select('full_name, route_id').eq('id', userId).single(),
 
         // Jornada ativa — fonte primária de route_id e km total da rota
-        // Tenta `journeys`; se a tabela não existir, retorna [] sem lançar erro
         supabase
           .from('journeys')
           .select('route_id, total_km, started_at, finished_at, status')
@@ -1560,7 +1567,7 @@ export default function BookPage() {
           .order('stamped_at', { ascending: true })
           .limit(1),
 
-        // Fotos: thumb_url ordenado cronologicamente
+        // Fotos do app (do Caminho)
         supabase
           .from('photos')
           .select('thumb_url, taken_at', { count: 'exact' })
@@ -1568,6 +1575,12 @@ export default function BookPage() {
           .not('thumb_url', 'is', null)
           .order('taken_at', { ascending: false })
           .limit(50),
+
+        // Textos e atribuições salvos no site
+        supabase.from('book_data').select('*').eq('pilgrim_id', userId).maybeSingle(),
+
+        // Fotos enviadas via web
+        supabase.from('book_uploads').select('storage_url').eq('pilgrim_id', userId).order('created_at'),
       ]);
 
       console.log('[Peregrino/data]', { profile, journeyRows, stampCount, photoCount, photosError });
@@ -1610,30 +1623,30 @@ export default function BookPage() {
 
       setNoPhotosWarning(photoUrls.length === 0);
       const defaults = makeDefaultBookData(t);
-      const saved = loadSavedBookData(userId);
-      const savedUploaded = saved.uploadedPhotos ?? [];
+      const bd = bookSaved as any;
+      const webUploads: string[] = ((uploadRows as any[]) ?? []).map((r: any) => r.storage_url);
       const basePhotos = photoUrls.length >= 4 ? photoUrls : defaults.allPhotos;
-      const allPhotos = [...basePhotos, ...savedUploaded];
+      const allPhotos = [...basePhotos, ...webUploads];
 
       update({
         route,
-        title: saved.title ?? `${route}, ${new Date().getFullYear()}`,
+        title: bd?.title ?? `${route}, ${new Date().getFullYear()}`,
         coverPhoto: allPhotos[0] ?? defaults.coverPhoto,
         selectedPhotos: allPhotos.slice(0, 8),
         allPhotos,
-        userName: saved.userName ?? userName,
+        userName: bd?.user_name ?? userName,
         startDate,
         endDate,
         km,
         days,
         stampsCount: totalStamps,
         photosCount: totalPhotos,
-        uploadedPhotos: savedUploaded,
-        pageTexts: saved.pageTexts ?? {},
-        photoAssignments: saved.photoAssignments ?? {},
-        openingPhrase: saved.openingPhrase ?? defaults.openingPhrase,
-        reflectionText: saved.reflectionText ?? defaults.reflectionText,
-        caption3: saved.caption3 ?? defaults.caption3,
+        uploadedPhotos: webUploads,
+        pageTexts: bd?.page_texts ?? {},
+        photoAssignments: bd?.photo_assignments ?? {},
+        openingPhrase: bd?.opening_phrase ?? defaults.openingPhrase,
+        reflectionText: bd?.reflection_text ?? defaults.reflectionText,
+        caption3: bd?.caption3 ?? defaults.caption3,
       });
     } finally {
       setDataLoading(false);
@@ -1685,7 +1698,6 @@ export default function BookPage() {
   };
 
   const handleSignOut = async () => {
-    if (user?.id) localStorage.removeItem(bookStorageKey(user.id));
     await supabase.auth.signOut();
     setUser(null);
     setStep('reveal');
@@ -1736,7 +1748,8 @@ export default function BookPage() {
             <StepCustomize key="c" bookData={bookData} onChange={update}
               selectedModel={selectedModel} onSelectModel={setSelectedModel}
               onDone={() => { setHasCustomized(true); setStep('reveal'); }}
-              onBack={() => setStep('reveal')} />
+              onBack={() => setStep('reveal')}
+              userId={user?.id} />
           )}
           {step === 'order' && (
             <StepOrder key="o" bookData={bookData}
@@ -2123,43 +2136,49 @@ function PageTextEditor({ pageIdx, pageDef, nextPageIdx, nextPageDef, bookData, 
   );
 }
 
-function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder, currentPage }: {
+function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder, currentPage, userId }: {
   bookData: BookData;
   onChange: (p: Partial<BookData>) => void;
   selectedModel: ModelId;
   onSelectModel: (m: ModelId) => void;
   onOrder: () => void;
   currentPage: number;
+  userId?: string;
 }) {
   const model = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
 
   const pageDefs = useMemo(() => generatePageDefs(model.pages), [model.pages]);
   const totalSlots = useMemo(() => countPhotoSlots(pageDefs), [pageDefs]);
   const availablePhotos = bookData.allPhotos.length;
-  // Usa totalSlots (espaços reais de foto) e não model.pages (número comercial do produto),
-  // pois um livro de 50 páginas tem ~91 slots de foto (muitas páginas têm 2–6 fotos).
   const missingPhotos = Math.max(0, totalSlots - availablePhotos);
 
   const handleUpload = async (files: FileList) => {
+    if (!userId) return;
     const fileArray = Array.from(files).filter(f => f.type.startsWith('image/'));
     if (fileArray.length === 0) return;
     setUploadProgress(0);
-    const dataUrls: string[] = [];
+    setUploadError(null);
+    const urls: string[] = [];
     for (let i = 0; i < fileArray.length; i++) {
       try {
-        const url = await resizeForBook(fileArray[i]);
-        dataUrls.push(url);
-      } catch { /* ignora arquivos inválidos */ }
+        const url = await uploadPhotoToStorage(fileArray[i], userId);
+        urls.push(url);
+      } catch (e) {
+        console.error('[upload]', e);
+        setUploadError('Erro ao enviar uma ou mais fotos. Verifique a conexão.');
+      }
       setUploadProgress(Math.round(((i + 1) / fileArray.length) * 100));
     }
     setUploadProgress(null);
-    const newAllPhotos = [...bookData.allPhotos, ...dataUrls];
+    if (urls.length === 0) return;
+    const newAllPhotos = [...bookData.allPhotos, ...urls];
     onChange({
-      uploadedPhotos: [...(bookData.uploadedPhotos ?? []), ...dataUrls],
+      uploadedPhotos: [...(bookData.uploadedPhotos ?? []), ...urls],
       allPhotos: newAllPhotos,
-      photosCount: bookData.photosCount + dataUrls.length,
+      photosCount: bookData.photosCount + urls.length,
       selectedPhotos: newAllPhotos.slice(0, Math.min(newAllPhotos.length, 11)),
     });
   };
@@ -2247,12 +2266,16 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
                   <span className="text-[#C8A96E]/70 text-[0.6rem] tabular-nums">{uploadProgress}%</span>
                 </div>
               ) : (
-                <button
-                  onClick={() => uploadRef.current?.click()}
-                  className="flex items-center gap-1.5 bg-[#C8A96E]/15 hover:bg-[#C8A96E]/25 border border-[#C8A96E]/30 text-[#C8A96E] rounded-lg px-3 py-2 text-[0.68rem] font-medium transition-colors"
-                >
-                  <Upload size={11} /> Adicionar fotos do dispositivo
-                </button>
+                <>
+                  <button
+                    onClick={() => uploadRef.current?.click()}
+                    disabled={!userId}
+                    className="flex items-center gap-1.5 bg-[#C8A96E]/15 hover:bg-[#C8A96E]/25 border border-[#C8A96E]/30 text-[#C8A96E] rounded-lg px-3 py-2 text-[0.68rem] font-medium transition-colors disabled:opacity-40"
+                  >
+                    <Upload size={11} /> Adicionar fotos do dispositivo
+                  </button>
+                  {uploadError && <p className="text-red-400 text-[0.6rem] mt-1">{uploadError}</p>}
+                </>
               )}
             </div>
           )}
@@ -2452,6 +2475,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
             onSelectModel={onSelectModel}
             onOrder={onOrder}
             currentPage={currentBookPage}
+            userId={user?.id}
           />
         </motion.div>
 
@@ -2671,13 +2695,14 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
 // ---------------------------------------------------------------------------
 // Step 2 — Personalizar (3 abas)
 // ---------------------------------------------------------------------------
-function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDone, onBack }: {
+function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDone, onBack, userId }: {
   bookData: BookData;
   onChange: (p: Partial<BookData>) => void;
   selectedModel: ModelId;
   onSelectModel: (m: ModelId) => void;
   onDone: () => void;
   onBack: () => void;
+  userId?: string;
 }) {
   const { t } = useT();
   const [tab, setTab] = useState<CustomizeTab>('cover');
@@ -2734,22 +2759,24 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
   };
 
   const handleUpload = async (files: FileList) => {
-    const fileArray = Array.from(files);
+    if (!userId) return;
+    const fileArray = Array.from(files).filter(f => f.type.startsWith('image/'));
     setUploadProgress(0);
-    const dataUrls: string[] = [];
+    const urls: string[] = [];
     for (let i = 0; i < fileArray.length; i++) {
       try {
-        const url = await resizeForBook(fileArray[i]);
-        dataUrls.push(url);
-      } catch { /* ignora arquivos inválidos */ }
+        const url = await uploadPhotoToStorage(fileArray[i], userId);
+        urls.push(url);
+      } catch (e) { console.error('[upload]', e); }
       setUploadProgress(Math.round(((i + 1) / fileArray.length) * 100));
     }
     setUploadProgress(null);
-    const newAllPhotos = [...bookData.allPhotos, ...dataUrls];
+    if (urls.length === 0) return;
+    const newAllPhotos = [...bookData.allPhotos, ...urls];
     onChange({
-      uploadedPhotos: [...(bookData.uploadedPhotos ?? []), ...dataUrls],
+      uploadedPhotos: [...(bookData.uploadedPhotos ?? []), ...urls],
       allPhotos: newAllPhotos,
-      photosCount: bookData.photosCount + dataUrls.length,
+      photosCount: bookData.photosCount + urls.length,
       selectedPhotos: newAllPhotos.slice(0, Math.min(newAllPhotos.length, 11)),
     });
     const newGap = Math.max(0, model.pages - newAllPhotos.length);
