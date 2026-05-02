@@ -97,6 +97,39 @@ function makeDefaultBookData(t: (k: string) => string): BookData {
   };
 }
 
+// --- localStorage persistence ---
+type SavedBookData = {
+  title?: string;
+  userName?: string;
+  openingPhrase?: string;
+  reflectionText?: string;
+  caption3?: string;
+  pageTexts?: Record<string, PageTextEntry>;
+  photoAssignments?: Record<number, string>;
+  uploadedPhotos?: string[];
+};
+
+function bookStorageKey(userId: string) { return `peregrino_book_v1_${userId}`; }
+
+function loadSavedBookData(userId: string): SavedBookData {
+  try {
+    const raw = localStorage.getItem(bookStorageKey(userId));
+    return raw ? (JSON.parse(raw) as SavedBookData) : {};
+  } catch { return {}; }
+}
+
+function saveBookData(userId: string, data: SavedBookData) {
+  try {
+    localStorage.setItem(bookStorageKey(userId), JSON.stringify(data));
+  } catch {
+    // Quota exceeded — retry without uploaded photos (large Data URLs)
+    try {
+      const { uploadedPhotos: _p, ...textOnly } = data;
+      localStorage.setItem(bookStorageKey(userId), JSON.stringify(textOnly));
+    } catch {}
+  }
+}
+
 type Step = 'reveal' | 'customize' | 'order' | 'shipping';
 
 interface ShippingAddress {
@@ -1435,6 +1468,21 @@ export default function BookPage() {
   const [noPhotosWarning, setNoPhotosWarning] = useState(false);
   const update = (patch: Partial<BookData>) => setBookData(p => ({ ...p, ...patch }));
 
+  // Auto-save dados do usuário no localStorage a cada alteração
+  useEffect(() => {
+    if (!user?.id) return;
+    saveBookData(user.id, {
+      title: bookData.title,
+      userName: bookData.userName,
+      openingPhrase: bookData.openingPhrase,
+      reflectionText: bookData.reflectionText,
+      caption3: bookData.caption3,
+      pageTexts: bookData.pageTexts,
+      photoAssignments: bookData.photoAssignments,
+      uploadedPhotos: bookData.uploadedPhotos,
+    });
+  }, [bookData, user]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Quando o idioma muda em modo demo (sem login), atualiza os textos do livro
   useEffect(() => {
     if (user) return;
@@ -1561,21 +1609,30 @@ export default function BookPage() {
 
       setNoPhotosWarning(photoUrls.length === 0);
       const defaults = makeDefaultBookData(t);
-      const allPhotos = photoUrls.length >= 4 ? photoUrls : defaults.allPhotos;
+      const saved = loadSavedBookData(userId);
+      const savedUploaded = saved.uploadedPhotos ?? [];
+      const basePhotos = photoUrls.length >= 4 ? photoUrls : defaults.allPhotos;
+      const allPhotos = [...basePhotos, ...savedUploaded];
 
       update({
         route,
-        title: `${route}, ${new Date().getFullYear()}`,
+        title: saved.title ?? `${route}, ${new Date().getFullYear()}`,
         coverPhoto: allPhotos[0] ?? defaults.coverPhoto,
         selectedPhotos: allPhotos.slice(0, 8),
         allPhotos,
-        userName,
+        userName: saved.userName ?? userName,
         startDate,
         endDate,
         km,
         days,
         stampsCount: totalStamps,
         photosCount: totalPhotos,
+        uploadedPhotos: savedUploaded,
+        pageTexts: saved.pageTexts ?? {},
+        photoAssignments: saved.photoAssignments ?? {},
+        openingPhrase: saved.openingPhrase ?? defaults.openingPhrase,
+        reflectionText: saved.reflectionText ?? defaults.reflectionText,
+        caption3: saved.caption3 ?? defaults.caption3,
       });
     } finally {
       setDataLoading(false);
@@ -1627,6 +1684,7 @@ export default function BookPage() {
   };
 
   const handleSignOut = async () => {
+    if (user?.id) localStorage.removeItem(bookStorageKey(user.id));
     await supabase.auth.signOut();
     setUser(null);
     setStep('reveal');
