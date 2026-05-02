@@ -1468,7 +1468,8 @@ export default function BookPage() {
   const [noPhotosWarning, setNoPhotosWarning] = useState(false);
   const update = (patch: Partial<BookData>) => setBookData(p => ({ ...p, ...patch }));
 
-  // Auto-save dados do usuário no localStorage a cada alteração
+  // Auto-save dados do usuário no localStorage a cada alteração de bookData.
+  // user intencionalmente fora das deps: evita salvar dados vazios antes de loadUserData terminar.
   useEffect(() => {
     if (!user?.id) return;
     saveBookData(user.id, {
@@ -1481,7 +1482,7 @@ export default function BookPage() {
       photoAssignments: bookData.photoAssignments,
       uploadedPhotos: bookData.uploadedPhotos,
     });
-  }, [bookData, user]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [bookData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Quando o idioma muda em modo demo (sem login), atualiza os textos do livro
   useEffect(() => {
