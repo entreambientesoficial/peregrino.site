@@ -102,7 +102,7 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 | **Step 3 — Encomendar** | ✅ Concluído | Resumo dinâmico com nome, páginas e preço do modelo selecionado + Stripe Checkout |
 | **Livro interativo** | ✅ Concluído | Estrutura dinâmica: capa + prefácio + N layouts fotográficos (50/100/150 conforme modelo) + selos + contracapa. `object-contain` nos layouts emoldurados (large-white, stacked-2, grid-4, stagger-4, trio-h/v) — fotos aparecem inteiras. `object-cover` mantido apenas em full-dark e panoramas (sangria intencional). |
 | **Livro demo (sem login)** | ✅ Concluído | 89 fotos reais do Caminho em `public/img-apoio/img-webp/`. Reordenadas por orientação: landscape → slots panorama/stacked/centered, portrait → demais. Otimizadas: 1200px WebP q82, 22MB total. |
-| **Atribuição manual de fotos** | ✅ Concluído | Aba Fotos do Step 2 redesenhada. Galeria + grid de slots do livro. Fluxo: clique numa foto → clique num slot = atribuição. Badge amarelo = manual; × remove; botão limpa tudo. `BookData.photoAssignments: Record<number,string>` sobrepõe o mapeamento automático. |
+| **Atribuição manual de fotos** | ⚠️ Pendente redesign | `BookData.photoAssignments: Record<number,string>` existe e funciona internamente. A UI de atribuição por painel na sidebar foi implementada e revertida (UX ruim — galeria duplicada, informação confusa). **Novo fluxo planejado: drag-and-drop da galeria diretamente para o slot no livro + crop interativo (pan/zoom).** Ver P0 no Backlog. |
 | **i18n do /book** | ✅ Concluído | 54 chaves `bp.*` por idioma (10 idiomas); prefácio, selos, layouts, paginação, frases, legendas e reflexões todos dinâmicos via `t()`; `makeDefaultBookData(t)` garante demo no idioma correto; `useEffect([lang])` atualiza ao trocar idioma sem sobrescrever dados de usuário logado |
 | **Auth Gate + SSO** | ✅ Concluído | `AuthModal` com botão Google OAuth (Supabase `signInWithOAuth`) + formulário email/senha + bypass convidado. `onAuthStateChange` detecta login após redirect OAuth e carrega dados automaticamente. |
 | **Dados reais do peregrino** | ✅ Concluído | `loadUserData` carrega `journeys`, `profiles`, `stamps` e `photos` em paralelo (`Promise.all`). Prioridade de rota: `journeys.route_id` → `profiles.route_id` → `stamps.route_id` → `'frances'`. km: `journeys.total_km` → `stamps.km_accumulated` → `0`. |
@@ -115,6 +115,44 @@ Google → Site → Instala App → Faz o Caminho → Volta ao Site → Compra o
 ## 🐛 Backlog — Correções e Melhorias Pendentes
 
 > Ordenado por prioridade. Itens marcados 🔴 são bugs que afetam diretamente a experiência do usuário logado.
+
+### P0 🔴🔴 — Drag-and-drop de foto da sidebar para slot do livro + crop interativo
+
+**Descrição:** O usuário precisa arrastar uma foto da galeria lateral diretamente para um slot do livro (como no Canva), e depois ajustar o enquadramento — mover a foto dentro do slot e fazer zoom — sem que a foto original seja alterada.
+
+**Motivação:** Fotos de celular são portrait (vertical) ou landscape (horizontal). Slots do livro têm proporções fixas. Sem crop interativo, fotos portrait em slot landscape são cortadas em partes indesejadas (ex: rosto cortado). O produto nasce morto se o usuário não tiver controle sobre o enquadramento.
+
+**Funcionalidade planejada em 3 camadas:**
+
+| Camada | O que faz | Status |
+|---|---|---|
+| **1 — Atribuição via drag** | Arrastar foto da galeria sidebar para um slot no livro | ⏳ A implementar |
+| **2 — Crop / reposicionamento** | Arrastar a foto dentro do slot (mudar foco) | ⏳ A implementar |
+| **3 — Zoom** | Ampliar/reduzir a foto dentro do slot | ⏳ A implementar |
+
+**UX esperada:**
+- Galeria sidebar: foto arrastável (drag source)
+- Slots do livro: drop targets visíveis ao arrastar
+- Ao soltar: foto entra no slot; painel lateral abre com preview do slot
+- No painel: arrastar para mover; slider ou pinch para zoom
+- Confirmar salva; o livro renderiza com a posição/zoom salvos
+
+**Novos campos em `BookData`:**
+```typescript
+photoAssignments: Record<number, string>;              // já existe — foto URL por slot
+photoPositions:   Record<number, { x: number; y: number }>; // % por slot (novo)
+photoScales:      Record<number, number>;              // 1.0–2.0 por slot (novo)
+```
+
+**Renderização:** `pimg()` aplica `objectPosition: 'x% y%'` e `transform: scale(n)` baseados nos valores salvos.
+
+**Referência visual:** comportamento dos frames do Canva — foto preenche o frame, usuário arrasta e faz zoom dentro do frame.
+
+**Arquivo:** `src/BookPage.tsx` — `BookData`, `pimg()`, `EditSidebar`, novo componente `PhotoFrameEditor`.
+
+**Dependência:** Implementar após P1 (persistência) para que o trabalho de enquadramento não seja perdido no refresh.
+
+---
 
 ### P1 🔴 — Wrap-around de fotos no livro real (duplicação)
 
@@ -205,6 +243,122 @@ photoScales:    Record<number, number>;                     // 1.0–2.0 por slo
 ---
 
 ## 🔄 Histórico de Alterações
+
+### Sessão 02/05/2026 — Tentativa de UI de atribuição de fotos → revert + levantamento de prioridades
+
+#### Objetivo
+Continuar melhorando a experiência do livro real (usuário logado). Foram feitas tentativas de adicionar uma UI de atribuição de fotos por página na sidebar, encontrado e corrigido um bug crítico de replicação de foto, e ao final tudo foi revertido por UX ruim. Sessão encerrou com levantamento completo de issues e pedido de registro no status.md.
+
+---
+
+#### 1. Tentativa: UI de atribuição de fotos na sidebar (PageTextEditor)
+
+**O que foi implementado:**
+- `usePhotoOrientations` e `slotMap` adicionados ao `EditSidebar`
+- `PageTextEditor` expandido com `pageSlots`, `validSlots`, `targetSlot` (state), função `assignSlotPhoto`, e painel renderizado via `renderPhotoPanel`
+- Ao navegar para uma página no livro, a sidebar mostrava os slots daquela página com miniaturas das fotos atribuídas + galeria de fotos para selecionar
+
+**Bug encontrado durante testes — replicação de foto para todos os slots:**
+- `buildPhotoSlotMap` retorna `-1` como sentinela quando as filas (`lQueue`/`pQueue`) se esgotam (mais slots do que fotos disponíveis)
+- Ao clicar numa foto com `targetSlot = -1`, `assignSlotPhoto(-1, url)` gravava `photoAssignments[-1] = url`
+- Todos os slots overflow liam de volta `photoAssignments[-1]` → exibiam a mesma foto em todas as páginas
+- Nas primeiras 12 páginas as fotos eram distintas (filas não esgotadas); a partir da pág. 13+ todas repetiam a última foto selecionada
+
+**Fix do bug (commit `ac8e7be`):**
+```typescript
+const validSlots = pageSlots.filter(s => s >= 0);
+// e:
+if (slotIdx < 0) return;  // guard em assignSlotPhoto
+const effectiveTarget = targetSlot !== null && targetSlot >= 0 ? targetSlot : validSlots[0];
+```
+
+**Por que foi revertido mesmo com o bug corrigido:**
+A UX era confusa e inutilizável:
+- A sidebar mostrava: eyebrow da página + campos de texto + "fotos desta página" + galeria completa = informação demais em espaço pequeno
+- As fotos apareciam duplicadas (na seção de slots da página E na galeria abaixo)
+- Impossível entender o fluxo olhando pela primeira vez
+- Usuário: *"Essa lógica olhando do lado do usuário é péssima... foi feito uma mudança grande para um resultado muito ruim"*
+
+**Commit de revert:** `3616259` — removida toda a lógica de photo panel do `PageTextEditor`. O componente voltou ao estado limpo (só campos de texto).
+
+---
+
+#### 2. Fix mantido após revert: contagem correta de slots na sidebar
+
+**Problema que estava ativo antes desta sessão:**
+A sidebar de Fotos exibia *"Você tem X fotos. Faltam Y para preencher todas as páginas."* com `Y = max(0, model.pages - X)`. Como `model.pages = 50` e um usuário com 60 fotos uploadadas obtinha `Y = 0` — sem aviso. Porém o livro Essencial tem **~91 slots reais** (não 50 páginas), então 31 slots ficavam vazios.
+
+**Correção mantida no revert:**
+```typescript
+const pageDefs = useMemo(() => generatePageDefs(model.pages), [model.pages]);
+const totalSlots = useMemo(() => countPhotoSlots(pageDefs), [pageDefs]);
+const availablePhotos = bookData.allPhotos.length;
+const missingPhotos = Math.max(0, totalSlots - availablePhotos);
+```
+
+Header corrigido: `Fotos ({availablePhotos} / {totalSlots})`
+Aviso corrigido: `"O {model.label} tem {totalSlots} espaços de foto — faltam {missingPhotos}."`
+
+---
+
+#### 3. Melhorias mantidas após revert: eyebrow contextual e notas FMT2
+
+**Eyebrow na sidebar (`KIND_EYEBROW`):**
+Adicionado mapa de labels legíveis para cada `PageKind`, exibido na sidebar contextual ao navegar o livro:
+
+```typescript
+const KIND_EYEBROW: Partial<Record<PageKind, string>> = {
+  'photo-text-r': 'Reflexão',
+  'text-photo-r': 'Reflexão',
+  'wide-photo-text': 'Destaque',
+  'quote-route': 'Citação',
+  'text-route': 'Citação',
+  'photo-caption': 'Fotografia',
+  // ...
+};
+```
+
+**Notas de fallback FMT2:**
+Campos de texto com tipo FMT2 (citação/destaque) exibem nota abaixo do textarea:
+`"Se deixar em branco, será exibida a frase de abertura."`
+
+---
+
+#### 4. Problema identificado: perda de dados no refresh
+
+**Confirmado pelo usuário em 02/05/2026:**
+- Fotos adicionadas via upload (Data URLs em `uploadedPhotos`) desaparecem ao dar F5
+- Textos editados página a página (`pageTexts`) desaparecem ao dar F5
+- O usuário pode preencher textos em todas as páginas e perder tudo com um refresh acidental
+- Fotos do Supabase (`allPhotos` vindas do `loadUserData`) voltam ao recarregar (autenticação recarrega)
+
+**Causa raiz:** Nenhum ponto de persistência local (`localStorage`) no projeto. `bookData` é state React puro, perdido a cada montagem.
+
+**Ver P2 no Backlog para o plano de fix.**
+
+---
+
+#### 5. Novas prioridades definidas
+
+| Prioridade | Item | Motivo |
+|---|---|---|
+| **P0** | Drag-and-drop + crop interativo | Sem isso o livro corta fotos em partes erradas → produto inviável |
+| **P1** | Persistência (`localStorage`) | Usuário pode perder horas de trabalho em um F5 |
+| **P2** | Wrap-around / slots vazios | Livro com menos fotos que slots fica com páginas vazias |
+| **P3** | Contagem de slots por modelo | Essencial/Jornada/Legado mostram mesma contagem (91) |
+| **P4** | Backend (Stripe webhook → Lulu) | Necessário para produção mas não bloqueia edição do livro |
+
+---
+
+#### Commits desta sessão
+
+| Commit | Descrição |
+|---|---|
+| `ad31eb0` | feat(sidebar): atribuição de foto por página e eyebrow contextual |
+| `ac8e7be` | fix(sidebar): corrigir replicação de foto ao atribuir em slot de índice -1 |
+| `3616259` | revert(sidebar): remover painel de foto por página e corrigir contagem de slots |
+
+---
 
 ### Sessão 01/05/2026 (parte 2) — Investigação de bugs + backlog priorizado
 
