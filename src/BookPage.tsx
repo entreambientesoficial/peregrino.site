@@ -2208,7 +2208,7 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
       </div>
 
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto py-5 px-6 space-y-7 pb-24 lg:pb-6">
+      <div className="flex-1 min-h-0 overflow-y-auto py-5 px-6 space-y-7 pb-24 lg:pb-6">
 
         {/* Texto contextual — varia conforme a página atual do livro */}
         <PageTextEditor
@@ -2280,10 +2280,10 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
             </div>
           )}
 
-          {/* Grid de thumbnails */}
+          {/* Grid de thumbnails — todas as fotos, sem limite */}
           {availablePhotos > 0 && (
             <div className="grid grid-cols-3 gap-1.5">
-              {bookData.allPhotos.slice(0, 18).map((url, i) => (
+              {bookData.allPhotos.map((url, i) => (
                 <button
                   key={i}
                   onClick={() => onChange({ coverPhoto: url })}
@@ -2300,11 +2300,6 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
                 </button>
               ))}
             </div>
-          )}
-          {bookData.allPhotos.length > 18 && (
-            <p className="text-[#E8E4D9]/22 text-[0.65rem] mt-2 text-center">
-              + {bookData.allPhotos.length - 18} fotos distribuídas pelo livro
-            </p>
           )}
 
           {/* Upload adicional quando já tem fotos mas ainda faltam */}
