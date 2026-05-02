@@ -101,6 +101,7 @@ function makeDefaultBookData(t: (k: string) => string): BookData {
 async function saveBookDataToDb(userId: string, data: {
   title: string; userName: string; openingPhrase: string;
   reflectionText: string; caption3: string;
+  coverPhoto: string;
   pageTexts: Record<string, PageTextEntry>;
   photoAssignments: Record<number, string>;
 }) {
@@ -111,6 +112,7 @@ async function saveBookDataToDb(userId: string, data: {
     opening_phrase: data.openingPhrase,
     reflection_text: data.reflectionText,
     caption3: data.caption3,
+    cover_photo: data.coverPhoto || null,
     page_texts: data.pageTexts,
     photo_assignments: data.photoAssignments,
     updated_at: new Date().toISOString(),
@@ -488,6 +490,24 @@ function renderBookPage(
 
     // ── Capa ────────────────────────────────────────────────────────────────
     case 'cover':
+      // Usuário logado sem capa escolhida → placeholder instrucional
+      if (!isDemo && !bookData.coverPhoto) {
+        return (
+          <div className="w-full h-full flex flex-col justify-between bg-[#1B2616]" style={{ padding: sp(20) }}>
+            <div className="flex justify-end">
+              <span className="uppercase tracking-[0.25em]" style={{ fontSize: fs(0.5), color: '#C8A96E66' }}>Peregrino</span>
+            </div>
+            <div className="flex flex-col items-center justify-center flex-1 text-center" style={{ gap: sp(12) }}>
+              <div style={{ width: sp(28), height: '1px', background: '#C8A96E33', marginBottom: sp(4) }} />
+              <p className="font-serif italic" style={{ fontSize: fs(0.68), color: '#C8A96E', lineHeight: 1.5 }}>
+                Toque em uma foto da galeria para definir a capa do seu livro.
+              </p>
+              <div style={{ width: sp(28), height: '1px', background: '#C8A96E33', marginTop: sp(4) }} />
+            </div>
+            <div />
+          </div>
+        );
+      }
       return (
         <div className="w-full h-full relative">
           <img src={bookData.coverPhoto} className="w-full h-full object-cover" alt="" />
@@ -1483,6 +1503,7 @@ export default function BookPage() {
         openingPhrase: bookData.openingPhrase,
         reflectionText: bookData.reflectionText,
         caption3: bookData.caption3,
+        coverPhoto: bookData.coverPhoto,
         pageTexts: bookData.pageTexts,
         photoAssignments: bookData.photoAssignments,
       });
@@ -1631,7 +1652,7 @@ export default function BookPage() {
       update({
         route,
         title: bd?.title ?? `${route}, ${new Date().getFullYear()}`,
-        coverPhoto: allPhotos[0] ?? defaults.coverPhoto,
+        coverPhoto: bd?.cover_photo ?? '',
         selectedPhotos: allPhotos.slice(0, 8),
         allPhotos,
         userName: bd?.user_name ?? userName,
