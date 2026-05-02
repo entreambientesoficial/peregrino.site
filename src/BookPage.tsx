@@ -105,7 +105,7 @@ async function saveBookDataToDb(userId: string, data: {
   pageTexts: Record<string, PageTextEntry>;
   photoAssignments: Record<number, string>;
 }) {
-  await supabase.from('book_data').upsert({
+  const { error } = await supabase.from('book_data').upsert({
     pilgrim_id: userId,
     title: data.title,
     user_name: data.userName,
@@ -117,6 +117,7 @@ async function saveBookDataToDb(userId: string, data: {
     photo_assignments: data.photoAssignments,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'pilgrim_id' });
+  if (error) console.error('[book_data] save error:', error);
 }
 
 type Step = 'reveal' | 'customize' | 'order' | 'shipping';
@@ -1681,6 +1682,8 @@ export default function BookPage() {
       if (session?.user) {
         console.log('[Auth] Sessão existente detectada, carregando dados do usuário:', session.user.email);
         setUser(session.user);
+        // Zera a capa imediatamente para não mostrar o valor padrão do demo enquanto carrega
+        setBookData(p => ({ ...p, coverPhoto: '' }));
         loadUserData(session.user.id);
       }
     });
@@ -1866,16 +1869,31 @@ function InteractiveBook({ bookData, selectedModel, isDemo, onPageChange }: { bo
             }} />
             {/* Capa */}
             <div className="relative rounded-r-xl rounded-l-sm overflow-hidden" style={{ width: `${w}px`, height: `${h}px` }}>
-              <img src={bookData.coverPhoto} className="w-full h-full object-cover" alt="Capa" />
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.74) 0%, rgba(0,0,0,0.05) 55%, rgba(0,0,0,0.22) 100%)' }} />
-              <div className="absolute inset-0 flex flex-col justify-between" style={{ padding: sp(22) }}>
-                <span className="self-end text-white/40 uppercase tracking-[0.25em]" style={{ fontSize: fs(0.5) }}>Peregrino</span>
-                <div>
-                  <div style={{ width: sp(30), height: '1px', background: 'rgba(255,255,255,0.28)', marginBottom: sp(12) }} />
-                  <p className="font-serif italic text-white leading-tight" style={{ fontSize: fs(1.05) }}>{bookData.title}</p>
-                  {!isDemo && <p className="text-white/45 uppercase tracking-wider" style={{ fontSize: fs(0.56), marginTop: sp(8) }}>{bookData.userName}</p>}
+              {bookData.coverPhoto
+                ? <img src={bookData.coverPhoto} className="w-full h-full object-cover" alt="Capa" />
+                : <div className="w-full h-full bg-[#1B2616]" />
+              }
+              {(bookData.coverPhoto || isDemo) ? (
+                <>
+                  <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.74) 0%, rgba(0,0,0,0.05) 55%, rgba(0,0,0,0.22) 100%)' }} />
+                  <div className="absolute inset-0 flex flex-col justify-between" style={{ padding: sp(22) }}>
+                    <span className="self-end text-white/40 uppercase tracking-[0.25em]" style={{ fontSize: fs(0.5) }}>Peregrino</span>
+                    <div>
+                      <div style={{ width: sp(30), height: '1px', background: 'rgba(255,255,255,0.28)', marginBottom: sp(12) }} />
+                      <p className="font-serif italic text-white leading-tight" style={{ fontSize: fs(1.05) }}>{bookData.title}</p>
+                      {!isDemo && <p className="text-white/45 uppercase tracking-wider" style={{ fontSize: fs(0.56), marginTop: sp(8) }}>{bookData.userName}</p>}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center" style={{ padding: sp(24) }}>
+                  <div style={{ width: sp(32), height: '1px', background: '#C8A96E44', marginBottom: sp(14) }} />
+                  <p className="font-serif italic" style={{ fontSize: fs(1.5), color: '#C8A96E', lineHeight: 1.6 }}>
+                    Toque em uma foto da galeria para definir a capa do seu livro.
+                  </p>
+                  <div style={{ width: sp(32), height: '1px', background: '#C8A96E44', marginTop: sp(14) }} />
                 </div>
-              </div>
+              )}
               <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 45%)' }} />
             </div>
           </motion.button>
@@ -2307,7 +2325,15 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
               {bookData.allPhotos.map((url, i) => (
                 <button
                   key={i}
-                  onClick={() => onChange({ coverPhoto: url })}
+                  onClick={() => {
+                    onChange({ coverPhoto: url });
+                    if (userId) saveBookDataToDb(userId, {
+                      title: bookData.title, userName: bookData.userName,
+                      openingPhrase: bookData.openingPhrase, reflectionText: bookData.reflectionText,
+                      caption3: bookData.caption3, coverPhoto: url,
+                      pageTexts: bookData.pageTexts, photoAssignments: bookData.photoAssignments,
+                    });
+                  }}
                   title="Usar como capa"
                   className="relative aspect-square rounded-lg overflow-hidden group"
                 >
@@ -2849,7 +2875,12 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
                   <div className="relative">
                     <div className="absolute left-0 top-0 bottom-0 w-5 z-10 rounded-l-sm" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.55), rgba(0,0,0,0.18) 40%, rgba(255,255,255,0.06) 65%, rgba(0,0,0,0.12))' }} />
                     <div className="relative w-52 md:w-60 rounded-r-lg rounded-l-sm overflow-hidden">
-                      <img src={bookData.coverPhoto} alt="Capa" className="w-full aspect-[22/17] object-cover" />
+                      {bookData.coverPhoto
+                        ? <img src={bookData.coverPhoto} alt="Capa" className="w-full aspect-[22/17] object-cover" />
+                        : <div className="w-full aspect-[22/17] bg-[#1B2616] flex items-center justify-center px-3">
+                            <p className="font-serif italic text-center" style={{ color: '#C8A96E', fontSize: '0.58rem', lineHeight: 1.5 }}>Toque em uma foto da galeria para definir a capa do seu livro.</p>
+                          </div>
+                      }
                       <div className="absolute inset-0 flex flex-col justify-between p-5" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.08) 55%, rgba(0,0,0,0.2) 100%)' }}>
                         <span className="text-white/60 text-xs uppercase tracking-widest self-end">Peregrino</span>
                         <div>
@@ -2865,7 +2896,15 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
                 <p className="text-xs uppercase tracking-widest text-[#2D3A27]/40 mb-3">{t('bp.s2.cover_photo')}</p>
                 <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
                   {bookData.allPhotos.map((photo, i) => (
-                    <button key={i} onClick={() => onChange({ coverPhoto: photo })}
+                    <button key={i} onClick={() => {
+                      onChange({ coverPhoto: photo });
+                      if (userId) saveBookDataToDb(userId, {
+                        title: bookData.title, userName: bookData.userName,
+                        openingPhrase: bookData.openingPhrase, reflectionText: bookData.reflectionText,
+                        caption3: bookData.caption3, coverPhoto: photo,
+                        pageTexts: bookData.pageTexts, photoAssignments: bookData.photoAssignments,
+                      });
+                    }}
                       className={`aspect-square rounded-xl overflow-hidden ring-2 transition-all duration-200 ${bookData.coverPhoto === photo ? 'ring-[#2D3A27] scale-105 shadow-md' : 'ring-transparent hover:ring-[#2D3A27]/30'}`}
                     >
                       <img src={photo} alt="" className="w-full h-full object-cover" />
@@ -3243,7 +3282,10 @@ function StepOrder({ bookData, selectedModel, onNext, onBack }: { bookData: Book
 
       <div className="bg-[#F5F2EA] rounded-3xl p-6 flex gap-5">
         <div className="w-24 rounded-xl overflow-hidden shrink-0" style={{ boxShadow: '-4px 6px 20px rgba(0,0,0,0.25)' }}>
-          <img src={bookData.coverPhoto} alt="Capa" className="w-full aspect-[22/17] object-cover" />
+          {bookData.coverPhoto
+            ? <img src={bookData.coverPhoto} alt="Capa" className="w-full aspect-[22/17] object-cover" />
+            : <div className="w-full aspect-[22/17] bg-[#1B2616]" />
+          }
         </div>
         <div className="flex flex-col gap-1.5">
           <p className="font-serif italic text-[#2D3A27] text-lg leading-tight">{bookData.title}</p>

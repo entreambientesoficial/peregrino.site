@@ -2988,3 +2988,66 @@ O usuário reportou que **mesmo após a correção, ainda vê fotos do demo no l
 4. **Flash de dados demo** — livro modelo aparece por ~2s antes dos dados do usuário
 
 *Última atualização: 27/04/2026 (parte 5) — Sessão com Claude Sonnet 4.6*
+
+---
+
+## Sessão 02/05/2026 (continuação) — Capa placeholder + persistência da foto de capa
+
+### Contexto
+Continuação direta da sessão anterior. Persistência Supabase já estava implementada (commits `26a46f2` e `9d34a77`). Faltava corrigir o placeholder da capa e garantir que a escolha da foto de capa persistisse no banco.
+
+### O que foi feito
+
+#### 1. Correção de imagens quebradas (`<img src="">`)
+Após implementar o placeholder (capa verde/dourado), três locais fora do flipbook ainda renderizavam `<img src={bookData.coverPhoto}>` com URL vazia quando o usuário não havia escolhido capa — causando ícone de imagem quebrada:
+- **Linha ~1869** (`InteractiveBook` — livro fechado): substituído por `coverPhoto ? <img> : <div bg-[#1B2616]>`
+- **Linha ~2852** (`StepCustomize` aba Capa): substituído por div dourado com texto instrucional quando sem capa
+- **Linha ~3246** (`StepOrder`): substituído por div escuro quando sem capa
+
+#### 2. Texto dourado no livro fechado (preview)
+O overlay do livro fechado sempre renderizava título/nome mesmo sem foto. Refatorado para:
+- **Com foto ou isDemo**: overlay normal com gradiente, título e nome
+- **Sem foto (usuário logado)**: overlay com texto dourado centralizado "Toque em uma foto da galeria para definir a capa do seu livro."
+- Ajuste de tamanho: `fs(0.68)` → `fs(1.0)` → `fs(1.5)` (feedback do usuário)
+- Removido "PEREGRINO" do canto superior direito no estado placeholder
+
+#### 3. Persistência imediata da foto de capa
+**Bug:** auto-save tem debounce de 1,5s — se o usuário pressionar F5 antes desse tempo, a capa escolhida se perde.
+
+**Fix:** salvar imediatamente no banco quando o usuário clica numa foto para definir a capa, em dois locais:
+- `EditSidebar` galeria (linha ~2325): `onClick` chama `onChange` + `saveBookDataToDb` sincronamente
+- `StepCustomize` aba Capa (linha ~2888): idem
+
+#### 4. Capa do "Is model" aparecendo após F5
+**Bug:** `makeDefaultBookData` retorna `coverPhoto: '/img-apoio/img-webp/79.webp'` (a mesma foto da capa demo). Quando `loadUserData` falha silenciosamente ou ainda não rodou, o livro do usuário logado mostrava essa foto — parecendo o livro demo.
+
+**Fix:** ao detectar sessão existente (`getSession`), zerar `coverPhoto` imediatamente antes de chamar `loadUserData`:
+```typescript
+setBookData(p => ({ ...p, coverPhoto: '' }));
+loadUserData(session.user.id);
+```
+Agora o usuário vê o placeholder verde/dourado enquanto os dados carregam, em vez da foto `79.webp`.
+
+#### 5. Log de erros em `saveBookDataToDb`
+Adicionado `console.error('[book_data] save error:', error)` para detectar falhas silenciosas de RLS ou schema no banco.
+
+### Estado final das correções de capa
+| Situação | Comportamento |
+|---|---|
+| isDemo (não logado) | Capa com foto do demo + título/nome |
+| Logado, sem capa escolhida | Fundo `#1B2616` + texto dourado instrucional |
+| Logado, capa escolhida | Foto escolhida + gradiente + título/nome |
+| F5 após escolher capa | Capa persiste (save imediato no DB) |
+
+### Commits desta sessão
+- `9d34a77` — feat(cover): capa placeholder verde/dourado (sessão anterior)
+- Alterações não commitadas ainda: correções de imagem quebrada nos 3 locais, texto maior, save imediato, log de erro, fix coverPhoto inicial
+
+### Pendências
+- **Verificar console do browser**: se aparecer `[book_data] save error`, a capa ainda não persiste — verificar RLS da tabela `book_data` ou coluna `cover_photo`
+- **P0**: Drag-and-drop da sidebar para slot do livro + crop interativo
+- **P1 (wrap-around)**: Fotos duplicadas nas páginas 10, 11, 15 do livro real
+- **P3**: Contagem errada de slots na sidebar
+- **P4**: Backend Stripe → Lulu
+
+*Última atualização: 02/05/2026 (continuação) — Sessão com Claude Sonnet 4.6*
