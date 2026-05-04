@@ -1722,6 +1722,19 @@ export default function BookPage() {
     setBookData(makeDefaultBookData(t));
   };
 
+  const isLoading = sessionLoading || dataLoading;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#1B2616] flex items-center justify-center">
+        <svg className="animate-spin" style={{ width: 32, height: 32, color: '#C8A96E' }} viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25" />
+          <path fill="currentColor" fillOpacity="0.75" d="M4 12a8 8 0 018-8v8H4z" />
+        </svg>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#FDFCF8] font-sans">
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#1B2616]/95 backdrop-blur-sm px-6 py-3 flex items-center justify-between">
@@ -1750,9 +1763,6 @@ export default function BookPage() {
             <StepReveal key="r" bookData={bookData}
               selectedModel={selectedModel} onSelectModel={setSelectedModel}
               hasCustomized={hasCustomized}
-              dataLoading={dataLoading}
-              sessionLoading={sessionLoading}
-              cachedCover={cachedCover}
               noPhotosWarning={noPhotosWarning}
               user={user}
               editMode={editMode}
@@ -2402,14 +2412,11 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
 // ---------------------------------------------------------------------------
 // Step 1 — Revelação
 // ---------------------------------------------------------------------------
-function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dataLoading, sessionLoading, cachedCover, noPhotosWarning, user, editMode, onChange, onCustomize, onOrder }: {
+function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, noPhotosWarning, user, editMode, onChange, onCustomize, onOrder }: {
   bookData: BookData;
   selectedModel: ModelId;
   onSelectModel: (m: ModelId) => void;
   hasCustomized: boolean;
-  dataLoading: boolean;
-  sessionLoading: boolean;
-  cachedCover: string;
   noPhotosWarning: boolean;
   user: any;
   editMode: boolean;
@@ -2418,41 +2425,14 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
   onOrder: () => void;
 }) {
   const { t } = useT();
-  const isLoading = sessionLoading || dataLoading;
   const [statsVisible, setStatsVisible] = useState(false);
   const [currentBookPage, setCurrentBookPage] = useState(0);
   const statsRef = useRef<HTMLDivElement>(null);
-  const aKm = useCountUp(bookData.km, 1200, statsVisible && !isLoading);
-  const aDays = useCountUp(bookData.days, 900, statsVisible && !isLoading);
-  const aStamps = useCountUp(bookData.stampsCount, 800, statsVisible && !isLoading);
-  const aPhotos = useCountUp(bookData.photosCount, 1100, statsVisible && !isLoading);
+  const aKm = useCountUp(bookData.km, 1200, statsVisible);
+  const aDays = useCountUp(bookData.days, 900, statsVisible);
+  const aStamps = useCountUp(bookData.stampsCount, 800, statsVisible);
+  const aPhotos = useCountUp(bookData.photosCount, 1100, statsVisible);
   const editModel = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
-
-  // Elemento exibido enquanto isLoading=true: foto do usuário (cache) ou capa verde (1ª vez)
-  const loadingBookEl = cachedCover ? (
-    <div style={{ filter: 'drop-shadow(-12px 20px 60px rgba(0,0,0,0.7))' }}>
-      <div className="relative rounded-r-xl rounded-l-sm overflow-hidden"
-        style={{ width: 'clamp(160px,27vw,440px)', height: 'clamp(124px,20.9vw,340px)' }}>
-        <div className="absolute left-0 top-0 bottom-0 rounded-l-sm z-10"
-          style={{ width: '5.4%', background: 'linear-gradient(to right,rgba(0,0,0,0.65),rgba(0,0,0,0.22) 40%,rgba(255,255,255,0.08) 65%,rgba(0,0,0,0.15))' }} />
-        <img src={cachedCover} className="w-full h-full object-cover" alt="Capa" />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0.04) 55%,rgba(0,0,0,0.18) 100%)' }} />
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg,rgba(255,255,255,0.07) 0%,transparent 45%)' }} />
-      </div>
-    </div>
-  ) : (
-    <div style={{ filter: 'drop-shadow(-12px 20px 60px rgba(0,0,0,0.7))' }}>
-      <div className="relative rounded-r-xl rounded-l-sm overflow-hidden bg-[#1B2616] flex flex-col items-center justify-center"
-        style={{ width: 'clamp(160px,27vw,440px)', height: 'clamp(124px,20.9vw,340px)', boxShadow: '-12px 20px 60px rgba(0,0,0,0.7)' }}>
-        <div className="absolute left-0 top-0 bottom-0 rounded-l-sm z-10"
-          style={{ width: '5.4%', background: 'linear-gradient(to right,rgba(0,0,0,0.65),rgba(0,0,0,0.22) 40%,rgba(255,255,255,0.08) 65%,rgba(0,0,0,0.15))' }} />
-        <div style={{ width: '45%', height: '1px', background: '#C8A96E44' }} />
-        <div style={{ height: '8px' }} />
-        <div style={{ width: '45%', height: '1px', background: '#C8A96E33' }} />
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg,rgba(255,255,255,0.07) 0%,transparent 45%)' }} />
-      </div>
-    </div>
-  );
 
   useEffect(() => {
     const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setStatsVisible(true); }, { threshold: 0.3 });
@@ -2500,9 +2480,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
               transition={{ delay: 0.35, duration: 0.9, type: 'spring', damping: 18 }}
               className="relative z-10 flex justify-center px-4 pb-6"
             >
-              {isLoading ? loadingBookEl : (
-                <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} onPageChange={setCurrentBookPage} />
-              )}
+              <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} onPageChange={setCurrentBookPage} />
             </motion.div>
 
             {/* Stats */}
@@ -2604,13 +2582,11 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
           transition={{ delay: 0.45, duration: 1, type: 'spring', damping: 16 }}
           className="relative z-10 flex justify-center px-4 pb-6"
         >
-          {isLoading ? loadingBookEl : (
-            <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} />
-          )}
+          <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} />
         </motion.div>
 
         {/* Aviso: utilizador autenticado mas sem fotos */}
-        {user && !isLoading && noPhotosWarning && (
+        {user && noPhotosWarning && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
