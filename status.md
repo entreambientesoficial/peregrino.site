@@ -3379,3 +3379,59 @@ Fechamento: somente via botão ✓ (intencional — evita fechar acidentalmente 
 - `3c25b29` — feat(crop): ajuste fino de zoom e pan nos slots de fotos
 
 *Última atualização: 04/05/2026 — Sessão com Claude Sonnet 4.6*
+
+---
+
+## Sessão 04/05/2026 (continuação) — Tentativa de crop estilo Canva
+
+### O que foi feito
+
+#### Refatoração do crop: sliders → drag+scroll (commit `1921dad`)
+
+A interface com 3 sliders sobrepostos à foto foi descartada pelo usuário por ser confusa e entrar em conflito visual com o page-flip. Foi reimplementada com interação direta:
+
+- **`PhotoSlotEditor`** (componente React com hooks):
+  - `onMouseDown` → inicia drag
+  - `window.addEventListener('mousemove')` global → pan em tempo real mesmo com cursor fora do slot
+  - `addEventListener('wheel', { passive: false })` → zoom via scroll (necessário `passive:false` para `preventDefault` funcionar)
+  - Fórmula pan: `dx = (clientX - startX) / slotWidth * 100 / zoom` (compensa zoom para movimento 1:1)
+- **HTMLFlipBook**: `useMouseEvents={activeSlot === null}` e `disableFlipByClick={activeSlot !== null}` para travar page-flip durante edição
+- Borda dourada no slot ativo + hint "arraste · scroll = zoom" + botão ✓
+
+### Problema em aberto — não resolvido nesta sessão
+
+O usuário reportou que a implementação ainda não está boa. O conflito com o page-flip e a UX geral do crop precisam ser revistos com calma.
+
+**Ponto central do desentendimento:** O usuário quer a experiência exata do Canva — clicar na foto, segurar e arrastar para reposicionar, scroll para zoom — mas a integração com o react-pageflip cria conflitos de eventos que impedem uma experiência fluida.
+
+---
+
+## Pendências para a próxima sessão (por prioridade)
+
+### P0 — Crop estilo Canva (em aberto)
+**Problema:** A interação drag+scroll dentro do react-pageflip ainda entra em conflito com o page-flip, ou a UX não está intuitiva o suficiente.
+
+**O que deve ser investigado/discutido:**
+1. Entender exatamente o que o usuário está vendo de errado (pedir screenshot ou descrição detalhada antes de codificar)
+2. Considerar uma abordagem alternativa: ao clicar num slot, abrir um **modal/painel flutuante** fora do livro com a foto em tamanho maior + drag+zoom — sem conflito com react-pageflip
+3. Ou testar se `pointer-events: none` no wrapper do HTMLFlipBook (deixando apenas o slot ativo com events) resolve o conflito
+4. Verificar se `disableFlipByClick={activeSlot !== null}` realmente funciona no react-pageflip ou se precisa de outra abordagem
+
+**O que NÃO mudar sem alinhar com o usuário primeiro:**
+- A estrutura de `PhotoSlotData` (já persistida no Supabase)
+- O sistema de drag-and-drop da sidebar (funciona bem)
+
+### P1 — Crop na foto de capa
+`coverPhoto` ainda é uma string simples — não tem zoom/pan. Se o crop de slot for resolvido, estender para a capa.
+
+### P2 — Backend Stripe → Lulu
+`STRIPE_SECRET_KEY` no Cloudflare + webhook → pedido de impressão via API Lulu. Não iniciado.
+
+### P3 — UX pequenas
+- Fechar modo de edição ao clicar fora do slot (hoje só fecha com ✓)
+- Botão "resetar crop" (zoom=1, x=0, y=0)
+- Touch/mobile para o crop (hoje só mouse)
+
+---
+
+*Última atualização: 04/05/2026 (fim de sessão) — Sessão com Claude Sonnet 4.6*
