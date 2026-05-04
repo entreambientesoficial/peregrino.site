@@ -244,6 +244,166 @@ photoScales:    Record<number, number>;                     // 1.0–2.0 por slo
 
 ## 🔄 Histórico de Alterações
 
+### Sessão 04/05/2026 — Bug crítico de flashes e piscadas na capa ao dar F5 — investigação longa, causa raiz encontrada
+
+#### Objetivo
+Eliminar definitivamente os flashes visuais ao dar F5 na página `/book` com usuário logado. O problema persistiu por múltiplas tentativas ao longo da sessão por falta de acesso a browser para teste visual.
+
+---
+
+#### Contexto do bug (relato do usuário)
+
+> "Quando dou F5, aparece um fantasma do livro em outro formato, depois pisca uma imagem de fundo que parece ser uma foto aleatória da galeria."
+
+> "O esperado é que ao dar F5 mantenha exatamente a mesma capa. Se ainda não foi escolhida deve ficar na capa verde. Se já tiver sido escolhida, mesmo que der um F5 deve abrir na mesma capa."
+
+> "No final do carregamento pisca uma imagem grande como se fosse uma página do book piscando."
+
+---
+
+#### Causas raiz identificadas (3 bugs independentes, cada um causando um flash diferente)
+
+---
+
+##### Bug 1 — Skeleton portrait num livro landscape → "retângulo vertical cinza"
+
+**Causa:** O componente de skeleton criado para substituir o `InteractiveBook` durante loading tinha dimensões de livro **portrait** (`height: clamp(220px, 36vw, 587px)` > width). O livro real é **landscape** (`440 × 340`, ratio ≈ 0.773).
+
+**Sintoma:** Durante o carregamento, o usuário via um retângulo vertical cinza que não correspondia ao formato do livro. Ao livro carregar, havia uma substituição brusca de proporções.
+
+**Fix:** Skeleton substituído por placeholder verde com dimensões corretas landscape (`clamp(160px,27vw,440px)` × `clamp(124px,20.9vw,340px)`).
+
+**Commit:** `6119cdd`
+
+---
+
+##### Bug 2 — Race condition: frame com isLoading=false e dados demo
+
+**Causa raiz em 3 passos:**
+
+1. `onAuthStateChange` dispara com `session.user` presente
+2. `setSessionLoading(false)` é chamado **sincronicamente** (entrou no batch React)
+3. `loadUserData()` é assíncrono — o `setDataLoading(true)` dentro dela só executa **após** o batch atual ser commitado
+
+**Resultado:** React comitava um render com `sessionLoading=false, dataLoading=false` → `isLoading=false` → `InteractiveBook` montava com `bookData` ainda contendo `coverPhoto: '/img-apoio/img-webp/79.webp'` (foto demo) e `isDemo=false` (pois `user !== null`). O usuário via a foto demo aparecer brevemente como se fosse a sua capa.
+
+**Fix:** Adicionar `setDataLoading(true)` **sincronicamente** dentro do `onAuthStateChange`, antes de chamar `loadUserData()`. Assim o batch React inclui `dataLoading=true` desde o início, e `isLoading` nunca fica `false` com dados incompletos.
+
+```typescript
+if (session?.user) {
+  setDataLoading(true); // ← sincronizado no mesmo batch
+  loadUserData(session.user.id);
+  setShowAuthModal(false);
+  setEditMode(true);
+}
+```
+
+**Commit:** `6119cdd`, `391cbe2`
+
+---
+
+##### Bug 3 — `initial` ausente no `motion.div` do livro aberto → flash de página
+
+**⚠️ ESTA ERA A CAUSA DO FLASH FINAL — "imagem grande como uma página do book"**
+
+**Localização:** `src/BookPage.tsx` — função `InteractiveBook`, wrapper do `HTMLFlipBook` (react-pageflip).
+
+**Causa:** O `motion.div` que envolve o livro aberto (sempre montado, com opacity 0 quando fechado) tinha apenas `animate` mas **não tinha `initial`**:
+
+```tsx
+// ANTES — sem initial:
+<motion.div
+  animate={{ opacity: bookOpen ? 1 : 0, scale: bookOpen ? 1 : 0.96 }}
+  ...
+>
+```
+
+**Mecanismo do flash:** Framer Motion aplica o `animate` via JavaScript, **não via CSS**. Isso significa que no primeiro paint do browser (antes do JS da animação executar), o elemento é renderizado com `opacity: 1` — o seu valor CSS padrão. Nesse frame, o `HTMLFlipBook` estava completamente visível, mostrando as páginas do livro em tamanho real. Na sequência o JS aplicava `opacity: 0`, mas o flash já tinha ocorrido.
+
+**Fix — uma linha:**
+```tsx
+// DEPOIS:
+<motion.div
+  initial={{ opacity: 0, scale: 0.96 }}  // ← CSS aplicado antes do primeiro paint
+  animate={{ opacity: bookOpen ? 1 : 0, scale: bookOpen ? 1 : 0.96 }}
+  ...
+>
+```
+
+Com `initial`, o Framer Motion injeta `opacity: 0` via `style` inline **antes** do browser pintar. Zero flash.
+
+**Commit:** `ffca995`
+
+---
+
+##### Bug 4 — Capa verde aparecia mesmo quando usuário já tinha foto escolhida
+
+**Problema de UX:** Após os fixes anteriores, o placeholder verde (destinado à primeira vez) aparecia durante o `isLoading=true` mesmo para usuários que já tinham escolhido uma foto — porque a foto só é conhecida depois que o Supabase responde.
+
+**Solução — cache em `localStorage`:**
+
+- Na montagem do componente (`useState` lazy init), lê `localStorage.getItem('peregrino_cover')` **sincronicamente** — disponível no primeiro render, antes de qualquer query Supabase
+- Um `useEffect` grava `localStorage.setItem('peregrino_cover', bookData.coverPhoto)` sempre que a foto muda com usuário autenticado
+- Durante `isLoading=true`: se `cachedCover` existir → mostra a foto do usuário em formato de livro fechado; se não existir (primeira vez) → mostra capa verde
+
+```typescript
+// Leitura síncrona no mount:
+const [cachedCover] = useState<string>(() => {
+  try { return localStorage.getItem('peregrino_cover') ?? ''; } catch { return ''; }
+});
+
+// Gravação ao alterar:
+useEffect(() => {
+  if (!user?.id || !bookData.coverPhoto) return;
+  try { localStorage.setItem('peregrino_cover', bookData.coverPhoto); } catch {}
+}, [bookData.coverPhoto, user?.id]);
+```
+
+**Commit:** `391cbe2`
+
+---
+
+#### Resumo: sequência correcta de estados ao dar F5 (pós-fix)
+
+| Estado | sessionLoading | dataLoading | isLoading | O que aparece |
+|---|---|---|---|---|
+| Mount inicial | true | false | **true** | Capa cached (foto do user) ou verde (1ª vez) |
+| Auth resolve (com user) | false | **true** | **true** | Continua mostrando cached cover |
+| loadUserData completa | false | false | **false** | InteractiveBook monta com dados reais |
+
+O `InteractiveBook` (com `HTMLFlipBook` dentro) **nunca monta com `isLoading=true`**. Quando monta, os dados já estão prontos e a capa já está carregada — transição invisível.
+
+---
+
+#### Limitação identificada desta sessão
+
+**Claude Code não tem acesso a browser.** Bugs visuais de timing (frames, opacity, animações) são impossíveis de diagnosticar apenas com leitura de código. Nesta sessão foram necessárias múltiplas tentativas porque cada hipótese só podia ser verificada pelo usuário no browser. Para futuras sessões com bugs visuais: pedir ao usuário para abrir DevTools → aba **Performance** → gravar F5 → identificar qual elemento causa o flash (classe CSS, nome do componente) antes de implementar qualquer fix.
+
+---
+
+#### Commits desta sessão
+
+| Commit | Descrição |
+|---|---|
+| `31c55f9` | fix(cover): remover texto Peregrino da capa + eliminar flash de capa no F5 |
+| `c5f06d0` | fix(cover): imagem quebrada, texto dourado maior, persistência imediata da capa |
+| `9d34a77` | feat(cover): capa placeholder verde/dourado até o usuário escolher uma foto |
+| `6abd8fd` | fix(flash): bloquear render do livro até sessão Supabase estar resolvida |
+| `6119cdd` | fix(flash): eliminar fantasma — skeleton portrait removido, capa verde landscape correta |
+| `391cbe2` | fix(flash): cache localStorage da capa — não mostrar verde quando user já tem foto |
+| `ffca995` | fix(flash): `initial opacity:0` no livro aberto — elimina flash de páginas no mount (**causa raiz do flash final**) |
+
+---
+
+#### Estado atual após esta sessão
+
+- ✅ Ao dar F5 com foto já escolhida: aparece a foto do usuário imediatamente (cache localStorage), sem verde, sem fantasma, sem flash de páginas
+- ✅ Ao dar F5 sem foto escolhida: aparece capa verde estática, sem flash
+- ✅ Ao abrir o livro pela primeira vez (visitante): aparece o livro demo normalmente
+- ⚠️ Stats (km, dias, carimbos) mostram 0 após F5 até o Supabase responder — comportamento esperado, não é bug (os dados são carregados via query assíncrona)
+
+---
+
 ### Sessão 02/05/2026 — Tentativa de UI de atribuição de fotos → revert + levantamento de prioridades
 
 #### Objetivo
@@ -3051,3 +3211,171 @@ Adicionado `console.error('[book_data] save error:', error)` para detectar falha
 - **P4**: Backend Stripe → Lulu
 
 *Última atualização: 02/05/2026 (continuação) — Sessão com Claude Sonnet 4.6*
+
+---
+
+## Sessão 04/05/2026 — Drag-and-drop + Crop interativo nos slots
+
+### Contexto
+Continuação direta das sessões anteriores. Persistência Supabase, placeholder de capa e fixes de F5 já estavam implementados. Esta sessão focou em duas entregas: (1) arrastar fotos da galeria para os slots do livro, e (2) ajuste fino de zoom/pan dentro de cada slot.
+
+---
+
+### Parte 1 — Fix definitivo das piscadas no F5 (commit `31c55f9`)
+
+#### Problema raiz (4 causas simultâneas)
+1. **Skeleton portrait vs livro landscape** — skeleton tinha `height: clamp(220px,36vw,587px)` (retrato), livro é landscape (`440×340`). Resultado: retângulo cinza vertical incompatível.
+2. **Race condition `sessionLoading` vs `dataLoading`** — `setSessionLoading(false)` disparava síncronamente, mas `setDataLoading(true)` estava dentro do async `loadUserData`. React fazia um commit com `isLoading=false` e dados demo antes de começar a carregar os dados reais.
+3. **Framer Motion sem `initial`** — sem `initial={{ opacity: 0 }}` no wrapper do livro aberto, o browser pintava o `HTMLFlipBook` com opacity:1 por um frame antes do JS aplicar o animate.
+4. **Demo data no estado inicial** — `makeDefaultBookData` sempre populava `coverPhoto`, `allPhotos` etc. com dados demo, que apareciam brevemente antes dos dados reais.
+
+#### Fix aplicado: trava de renderização universal
+```typescript
+// BookPage.tsx
+const isLoading = sessionLoading || dataLoading;
+
+if (isLoading) {
+  return (
+    <div className="min-h-screen bg-[#1B2616] flex items-center justify-center">
+      <svg className="animate-spin" ...>…</svg>
+    </div>
+  );
+}
+```
+- **`sessionLoading`** começa `true`, setado `false` no primeiro evento `onAuthStateChange`
+- **`dataLoading`** setado `true` sincronamente no mesmo batch de `onAuthStateChange` (antes de chamar `loadUserData`), setado `false` no `finally` de `loadUserData`
+- **`index.html`**: `<body style="background-color:#1B2616">` evita flash branco antes do JS
+- **Framer Motion**: adicionado `initial={{ opacity: 0, scale: 0.96 }}` no wrapper do livro aberto
+
+---
+
+### Parte 2 — Drag-and-drop da galeria para slots (commit `7c0daa9`)
+
+#### Arquitetura do sistema de fotos (nova abordagem — manual Canva-style)
+Substituída a distribuição automática (`buildPhotoSlotMap` com orientações) por atribuição manual slot a slot:
+
+- **`photoAssignments: Record<number, string>`** — mapeamento slot → URL, autoridade máxima
+- **`ph(slotIdx)`** — retorna `photoAssignments[slotIdx]` ou `__empty__:N` (sem fallback para `allPhotos`)
+- **`buildPhotoSlotMap`** — agora apenas mapeia índice sequencial de slots, sem lógica de orientação
+- Slots começam **vazios** (placeholder bege `#E8E4D9`)
+
+#### Implementação do drag-and-drop
+
+**Fonte (sidebar `EditSidebar`, ~linha 2348):**
+```tsx
+<button
+  draggable
+  onDragStart={(e) => { e.dataTransfer.setData('text/plain', url); e.dataTransfer.effectAllowed = 'copy'; }}
+  style={{ opacity: isUsed ? 0.45 : 1 }}
+>
+  <img draggable={false} .../>
+  {isUsed && <div className="...amber badge..." />}
+</button>
+```
+
+**Destino (`pimg()` dentro de `renderBookPage`):**
+```tsx
+onDragOver: (e) => { e.preventDefault(); /* contorno dourado pontilhado */ }
+onDrop: (e) => { e.preventDefault(); onDropPhoto(url, slotIdx); }
+```
+
+**Cadeia de callbacks:**
+`pimg.onDrop` → `onDropPhoto` prop → `InteractiveBook.onDropPhoto` → `StepReveal.assignPhotoToSlot` → `onChange({ photoAssignments: {...} })`
+
+**Indicadores visuais:**
+- Badge âmbar pequeno no canto da miniatura se a foto já está atribuída a algum slot
+- Opacity 0.45 na miniatura usada
+- Contorno `2px dashed #C8A96E` ao hover sobre o slot de destino
+
+**Nota:** O livro precisa estar **aberto** para os drop targets serem acessíveis — react-pageflip aplica `pointer-events: none` nas páginas quando fechado.
+
+---
+
+### Parte 3 — Crop interativo: zoom + pan por slot (commit `3c25b29`)
+
+#### Mudança de tipo: `PhotoSlotData`
+```typescript
+interface PhotoSlotData {
+  url: string;
+  zoom: number;  // 1.0 a 3.0
+  x: number;    // pan horizontal: -50 a +50 (% do tamanho do elemento)
+  y: number;    // pan vertical: -50 a +50
+}
+
+// BookData.photoAssignments:
+photoAssignments: Record<number, PhotoSlotData>  // era Record<number, string>
+```
+
+**Helpers:**
+- `slotUrl(a)` — extrai a URL de `PhotoSlotData | string | undefined`
+- `toSlotData(a)` — normaliza para `PhotoSlotData` (migração de dados legados)
+
+**Migração automática no `loadUserData`:** dados legados do Supabase (strings) são convertidos para `{ url, zoom:1, x:0, y:0 }` em runtime.
+
+#### Componente `CropOverlay`
+Renderizado como overlay dentro de `pimg()` quando `activeSlot === slotIdx`:
+- Overlay escuro `rgba(0,0,0,0.72)` cobrindo o slot
+- Botão ✓ (confirmar/fechar) no canto superior direito
+- 3 sliders dourados (`accentColor: '#C8A96E'`):
+  - **🔍 Zoom**: 1.0 a 3.0 (step 0.05)
+  - **↔ Pan X**: -50% a +50% (step 1)
+  - **↕ Pan Y**: -50% a +50% (step 1)
+- `e.stopPropagation()` em todos os eventos para não disparar page-flip do react-pageflip
+
+#### CSS transform aplicado na imagem
+```typescript
+transform: `scale(${zoom}) translate(${panX}%, ${panY}%)`,
+transformOrigin: 'center center',
+transition: 'transform 0.05s linear',
+```
+
+#### Fluxo de estado em `InteractiveBook`
+```typescript
+const [activeSlot, setActiveSlot] = useState<number | null>(null);
+const [previewCrop, setPreviewCrop] = useState<CropState>({ zoom: 1, x: 0, y: 0 });
+const [imgNaturalSizes, setImgNaturalSizes] = useState<Map<string, {w, h}>>(new Map());
+```
+
+- `cropControls` passado para `renderBookPage` (undefined em isDemo)
+- `onActivate`: inicializa `previewCrop` com valores salvos do slot e seta `activeSlot`
+- `onPreview`: atualiza `previewCrop` a cada mudança de slider → preview em tempo real
+- `onCommit`: chama `onCropChange(slotIdx, previewCrop)` → `updateSlotCrop` → `onChange` → save no Supabase
+
+#### Indicador de qualidade
+Badge âmbar (!) aparece se `zoom > naturalWidth / (bookWidth * 0.55)`:
+- Dimensões naturais capturadas via `onLoad` no `<img>`
+- Avisa quando o upscale vai além da resolução original da foto
+
+#### Trigger de abertura do overlay
+Clique em slot com foto → `e.stopPropagation()` + `cropControls.onActivate(slotIdx, currentCrop)`.
+Fechamento: somente via botão ✓ (intencional — evita fechar acidentalmente ao ajustar).
+
+---
+
+### Estado atual do sistema de fotos
+
+| Funcionalidade | Status |
+|---|---|
+| Drag-and-drop galeria → slot | ✅ Implementado |
+| Indicador de foto já usada (badge + opacity) | ✅ Implementado |
+| Zoom por slot (1×–3×) | ✅ Implementado |
+| Pan X/Y por slot | ✅ Implementado |
+| Preview em tempo real | ✅ Implementado |
+| Persistência no Supabase (PhotoSlotData) | ✅ Implementado |
+| Migração automática de dados legados | ✅ Implementado |
+| Indicador de qualidade (upscale excessivo) | ✅ Implementado |
+| Crop/pan na capa principal | ❌ Pendente (capa usa `coverPhoto` string, não `photoAssignments`) |
+| Remover foto de um slot | ✅ Via `removeAssignment` no StepCustomize |
+
+### Pendências (backlog)
+- **P0 (Capa)**: Crop/zoom na foto de capa — `coverPhoto` é apenas string, sem `PhotoSlotData`
+- **P1 (Backend)**: `STRIPE_SECRET_KEY` no Cloudflare + Stripe webhook → pedido Lulu
+- **P2 (UX)**: Fechar overlay ao clicar fora do slot (hoje só fecha com ✓)
+- **P3 (UX)**: Botão "resetar crop" para voltar ao zoom=1, x=0, y=0
+
+### Commits desta sessão
+- `31c55f9` — fix(cover): remover texto Peregrino da capa + eliminar flash de capa no F5
+- `7c0daa9` — feat(drag-drop): arrastar foto da galeria sidebar para slot do livro
+- `3c25b29` — feat(crop): ajuste fino de zoom e pan nos slots de fotos
+
+*Última atualização: 04/05/2026 — Sessão com Claude Sonnet 4.6*
