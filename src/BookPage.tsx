@@ -2337,32 +2337,46 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
 
           {/* Grid de thumbnails — todas as fotos, sem limite */}
           {availablePhotos > 0 && (
-            <div className="grid grid-cols-3 gap-1.5">
-              {bookData.allPhotos.map((url, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    onChange({ coverPhoto: url });
-                    if (userId) saveBookDataToDb(userId, {
-                      title: bookData.title, userName: bookData.userName,
-                      openingPhrase: bookData.openingPhrase, reflectionText: bookData.reflectionText,
-                      caption3: bookData.caption3, coverPhoto: url,
-                      pageTexts: bookData.pageTexts, photoAssignments: bookData.photoAssignments,
-                    });
-                  }}
-                  title="Usar como capa"
-                  className="relative aspect-square rounded-lg overflow-hidden group"
-                >
-                  <img src={url} className="w-full h-full object-cover" alt="" loading="lazy" />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center">
-                    <Camera size={13} className="text-white/0 group-hover:text-white/85 transition-all scale-75 group-hover:scale-100" />
-                  </div>
-                  {bookData.coverPhoto === url && (
-                    <div className="absolute inset-0 ring-2 ring-[#C8A96E] ring-inset rounded-lg" />
-                  )}
-                </button>
-              ))}
-            </div>
+            <>
+              <p className="text-[#E8E4D9]/25 text-[0.6rem] mb-2 leading-relaxed">
+                Clique para usar como capa · Arraste para um slot do livro aberto
+              </p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {bookData.allPhotos.map((url, i) => {
+                  const isUsed = Object.values(bookData.photoAssignments).includes(url);
+                  return (
+                    <button
+                      key={i}
+                      draggable
+                      onDragStart={(e) => { e.dataTransfer.setData('text/plain', url); e.dataTransfer.effectAllowed = 'copy'; }}
+                      onClick={() => {
+                        onChange({ coverPhoto: url });
+                        if (userId) saveBookDataToDb(userId, {
+                          title: bookData.title, userName: bookData.userName,
+                          openingPhrase: bookData.openingPhrase, reflectionText: bookData.reflectionText,
+                          caption3: bookData.caption3, coverPhoto: url,
+                          pageTexts: bookData.pageTexts, photoAssignments: bookData.photoAssignments,
+                        });
+                      }}
+                      title="Clique: usar como capa · Arraste: atribuir a um slot"
+                      style={{ opacity: isUsed ? 0.45 : 1 }}
+                      className="relative aspect-square rounded-lg overflow-hidden group"
+                    >
+                      <img src={url} draggable={false} className="w-full h-full object-cover" alt="" loading="lazy" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center">
+                        <Camera size={13} className="text-white/0 group-hover:text-white/85 transition-all scale-75 group-hover:scale-100" />
+                      </div>
+                      {bookData.coverPhoto === url && (
+                        <div className="absolute inset-0 ring-2 ring-[#C8A96E] ring-inset rounded-lg" />
+                      )}
+                      {isUsed && (
+                        <div className="absolute top-0.5 right-0.5 w-2.5 h-2.5 bg-amber-500 rounded-full" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
           )}
 
           {/* Upload adicional quando já tem fotos mas ainda faltam */}
