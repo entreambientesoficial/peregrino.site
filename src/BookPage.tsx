@@ -494,18 +494,14 @@ function renderBookPage(
       // Usuário logado sem capa escolhida → placeholder instrucional
       if (!isDemo && !bookData.coverPhoto) {
         return (
-          <div className="w-full h-full flex flex-col justify-between bg-[#1B2616]" style={{ padding: sp(20) }}>
-            <div className="flex justify-end">
-              <span className="uppercase tracking-[0.25em]" style={{ fontSize: fs(0.5), color: '#C8A96E66' }}>Peregrino</span>
-            </div>
-            <div className="flex flex-col items-center justify-center flex-1 text-center" style={{ gap: sp(12) }}>
+          <div className="w-full h-full flex flex-col justify-center items-center bg-[#1B2616]" style={{ padding: sp(20) }}>
+            <div className="flex flex-col items-center text-center" style={{ gap: sp(12) }}>
               <div style={{ width: sp(28), height: '1px', background: '#C8A96E33', marginBottom: sp(4) }} />
               <p className="font-serif italic" style={{ fontSize: fs(0.68), color: '#C8A96E', lineHeight: 1.5 }}>
                 Toque em uma foto da galeria para definir a capa do seu livro.
               </p>
               <div style={{ width: sp(28), height: '1px', background: '#C8A96E33', marginTop: sp(4) }} />
             </div>
-            <div />
           </div>
         );
       }
@@ -513,10 +509,7 @@ function renderBookPage(
         <div className="w-full h-full relative">
           <img src={bookData.coverPhoto} className="w-full h-full object-cover" alt="" />
           <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.08) 55%, rgba(0,0,0,0.3) 100%)' }} />
-          <div className="absolute inset-0 flex flex-col justify-between" style={{ padding: sp(18) }}>
-            <div className="flex justify-end">
-              <span className="text-white/45 uppercase tracking-[0.25em]" style={{ fontSize: fs(0.52) }}>Peregrino</span>
-            </div>
+          <div className="absolute inset-0 flex flex-col justify-end" style={{ padding: sp(18) }}>
             <div>
               <div style={{ width: sp(28), height: '1px', background: 'rgba(255,255,255,0.35)', marginBottom: sp(10) }} />
               <p className="font-serif italic text-white leading-tight" style={{ fontSize: fs(1.1) }}>{bookData.title}</p>
@@ -1876,8 +1869,7 @@ function InteractiveBook({ bookData, selectedModel, isDemo, onPageChange }: { bo
               {(bookData.coverPhoto || isDemo) ? (
                 <>
                   <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.74) 0%, rgba(0,0,0,0.05) 55%, rgba(0,0,0,0.22) 100%)' }} />
-                  <div className="absolute inset-0 flex flex-col justify-between" style={{ padding: sp(22) }}>
-                    <span className="self-end text-white/40 uppercase tracking-[0.25em]" style={{ fontSize: fs(0.5) }}>Peregrino</span>
+                  <div className="absolute inset-0 flex flex-col justify-end" style={{ padding: sp(22) }}>
                     <div>
                       <div style={{ width: sp(30), height: '1px', background: 'rgba(255,255,255,0.28)', marginBottom: sp(12) }} />
                       <p className="font-serif italic text-white leading-tight" style={{ fontSize: fs(1.05) }}>{bookData.title}</p>
@@ -2479,7 +2471,30 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
               transition={{ delay: 0.35, duration: 0.9, type: 'spring', damping: 18 }}
               className="relative z-10 flex justify-center px-4 pb-6"
             >
-              <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} onPageChange={setCurrentBookPage} />
+              {dataLoading ? (
+                <div className="flex flex-col items-center gap-6">
+                  <div className="relative animate-pulse"
+                    style={{ width: 'clamp(165px,27vw,440px)', height: 'clamp(220px,36vw,587px)' }}>
+                    <div className="absolute left-0 top-0 bottom-0 w-[5%] rounded-l-sm bg-[#E8E4D9]/10" />
+                    <div className="w-full h-full rounded-r-xl rounded-l-sm bg-[#E8E4D9]/8"
+                      style={{ boxShadow: '-20px 32px 80px rgba(0,0,0,0.8)' }} />
+                    <div className="absolute inset-0 flex flex-col justify-end p-8 gap-2">
+                      <div className="h-px w-12 bg-[#E8E4D9]/20 mb-2" />
+                      <div className="h-4 w-3/4 rounded-full bg-[#E8E4D9]/15" />
+                      <div className="h-3 w-1/3 rounded-full bg-[#E8E4D9]/10" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-[#E8E4D9]/40 text-xs">
+                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    <span className="uppercase tracking-widest">A carregar a tua jornada...</span>
+                  </div>
+                </div>
+              ) : (
+                <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} onPageChange={setCurrentBookPage} />
+              )}
             </motion.div>
 
             {/* Stats */}
