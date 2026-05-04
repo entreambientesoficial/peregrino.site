@@ -1483,7 +1483,17 @@ export default function BookPage() {
   const [dataLoading, setDataLoading] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [noPhotosWarning, setNoPhotosWarning] = useState(false);
+  // Lê a capa do último login antes mesmo de montar o livro — disponível no primeiro render
+  const [cachedCover] = useState<string>(() => {
+    try { return localStorage.getItem('peregrino_cover') ?? ''; } catch { return ''; }
+  });
   const update = (patch: Partial<BookData>) => setBookData(p => ({ ...p, ...patch }));
+
+  // Grava a capa no cache local sempre que o utilizador autenticado a alterar
+  useEffect(() => {
+    if (!user?.id || !bookData.coverPhoto) return;
+    try { localStorage.setItem('peregrino_cover', bookData.coverPhoto); } catch {}
+  }, [bookData.coverPhoto, user?.id]);
 
   // Auto-save textos e atribuições no banco após 1,5s de inatividade.
   // user fora das deps: evita salvar dados vazios antes de loadUserData terminar.
@@ -1742,6 +1752,7 @@ export default function BookPage() {
               hasCustomized={hasCustomized}
               dataLoading={dataLoading}
               sessionLoading={sessionLoading}
+              cachedCover={cachedCover}
               noPhotosWarning={noPhotosWarning}
               user={user}
               editMode={editMode}
@@ -2390,13 +2401,14 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
 // ---------------------------------------------------------------------------
 // Step 1 — Revelação
 // ---------------------------------------------------------------------------
-function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dataLoading, sessionLoading, noPhotosWarning, user, editMode, onChange, onCustomize, onOrder }: {
+function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dataLoading, sessionLoading, cachedCover, noPhotosWarning, user, editMode, onChange, onCustomize, onOrder }: {
   bookData: BookData;
   selectedModel: ModelId;
   onSelectModel: (m: ModelId) => void;
   hasCustomized: boolean;
   dataLoading: boolean;
   sessionLoading: boolean;
+  cachedCover: string;
   noPhotosWarning: boolean;
   user: any;
   editMode: boolean;
@@ -2414,6 +2426,32 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
   const aStamps = useCountUp(bookData.stampsCount, 800, statsVisible && !isLoading);
   const aPhotos = useCountUp(bookData.photosCount, 1100, statsVisible && !isLoading);
   const editModel = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
+
+  // Elemento exibido enquanto isLoading=true: foto do usuário (cache) ou capa verde (1ª vez)
+  const loadingBookEl = cachedCover ? (
+    <div style={{ filter: 'drop-shadow(-12px 20px 60px rgba(0,0,0,0.7))' }}>
+      <div className="relative rounded-r-xl rounded-l-sm overflow-hidden"
+        style={{ width: 'clamp(160px,27vw,440px)', height: 'clamp(124px,20.9vw,340px)' }}>
+        <div className="absolute left-0 top-0 bottom-0 rounded-l-sm z-10"
+          style={{ width: '5.4%', background: 'linear-gradient(to right,rgba(0,0,0,0.65),rgba(0,0,0,0.22) 40%,rgba(255,255,255,0.08) 65%,rgba(0,0,0,0.15))' }} />
+        <img src={cachedCover} className="w-full h-full object-cover" alt="Capa" />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0.04) 55%,rgba(0,0,0,0.18) 100%)' }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg,rgba(255,255,255,0.07) 0%,transparent 45%)' }} />
+      </div>
+    </div>
+  ) : (
+    <div style={{ filter: 'drop-shadow(-12px 20px 60px rgba(0,0,0,0.7))' }}>
+      <div className="relative rounded-r-xl rounded-l-sm overflow-hidden bg-[#1B2616] flex flex-col items-center justify-center"
+        style={{ width: 'clamp(160px,27vw,440px)', height: 'clamp(124px,20.9vw,340px)', boxShadow: '-12px 20px 60px rgba(0,0,0,0.7)' }}>
+        <div className="absolute left-0 top-0 bottom-0 rounded-l-sm z-10"
+          style={{ width: '5.4%', background: 'linear-gradient(to right,rgba(0,0,0,0.65),rgba(0,0,0,0.22) 40%,rgba(255,255,255,0.08) 65%,rgba(0,0,0,0.15))' }} />
+        <div style={{ width: '45%', height: '1px', background: '#C8A96E44' }} />
+        <div style={{ height: '8px' }} />
+        <div style={{ width: '45%', height: '1px', background: '#C8A96E33' }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg,rgba(255,255,255,0.07) 0%,transparent 45%)' }} />
+      </div>
+    </div>
+  );
 
   useEffect(() => {
     const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setStatsVisible(true); }, { threshold: 0.3 });
@@ -2461,22 +2499,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
               transition={{ delay: 0.35, duration: 0.9, type: 'spring', damping: 18 }}
               className="relative z-10 flex justify-center px-4 pb-6"
             >
-              {isLoading ? (
-                <div style={{ filter: 'drop-shadow(-12px 20px 60px rgba(0,0,0,0.7))' }}>
-                  <div
-                    className="relative rounded-r-xl rounded-l-sm overflow-hidden bg-[#1B2616] flex flex-col items-center justify-center"
-                    style={{ width: 'clamp(160px,27vw,440px)', height: 'clamp(124px,20.9vw,340px)', boxShadow: '-12px 20px 60px rgba(0,0,0,0.7)' }}
-                  >
-                    <div className="absolute left-0 top-0 bottom-0 rounded-l-sm z-10"
-                      style={{ width: '5.4%', background: 'linear-gradient(to right,rgba(0,0,0,0.65),rgba(0,0,0,0.22) 40%,rgba(255,255,255,0.08) 65%,rgba(0,0,0,0.15))' }} />
-                    <div style={{ width: '45%', height: '1px', background: '#C8A96E44' }} />
-                    <div style={{ height: '8px' }} />
-                    <div style={{ width: '45%', height: '1px', background: '#C8A96E33' }} />
-                    <div className="absolute inset-0 pointer-events-none"
-                      style={{ background: 'linear-gradient(135deg,rgba(255,255,255,0.07) 0%,transparent 45%)' }} />
-                  </div>
-                </div>
-              ) : (
+              {isLoading ? loadingBookEl : (
                 <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} onPageChange={setCurrentBookPage} />
               )}
             </motion.div>
@@ -2580,22 +2603,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
           transition={{ delay: 0.45, duration: 1, type: 'spring', damping: 16 }}
           className="relative z-10 flex justify-center px-4 pb-6"
         >
-          {isLoading ? (
-            <div style={{ filter: 'drop-shadow(-12px 20px 60px rgba(0,0,0,0.7))' }}>
-              <div
-                className="relative rounded-r-xl rounded-l-sm overflow-hidden bg-[#1B2616] flex flex-col items-center justify-center"
-                style={{ width: 'clamp(160px,27vw,440px)', height: 'clamp(124px,20.9vw,340px)', boxShadow: '-12px 20px 60px rgba(0,0,0,0.7)' }}
-              >
-                <div className="absolute left-0 top-0 bottom-0 rounded-l-sm z-10"
-                  style={{ width: '5.4%', background: 'linear-gradient(to right,rgba(0,0,0,0.65),rgba(0,0,0,0.22) 40%,rgba(255,255,255,0.08) 65%,rgba(0,0,0,0.15))' }} />
-                <div style={{ width: '45%', height: '1px', background: '#C8A96E44' }} />
-                <div style={{ height: '8px' }} />
-                <div style={{ width: '45%', height: '1px', background: '#C8A96E33' }} />
-                <div className="absolute inset-0 pointer-events-none"
-                  style={{ background: 'linear-gradient(135deg,rgba(255,255,255,0.07) 0%,transparent 45%)' }} />
-              </div>
-            </div>
-          ) : (
+          {isLoading ? loadingBookEl : (
             <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} />
           )}
         </motion.div>
