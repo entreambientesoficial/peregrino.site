@@ -456,40 +456,109 @@ interface CropControls {
   onImgLoad: (url: string, nw: number, nh: number) => void;
 }
 
-function CropOverlay({ crop, onUpdate, onCommit }: {
+// Canva-style photo editor: drag to pan, scroll to zoom — no sliders
+function PhotoSlotEditor({
+  url, crop, imgStyle, onCropChange, onCommit, naturalSize, bookWidth,
+}: {
+  url: string;
   crop: CropState;
-  onUpdate: (c: CropState) => void;
+  imgStyle?: React.CSSProperties;
+  onCropChange: (c: CropState) => void;
   onCommit: () => void;
+  naturalSize?: { w: number; h: number };
+  bookWidth: number;
 }) {
-  const stop = (e: React.SyntheticEvent) => { e.stopPropagation(); };
-  const slider = (
-    label: string, value: number, min: number, max: number, step: number,
-    onChange: (v: number) => void,
-  ) => (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 1, color: '#E8E4D9', fontSize: 8, lineHeight: 1.2 }} onClick={stop} onMouseDown={stop} onPointerDown={stop}>
-      <span style={{ fontVariantNumeric: 'tabular-nums' }}>{label} {value.toFixed(step < 1 ? 1 : 0)}{step < 1 ? '×' : '%'}</span>
-      <input
-        type="range" min={min} max={max} step={step} value={value}
-        onChange={(e) => { stop(e); onChange(+e.target.value); }}
-        onMouseDown={stop} onPointerDown={stop} onTouchStart={stop}
-        style={{ width: '100%', accentColor: '#C8A96E', cursor: 'ew-resize', height: 12 }}
-      />
-    </label>
-  );
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  // Stable refs so effect callbacks always see current values without re-subscribing
+  const cropRef = useRef(crop);
+  const onCropChangeRef = useRef(onCropChange);
+  useEffect(() => { cropRef.current = crop; }, [crop]);
+  useEffect(() => { onCropChangeRef.current = onCropChange; }, [onCropChange]);
+
+  // Non-passive wheel: React synthetic events can't preventDefault on passive listeners
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const c = cropRef.current;
+      const delta = e.deltaY < 0 ? 0.1 : -0.1;
+      onCropChangeRef.current({ ...c, zoom: Math.max(1, Math.min(3, c.zoom + delta)) });
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  }, []);
+
+  // Global mouse tracking during drag so it works when cursor leaves the element
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMove = (e: MouseEvent) => {
+      if (!dragStartRef.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const c = cropRef.current;
+      const dx = (e.clientX - dragStartRef.current.x) / rect.width * 100 / c.zoom;
+      const dy = (e.clientY - dragStartRef.current.y) / rect.height * 100 / c.zoom;
+      onCropChangeRef.current({
+        ...c,
+        x: Math.max(-50, Math.min(50, dragStartRef.current.ox + dx)),
+        y: Math.max(-50, Math.min(50, dragStartRef.current.oy + dy)),
+      });
+    };
+    const handleUp = () => { setIsDragging(false); dragStartRef.current = null; };
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+    return () => { window.removeEventListener('mousemove', handleMove); window.removeEventListener('mouseup', handleUp); };
+  }, [isDragging]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIsDragging(true);
+    dragStartRef.current = { x: e.clientX, y: e.clientY, ox: crop.x, oy: crop.y };
+  };
+
+  const showWarning = naturalSize && crop.zoom > naturalSize.w / (bookWidth * 0.55);
+
   return (
     <div
-      style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.72)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '5px 6px 6px', zIndex: 30, gap: 3 }}
-      onClick={stop} onMouseDown={stop} onPointerDown={stop}
+      ref={containerRef}
+      style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', cursor: isDragging ? 'grabbing' : 'grab', userSelect: 'none' }}
+      onMouseDown={handleMouseDown}
+      onClick={(e) => e.stopPropagation()}
     >
-      {/* confirm button */}
+      <img
+        src={url}
+        draggable={false}
+        style={{
+          width: '100%', height: '100%', objectFit: 'cover',
+          transform: `scale(${crop.zoom}) translate(${crop.x}%, ${crop.y}%)`,
+          transformOrigin: 'center center',
+          display: 'block',
+          pointerEvents: 'none',
+          ...imgStyle,
+        }}
+      />
+      {/* Active border */}
+      <div style={{ position: 'absolute', inset: 0, outline: '2px solid #C8A96E', outlineOffset: '-2px', pointerEvents: 'none', zIndex: 5 }} />
+      {/* Quality warning */}
+      {showWarning && (
+        <div style={{ position: 'absolute', top: 4, left: 4, background: '#f59e0b', borderRadius: '50%', width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff', fontWeight: 800, pointerEvents: 'none', zIndex: 10 }}>!</div>
+      )}
+      {/* Instruction hint */}
+      <div style={{ position: 'absolute', top: 5, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
+        <span style={{ background: 'rgba(0,0,0,0.55)', color: '#E8E4D9', fontSize: 7, padding: '2px 5px', borderRadius: 3, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+          arraste · scroll = zoom
+        </span>
+      </div>
+      {/* Confirm button */}
       <button
-        onClick={(e) => { stop(e); onCommit(); }}
-        onMouseDown={stop} onPointerDown={stop}
-        style={{ position: 'absolute', top: 4, right: 4, background: '#C8A96E', border: 'none', borderRadius: 3, width: 16, height: 16, fontSize: 9, color: '#1B2616', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => { e.stopPropagation(); onCommit(); }}
+        style={{ position: 'absolute', bottom: 5, right: 5, background: '#C8A96E', border: 'none', borderRadius: 4, width: 22, height: 22, fontSize: 12, color: '#1B2616', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.4)' }}
       >✓</button>
-      {slider('🔍', crop.zoom, 1, 3, 0.05, (v) => onUpdate({ ...crop, zoom: v }))}
-      {slider('↔', crop.x, -50, 50, 1, (v) => onUpdate({ ...crop, x: v }))}
-      {slider('↕', crop.y, -50, 50, 1, (v) => onUpdate({ ...crop, y: v }))}
     </div>
   );
 }
@@ -541,21 +610,18 @@ function renderBookPage(
   const img = (_n: number, cls: string, sty?: React.CSSProperties) => (
     <div className={cls} style={{ ...sty, background: '#E8E4D9' }} />
   );
-  // Renderiza slot de foto: drop target + crop controls + foto atribuída ou placeholder bege
+  // Renderiza slot de foto: drop target + editor canva-style + foto com crop ou placeholder bege
   const pimg = (slotIdx: number, imgStyle?: React.CSSProperties, overrideUrl?: string | null) => {
     const assignment = slotIdx >= 0 ? toSlotData(bookData.photoAssignments[slotIdx]) : undefined;
     const url = overrideUrl ?? (assignment ? assignment.url : `__empty__:${slotIdx}`);
     const hasPhoto = !!url && !url.startsWith('__empty__');
-    const isActive = cropControls && cropControls.activeSlot === slotIdx && hasPhoto;
+    const isActive = !!cropControls && cropControls.activeSlot === slotIdx && hasPhoto;
 
-    // Use live preview values when slot is active, else persisted values
     const zoom = isActive ? cropControls!.previewCrop.zoom : (assignment?.zoom ?? 1);
     const panX = isActive ? cropControls!.previewCrop.x  : (assignment?.x ?? 0);
     const panY = isActive ? cropControls!.previewCrop.y  : (assignment?.y ?? 0);
-
-    // Quality warning: show if we're upscaling beyond the natural resolution
     const naturalSize = hasPhoto ? cropControls?.imgNaturalSizes.get(url!) : undefined;
-    const showWarning = naturalSize && zoom > (naturalSize.w / (cropControls!.bookWidth * 0.55));
+    const showWarning = naturalSize && !isActive && zoom > naturalSize.w / (cropControls!.bookWidth * 0.55);
 
     const dropHandlers = (onDropPhoto && slotIdx >= 0) ? {
       onDragOver: (e: React.DragEvent<HTMLDivElement>) => {
@@ -572,51 +638,51 @@ function renderBookPage(
       },
     } : {};
 
-    const handleClick = (e: React.MouseEvent) => {
-      if (!hasPhoto || !cropControls) return;
-      e.stopPropagation();
-      if (isActive) return;
-      cropControls.onActivate(slotIdx, { zoom: assignment?.zoom ?? 1, x: assignment?.x ?? 0, y: assignment?.y ?? 0 });
-    };
-
     return (
       <div
-        style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', cursor: hasPhoto && cropControls ? 'pointer' : 'default' }}
+        style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', cursor: hasPhoto && cropControls && !isActive ? 'pointer' : 'default' }}
         {...dropHandlers}
-        onClick={handleClick}
+        onClick={(e) => {
+          if (!hasPhoto || !cropControls || isActive) return;
+          e.stopPropagation();
+          cropControls.onActivate(slotIdx, { zoom: assignment?.zoom ?? 1, x: assignment?.x ?? 0, y: assignment?.y ?? 0 });
+        }}
       >
-        {hasPhoto ? (
-          <img
-            src={url!}
-            onLoad={(e) => {
-              const el = e.currentTarget;
-              if (el.naturalWidth && cropControls && !cropControls.imgNaturalSizes.has(url!)) {
-                cropControls.onImgLoad(url!, el.naturalWidth, el.naturalHeight);
-              }
-            }}
-            style={{
-              width: '100%', height: '100%', objectFit: 'cover',
-              transform: `scale(${zoom}) translate(${panX}%, ${panY}%)`,
-              transformOrigin: 'center center',
-              display: 'block',
-              transition: 'transform 0.05s linear',
-              ...imgStyle,
-            }}
+        {!hasPhoto ? (
+          <div style={{ width: '100%', height: '100%', background: '#E8E4D9' }} />
+        ) : isActive ? (
+          <PhotoSlotEditor
+            url={url!}
+            crop={cropControls!.previewCrop}
+            imgStyle={imgStyle}
+            onCropChange={cropControls!.onPreview}
+            onCommit={cropControls!.onCommit}
+            naturalSize={naturalSize}
+            bookWidth={cropControls!.bookWidth}
           />
         ) : (
-          <div style={{ width: '100%', height: '100%', background: '#E8E4D9', display: 'block' }} />
-        )}
-        {/* Quality warning badge */}
-        {showWarning && !isActive && (
-          <div style={{ position: 'absolute', top: 3, left: 3, background: '#f59e0b', borderRadius: '50%', width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff', fontWeight: 800, pointerEvents: 'none', zIndex: 10 }}>!</div>
-        )}
-        {/* Crop controls overlay */}
-        {isActive && (
-          <CropOverlay
-            crop={cropControls!.previewCrop}
-            onUpdate={cropControls!.onPreview}
-            onCommit={cropControls!.onCommit}
-          />
+          <>
+            <img
+              src={url!}
+              draggable={false}
+              onLoad={(e) => {
+                const el = e.currentTarget;
+                if (el.naturalWidth && cropControls && !cropControls.imgNaturalSizes.has(url!)) {
+                  cropControls.onImgLoad(url!, el.naturalWidth, el.naturalHeight);
+                }
+              }}
+              style={{
+                width: '100%', height: '100%', objectFit: 'cover',
+                transform: `scale(${zoom}) translate(${panX}%, ${panY}%)`,
+                transformOrigin: 'center center',
+                display: 'block',
+                ...imgStyle,
+              }}
+            />
+            {showWarning && (
+              <div style={{ position: 'absolute', top: 3, left: 3, background: '#f59e0b', borderRadius: '50%', width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff', fontWeight: 800, pointerEvents: 'none', zIndex: 10 }}>!</div>
+            )}
+          </>
         )}
       </div>
     );
@@ -2105,8 +2171,8 @@ function InteractiveBook({ bookData, selectedModel, isDemo, onPageChange, onDrop
               minWidth={w} maxWidth={w} minHeight={h} maxHeight={h}
               drawShadow={true} flippingTime={700} usePortrait={false}
               startZIndex={10} autoSize={false} clickEventForward={true}
-              useMouseEvents={true} swipeDistance={30} showPageCorners={true}
-              disableFlipByClick={false} style={{}} className="" startPage={1}
+              useMouseEvents={activeSlot === null} swipeDistance={30} showPageCorners={true}
+              disableFlipByClick={activeSlot !== null} style={{}} className="" startPage={1}
               onFlip={(e: any) => { setPage(e.data); onPageChange?.(e.data); }}
             >
               {pageDefs.map((def, idx) => (
