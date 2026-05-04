@@ -47,6 +47,24 @@ const CAMINO_QUOTES = [
   'Perguntas e não respostas — é o que o Caminho oferece.',
 ];
 
+interface PhotoSlotData {
+  url: string;
+  zoom: number;
+  x: number;
+  y: number;
+}
+
+function slotUrl(a: PhotoSlotData | string | undefined): string | undefined {
+  if (!a) return undefined;
+  return typeof a === 'string' ? a : a.url;
+}
+
+function toSlotData(a: PhotoSlotData | string | undefined): PhotoSlotData | undefined {
+  if (!a) return undefined;
+  if (typeof a === 'string') return { url: a, zoom: 1, x: 0, y: 0 };
+  return a;
+}
+
 interface BookData {
   title: string;
   route: string;
@@ -67,7 +85,7 @@ interface BookData {
   photosCount: number;
   allPhotos: string[];
   uploadedPhotos: string[];
-  photoAssignments: Record<number, string>;
+  photoAssignments: Record<number, PhotoSlotData>;
   pageTexts: Record<string, PageTextEntry>;
 }
 
@@ -103,7 +121,7 @@ async function saveBookDataToDb(userId: string, data: {
   reflectionText: string; caption3: string;
   coverPhoto: string;
   pageTexts: Record<string, PageTextEntry>;
-  photoAssignments: Record<number, string>;
+  photoAssignments: Record<number, PhotoSlotData>;
 }) {
   const { error } = await supabase.from('book_data').upsert({
     pilgrim_id: userId,
@@ -423,6 +441,60 @@ const DEMO_PAGES: Record<number, DemoPage> = {
 };
 
 // ---------------------------------------------------------------------------
+// Crop controls — types + overlay component
+// ---------------------------------------------------------------------------
+interface CropState { zoom: number; x: number; y: number; }
+
+interface CropControls {
+  activeSlot: number | null;
+  previewCrop: CropState;
+  bookWidth: number;
+  imgNaturalSizes: Map<string, { w: number; h: number }>;
+  onActivate: (slotIdx: number, initial: CropState) => void;
+  onPreview: React.Dispatch<React.SetStateAction<CropState>>;
+  onCommit: () => void;
+  onImgLoad: (url: string, nw: number, nh: number) => void;
+}
+
+function CropOverlay({ crop, onUpdate, onCommit }: {
+  crop: CropState;
+  onUpdate: (c: CropState) => void;
+  onCommit: () => void;
+}) {
+  const stop = (e: React.SyntheticEvent) => { e.stopPropagation(); };
+  const slider = (
+    label: string, value: number, min: number, max: number, step: number,
+    onChange: (v: number) => void,
+  ) => (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 1, color: '#E8E4D9', fontSize: 8, lineHeight: 1.2 }} onClick={stop} onMouseDown={stop} onPointerDown={stop}>
+      <span style={{ fontVariantNumeric: 'tabular-nums' }}>{label} {value.toFixed(step < 1 ? 1 : 0)}{step < 1 ? '×' : '%'}</span>
+      <input
+        type="range" min={min} max={max} step={step} value={value}
+        onChange={(e) => { stop(e); onChange(+e.target.value); }}
+        onMouseDown={stop} onPointerDown={stop} onTouchStart={stop}
+        style={{ width: '100%', accentColor: '#C8A96E', cursor: 'ew-resize', height: 12 }}
+      />
+    </label>
+  );
+  return (
+    <div
+      style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.72)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '5px 6px 6px', zIndex: 30, gap: 3 }}
+      onClick={stop} onMouseDown={stop} onPointerDown={stop}
+    >
+      {/* confirm button */}
+      <button
+        onClick={(e) => { stop(e); onCommit(); }}
+        onMouseDown={stop} onPointerDown={stop}
+        style={{ position: 'absolute', top: 4, right: 4, background: '#C8A96E', border: 'none', borderRadius: 3, width: 16, height: 16, fontSize: 9, color: '#1B2616', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+      >✓</button>
+      {slider('🔍', crop.zoom, 1, 3, 0.05, (v) => onUpdate({ ...crop, zoom: v }))}
+      {slider('↔', crop.x, -50, 50, 1, (v) => onUpdate({ ...crop, x: v }))}
+      {slider('↕', crop.y, -50, 50, 1, (v) => onUpdate({ ...crop, y: v }))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Renderizador de páginas
 // ---------------------------------------------------------------------------
 function renderBookPage(
@@ -436,12 +508,13 @@ function renderBookPage(
   t: (k: string) => string,
   isDemo: boolean,
   onDropPhoto?: (url: string, slotIdx: number) => void,
+  cropControls?: CropControls,
 ) {
   const slots = slotMap.get(pageIdx) ?? [];
   // Slot só exibe foto se tiver atribuição manual; caso contrário, placeholder bege
   const ph = (n: number) => {
-    if (bookData.photoAssignments[n] !== undefined) return bookData.photoAssignments[n];
-    return `__empty__:${n}`;
+    const a = bookData.photoAssignments[n];
+    return slotUrl(a) ?? `__empty__:${n}`;
   };
   const getTextEntry = (slot: 'top' | 'bottom'): PageTextEntry | undefined =>
     bookData.pageTexts[`${pageIdx}-${slot}`];
@@ -468,10 +541,22 @@ function renderBookPage(
   const img = (_n: number, cls: string, sty?: React.CSSProperties) => (
     <div className={cls} style={{ ...sty, background: '#E8E4D9' }} />
   );
-  // Renderiza slot de foto: drop target (usuário logado) + foto atribuída ou placeholder bege
+  // Renderiza slot de foto: drop target + crop controls + foto atribuída ou placeholder bege
   const pimg = (slotIdx: number, imgStyle?: React.CSSProperties, overrideUrl?: string | null) => {
-    const url = overrideUrl ?? ph(slotIdx);
+    const assignment = slotIdx >= 0 ? toSlotData(bookData.photoAssignments[slotIdx]) : undefined;
+    const url = overrideUrl ?? (assignment ? assignment.url : `__empty__:${slotIdx}`);
     const hasPhoto = !!url && !url.startsWith('__empty__');
+    const isActive = cropControls && cropControls.activeSlot === slotIdx && hasPhoto;
+
+    // Use live preview values when slot is active, else persisted values
+    const zoom = isActive ? cropControls!.previewCrop.zoom : (assignment?.zoom ?? 1);
+    const panX = isActive ? cropControls!.previewCrop.x  : (assignment?.x ?? 0);
+    const panY = isActive ? cropControls!.previewCrop.y  : (assignment?.y ?? 0);
+
+    // Quality warning: show if we're upscaling beyond the natural resolution
+    const naturalSize = hasPhoto ? cropControls?.imgNaturalSizes.get(url!) : undefined;
+    const showWarning = naturalSize && zoom > (naturalSize.w / (cropControls!.bookWidth * 0.55));
+
     const dropHandlers = (onDropPhoto && slotIdx >= 0) ? {
       onDragOver: (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -486,12 +571,53 @@ function renderBookPage(
         if (photoUrl) onDropPhoto(photoUrl, slotIdx);
       },
     } : {};
+
+    const handleClick = (e: React.MouseEvent) => {
+      if (!hasPhoto || !cropControls) return;
+      e.stopPropagation();
+      if (isActive) return;
+      cropControls.onActivate(slotIdx, { zoom: assignment?.zoom ?? 1, x: assignment?.x ?? 0, y: assignment?.y ?? 0 });
+    };
+
     return (
-      <div style={{ width: '100%', height: '100%', position: 'relative' }} {...dropHandlers}>
-        {hasPhoto
-          ? <img src={url!} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block', ...imgStyle }} />
-          : <div style={{ width: '100%', height: '100%', background: '#E8E4D9', display: 'block' }} />
-        }
+      <div
+        style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', cursor: hasPhoto && cropControls ? 'pointer' : 'default' }}
+        {...dropHandlers}
+        onClick={handleClick}
+      >
+        {hasPhoto ? (
+          <img
+            src={url!}
+            onLoad={(e) => {
+              const el = e.currentTarget;
+              if (el.naturalWidth && cropControls && !cropControls.imgNaturalSizes.has(url!)) {
+                cropControls.onImgLoad(url!, el.naturalWidth, el.naturalHeight);
+              }
+            }}
+            style={{
+              width: '100%', height: '100%', objectFit: 'cover',
+              transform: `scale(${zoom}) translate(${panX}%, ${panY}%)`,
+              transformOrigin: 'center center',
+              display: 'block',
+              transition: 'transform 0.05s linear',
+              ...imgStyle,
+            }}
+          />
+        ) : (
+          <div style={{ width: '100%', height: '100%', background: '#E8E4D9', display: 'block' }} />
+        )}
+        {/* Quality warning badge */}
+        {showWarning && !isActive && (
+          <div style={{ position: 'absolute', top: 3, left: 3, background: '#f59e0b', borderRadius: '50%', width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff', fontWeight: 800, pointerEvents: 'none', zIndex: 10 }}>!</div>
+        )}
+        {/* Crop controls overlay */}
+        {isActive && (
+          <CropOverlay
+            crop={cropControls!.previewCrop}
+            onUpdate={cropControls!.onPreview}
+            onCommit={cropControls!.onCommit}
+          />
+        )}
       </div>
     );
   };
@@ -1686,7 +1812,19 @@ export default function BookPage() {
         photosCount: totalPhotos,
         uploadedPhotos: webUploads,
         pageTexts: bd?.page_texts ?? {},
-        photoAssignments: bd?.photo_assignments ?? {},
+        photoAssignments: (() => {
+          const raw = bd?.photo_assignments ?? {};
+          const out: Record<number, PhotoSlotData> = {};
+          for (const [k, v] of Object.entries(raw)) {
+            const idx = Number(k);
+            if (typeof v === 'string') out[idx] = { url: v, zoom: 1, x: 0, y: 0 };
+            else if (v && typeof v === 'object' && 'url' in (v as object)) {
+              const vv = v as any;
+              out[idx] = { url: vv.url, zoom: vv.zoom ?? 1, x: vv.x ?? 0, y: vv.y ?? 0 };
+            }
+          }
+          return out;
+        })(),
         openingPhrase: bd?.opening_phrase ?? defaults.openingPhrase,
         reflectionText: bd?.reflection_text ?? defaults.reflectionText,
         caption3: bd?.caption3 ?? defaults.caption3,
@@ -1838,12 +1976,36 @@ FlipPage.displayName = 'FlipPage';
 // ---------------------------------------------------------------------------
 // Livro interativo — 50 páginas
 // ---------------------------------------------------------------------------
-function InteractiveBook({ bookData, selectedModel, isDemo, onPageChange, onDropPhoto }: { bookData: BookData; selectedModel: ModelId; isDemo: boolean; onPageChange?: (page: number) => void; onDropPhoto?: (url: string, slotIdx: number) => void }) {
+function InteractiveBook({ bookData, selectedModel, isDemo, onPageChange, onDropPhoto, onCropChange }: {
+  bookData: BookData; selectedModel: ModelId; isDemo: boolean;
+  onPageChange?: (page: number) => void;
+  onDropPhoto?: (url: string, slotIdx: number) => void;
+  onCropChange?: (slotIdx: number, crop: CropState) => void;
+}) {
   const { t } = useT();
   const bookRef = useRef<any>(null);
   const [page, setPage] = useState(0);
   const [bookOpen, setBookOpen] = useState(false);
   const { w, h } = useBookSize();
+
+  // Crop controls state
+  const [activeSlot, setActiveSlot] = useState<number | null>(null);
+  const [previewCrop, setPreviewCrop] = useState<CropState>({ zoom: 1, x: 0, y: 0 });
+  const [imgNaturalSizes, setImgNaturalSizes] = useState<Map<string, { w: number; h: number }>>(new Map());
+
+  const cropControls: CropControls | undefined = isDemo ? undefined : {
+    activeSlot,
+    previewCrop,
+    bookWidth: w,
+    imgNaturalSizes,
+    onActivate: (slotIdx, initial) => { setActiveSlot(slotIdx); setPreviewCrop(initial); },
+    onPreview: setPreviewCrop,
+    onCommit: () => {
+      if (activeSlot !== null) onCropChange?.(activeSlot, previewCrop);
+      setActiveSlot(null);
+    },
+    onImgLoad: (url, nw, nh) => setImgNaturalSizes(prev => new Map(prev).set(url, { w: nw, h: nh })),
+  };
 
   const model = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
   const pageDefs = React.useMemo(() => generatePageDefs(model.pages), [model.pages]);
@@ -1949,7 +2111,7 @@ function InteractiveBook({ bookData, selectedModel, isDemo, onPageChange, onDrop
             >
               {pageDefs.map((def, idx) => (
                 <FlipPage key={idx}>
-                  {renderBookPage(def, idx, bookData, S, sp, fs, slotMap, t, isDemo, isDemo ? undefined : onDropPhoto)}
+                  {renderBookPage(def, idx, bookData, S, sp, fs, slotMap, t, isDemo, isDemo ? undefined : onDropPhoto, cropControls)}
                 </FlipPage>
               ))}
             </HTMLFlipBook>
@@ -2343,7 +2505,7 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
               </p>
               <div className="grid grid-cols-3 gap-1.5">
                 {bookData.allPhotos.map((url, i) => {
-                  const isUsed = Object.values(bookData.photoAssignments).includes(url);
+                  const isUsed = Object.values(bookData.photoAssignments).some(a => slotUrl(a) === url);
                   return (
                     <button
                       key={i}
@@ -2463,7 +2625,14 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, noP
   const editModel = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
 
   const assignPhotoToSlot = useCallback((url: string, slotIdx: number) => {
-    onChange({ photoAssignments: { ...bookData.photoAssignments, [slotIdx]: url } });
+    const existing = toSlotData(bookData.photoAssignments[slotIdx]);
+    onChange({ photoAssignments: { ...bookData.photoAssignments, [slotIdx]: { url, zoom: existing?.zoom ?? 1, x: existing?.x ?? 0, y: existing?.y ?? 0 } } });
+  }, [bookData.photoAssignments, onChange]);
+
+  const updateSlotCrop = useCallback((slotIdx: number, crop: CropState) => {
+    const existing = toSlotData(bookData.photoAssignments[slotIdx]);
+    if (!existing) return;
+    onChange({ photoAssignments: { ...bookData.photoAssignments, [slotIdx]: { ...existing, ...crop } } });
   }, [bookData.photoAssignments, onChange]);
 
   useEffect(() => {
@@ -2512,7 +2681,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, noP
               transition={{ delay: 0.35, duration: 0.9, type: 'spring', damping: 18 }}
               className="relative z-10 flex justify-center px-4 pb-6"
             >
-              <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} onPageChange={setCurrentBookPage} onDropPhoto={user ? assignPhotoToSlot : undefined} />
+              <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} onPageChange={setCurrentBookPage} onDropPhoto={user ? assignPhotoToSlot : undefined} onCropChange={user ? updateSlotCrop : undefined} />
             </motion.div>
 
             {/* Stats */}
@@ -2614,7 +2783,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, noP
           transition={{ delay: 0.45, duration: 1, type: 'spring', damping: 16 }}
           className="relative z-10 flex justify-center px-4 pb-6"
         >
-          <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} onDropPhoto={user ? assignPhotoToSlot : undefined} />
+          <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} onDropPhoto={user ? assignPhotoToSlot : undefined} onCropChange={user ? updateSlotCrop : undefined} />
         </motion.div>
 
         {/* Aviso: utilizador autenticado mas sem fotos */}
@@ -2787,17 +2956,18 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
 
   // Apenas atribuições manuais são consideradas — sem fallback para allPhotos
   const currentPhotoForSlot = useCallback((slotIdx: number): string | null => {
-    return bookData.photoAssignments[slotIdx] ?? null;
+    return slotUrl(bookData.photoAssignments[slotIdx]) ?? null;
   }, [bookData.photoAssignments]);
 
   // Fotos já usadas em algum slot (para indicador visual na galeria)
   const usedPhotoUrls = useMemo(
-    () => new Set(Object.values(bookData.photoAssignments)),
+    () => new Set(Object.values(bookData.photoAssignments).map(a => slotUrl(a)!)),
     [bookData.photoAssignments],
   );
 
   const assignPhoto = useCallback((slotIdx: number, photoUrl: string) => {
-    onChange({ photoAssignments: { ...bookData.photoAssignments, [slotIdx]: photoUrl } });
+    const existing = toSlotData(bookData.photoAssignments[slotIdx]);
+    onChange({ photoAssignments: { ...bookData.photoAssignments, [slotIdx]: { url: photoUrl, zoom: existing?.zoom ?? 1, x: existing?.x ?? 0, y: existing?.y ?? 0 } } });
     setPickedPhoto(null);
     setPickedSlot(null);
   }, [bookData.photoAssignments, onChange]);
