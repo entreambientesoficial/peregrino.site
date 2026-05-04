@@ -1481,6 +1481,7 @@ export default function BookPage() {
   });
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
+  const [sessionLoading, setSessionLoading] = useState(true);
   const [noPhotosWarning, setNoPhotosWarning] = useState(false);
   const update = (patch: Partial<BookData>) => setBookData(p => ({ ...p, ...patch }));
 
@@ -1668,35 +1669,20 @@ export default function BookPage() {
     }
   };
 
-  // Listener de auth — detecta login inclusive após redirect OAuth
+  // Listener de auth — onAuthStateChange dispara INITIAL_SESSION no F5, SIGNED_IN após OAuth.
+  // getSession removido: chamava loadUserData em paralelo e não setava editMode, causando flashes.
   useEffect(() => {
-    // Verificação inicial de sessão — cobre o caso de redirect pós-OAuth
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        console.log('[Auth] Sessão existente detectada, carregando dados do usuário:', session.user.email);
-        setUser(session.user);
-        // Zera a capa imediatamente para não mostrar o valor padrão do demo enquanto carrega
-        setBookData(p => ({ ...p, coverPhoto: '' }));
-        loadUserData(session.user.id);
-      }
-    });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // Guard: ignora eventos que não sejam de sessão web válida.
-      // O parâmetro auth_type=web no redirect URL já bloqueia deep links,
-      // mas este guard é uma camada extra de segurança.
+      // Qualquer evento de auth encerra o loading de sessão (bloqueia o render do livro demo)
+      setSessionLoading(false);
+
       if (event === 'SIGNED_OUT') {
-        console.log('[Auth] Usuário desconectado.');
         setUser(null);
         return;
       }
 
-      console.log('[Auth] Evento recebido:', event, '| Usuário:', session?.user?.email ?? 'nenhum');
-
       setUser(session?.user ?? null);
       if (session?.user) {
-        // Sessão web confirmada — carrega dados e avança o fluxo
-        console.log('[Auth] Sessão web confirmada. Carregando dados e avançando para personalizar.');
         loadUserData(session.user.id);
         setShowAuthModal(false);
         setEditMode(true);
@@ -1754,6 +1740,7 @@ export default function BookPage() {
               selectedModel={selectedModel} onSelectModel={setSelectedModel}
               hasCustomized={hasCustomized}
               dataLoading={dataLoading}
+              sessionLoading={sessionLoading}
               noPhotosWarning={noPhotosWarning}
               user={user}
               editMode={editMode}
@@ -2402,12 +2389,13 @@ function EditSidebar({ bookData, onChange, selectedModel, onSelectModel, onOrder
 // ---------------------------------------------------------------------------
 // Step 1 — Revelação
 // ---------------------------------------------------------------------------
-function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dataLoading, noPhotosWarning, user, editMode, onChange, onCustomize, onOrder }: {
+function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dataLoading, sessionLoading, noPhotosWarning, user, editMode, onChange, onCustomize, onOrder }: {
   bookData: BookData;
   selectedModel: ModelId;
   onSelectModel: (m: ModelId) => void;
   hasCustomized: boolean;
   dataLoading: boolean;
+  sessionLoading: boolean;
   noPhotosWarning: boolean;
   user: any;
   editMode: boolean;
@@ -2416,13 +2404,14 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
   onOrder: () => void;
 }) {
   const { t } = useT();
+  const isLoading = sessionLoading || dataLoading;
   const [statsVisible, setStatsVisible] = useState(false);
   const [currentBookPage, setCurrentBookPage] = useState(0);
   const statsRef = useRef<HTMLDivElement>(null);
-  const aKm = useCountUp(bookData.km, 1200, statsVisible && !dataLoading);
-  const aDays = useCountUp(bookData.days, 900, statsVisible && !dataLoading);
-  const aStamps = useCountUp(bookData.stampsCount, 800, statsVisible && !dataLoading);
-  const aPhotos = useCountUp(bookData.photosCount, 1100, statsVisible && !dataLoading);
+  const aKm = useCountUp(bookData.km, 1200, statsVisible && !isLoading);
+  const aDays = useCountUp(bookData.days, 900, statsVisible && !isLoading);
+  const aStamps = useCountUp(bookData.stampsCount, 800, statsVisible && !isLoading);
+  const aPhotos = useCountUp(bookData.photosCount, 1100, statsVisible && !isLoading);
   const editModel = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
 
   useEffect(() => {
@@ -2471,7 +2460,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
               transition={{ delay: 0.35, duration: 0.9, type: 'spring', damping: 18 }}
               className="relative z-10 flex justify-center px-4 pb-6"
             >
-              {dataLoading ? (
+              {isLoading ? (
                 <div className="flex flex-col items-center gap-6">
                   <div className="relative animate-pulse"
                     style={{ width: 'clamp(165px,27vw,440px)', height: 'clamp(220px,36vw,587px)' }}>
@@ -2596,7 +2585,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
           transition={{ delay: 0.45, duration: 1, type: 'spring', damping: 16 }}
           className="relative z-10 flex justify-center px-4 pb-6"
         >
-          {dataLoading ? (
+          {isLoading ? (
             <div className="flex flex-col items-center gap-6">
               {/* Skeleton do livro */}
               <div className="relative animate-pulse"
@@ -2624,7 +2613,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
         </motion.div>
 
         {/* Aviso: utilizador autenticado mas sem fotos */}
-        {user && !dataLoading && noPhotosWarning && (
+        {user && !isLoading && noPhotosWarning && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
