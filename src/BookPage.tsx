@@ -1683,6 +1683,7 @@ export default function BookPage() {
 
       setUser(session?.user ?? null);
       if (session?.user) {
+        setDataLoading(true); // sincronizado no mesmo batch: evita frame com isLoading=false e dados demo
         loadUserData(session.user.id);
         setShowAuthModal(false);
         setEditMode(true);
@@ -2461,24 +2462,18 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
               className="relative z-10 flex justify-center px-4 pb-6"
             >
               {isLoading ? (
-                <div className="flex flex-col items-center gap-6">
-                  <div className="relative animate-pulse"
-                    style={{ width: 'clamp(165px,27vw,440px)', height: 'clamp(220px,36vw,587px)' }}>
-                    <div className="absolute left-0 top-0 bottom-0 w-[5%] rounded-l-sm bg-[#E8E4D9]/10" />
-                    <div className="w-full h-full rounded-r-xl rounded-l-sm bg-[#E8E4D9]/8"
-                      style={{ boxShadow: '-20px 32px 80px rgba(0,0,0,0.8)' }} />
-                    <div className="absolute inset-0 flex flex-col justify-end p-8 gap-2">
-                      <div className="h-px w-12 bg-[#E8E4D9]/20 mb-2" />
-                      <div className="h-4 w-3/4 rounded-full bg-[#E8E4D9]/15" />
-                      <div className="h-3 w-1/3 rounded-full bg-[#E8E4D9]/10" />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-[#E8E4D9]/40 text-xs">
-                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                    </svg>
-                    <span className="uppercase tracking-widest">A carregar a tua jornada...</span>
+                <div style={{ filter: 'drop-shadow(-12px 20px 60px rgba(0,0,0,0.7))' }}>
+                  <div
+                    className="relative rounded-r-xl rounded-l-sm overflow-hidden bg-[#1B2616] flex flex-col items-center justify-center"
+                    style={{ width: 'clamp(160px,27vw,440px)', height: 'clamp(124px,20.9vw,340px)', boxShadow: '-12px 20px 60px rgba(0,0,0,0.7)' }}
+                  >
+                    <div className="absolute left-0 top-0 bottom-0 rounded-l-sm z-10"
+                      style={{ width: '5.4%', background: 'linear-gradient(to right,rgba(0,0,0,0.65),rgba(0,0,0,0.22) 40%,rgba(255,255,255,0.08) 65%,rgba(0,0,0,0.15))' }} />
+                    <div style={{ width: '45%', height: '1px', background: '#C8A96E44' }} />
+                    <div style={{ height: '8px' }} />
+                    <div style={{ width: '45%', height: '1px', background: '#C8A96E33' }} />
+                    <div className="absolute inset-0 pointer-events-none"
+                      style={{ background: 'linear-gradient(135deg,rgba(255,255,255,0.07) 0%,transparent 45%)' }} />
                   </div>
                 </div>
               ) : (
@@ -2586,25 +2581,18 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, dat
           className="relative z-10 flex justify-center px-4 pb-6"
         >
           {isLoading ? (
-            <div className="flex flex-col items-center gap-6">
-              {/* Skeleton do livro */}
-              <div className="relative animate-pulse"
-                style={{ width: 'clamp(165px,27vw,440px)', height: 'clamp(220px,36vw,587px)' }}>
-                <div className="absolute left-0 top-0 bottom-0 w-[5%] rounded-l-sm bg-[#E8E4D9]/10" />
-                <div className="w-full h-full rounded-r-xl rounded-l-sm bg-[#E8E4D9]/8"
-                  style={{ boxShadow: '-20px 32px 80px rgba(0,0,0,0.8)' }} />
-                <div className="absolute inset-0 flex flex-col justify-end p-8 gap-2">
-                  <div className="h-px w-12 bg-[#E8E4D9]/20 mb-2" />
-                  <div className="h-4 w-3/4 rounded-full bg-[#E8E4D9]/15" />
-                  <div className="h-3 w-1/3 rounded-full bg-[#E8E4D9]/10" />
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-[#E8E4D9]/40 text-xs">
-                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                </svg>
-                <span className="uppercase tracking-widest">A carregar a tua jornada...</span>
+            <div style={{ filter: 'drop-shadow(-12px 20px 60px rgba(0,0,0,0.7))' }}>
+              <div
+                className="relative rounded-r-xl rounded-l-sm overflow-hidden bg-[#1B2616] flex flex-col items-center justify-center"
+                style={{ width: 'clamp(160px,27vw,440px)', height: 'clamp(124px,20.9vw,340px)', boxShadow: '-12px 20px 60px rgba(0,0,0,0.7)' }}
+              >
+                <div className="absolute left-0 top-0 bottom-0 rounded-l-sm z-10"
+                  style={{ width: '5.4%', background: 'linear-gradient(to right,rgba(0,0,0,0.65),rgba(0,0,0,0.22) 40%,rgba(255,255,255,0.08) 65%,rgba(0,0,0,0.15))' }} />
+                <div style={{ width: '45%', height: '1px', background: '#C8A96E44' }} />
+                <div style={{ height: '8px' }} />
+                <div style={{ width: '45%', height: '1px', background: '#C8A96E33' }} />
+                <div className="absolute inset-0 pointer-events-none"
+                  style={{ background: 'linear-gradient(135deg,rgba(255,255,255,0.07) 0%,transparent 45%)' }} />
               </div>
             </div>
           ) : (
