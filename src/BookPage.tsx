@@ -435,15 +435,13 @@ function renderBookPage(
   slotMap: Map<number, number[]>,
   t: (k: string) => string,
   isDemo: boolean,
+  onDropPhoto?: (url: string, slotIdx: number) => void,
 ) {
-  const photos = bookData.allPhotos;
   const slots = slotMap.get(pageIdx) ?? [];
+  // Slot só exibe foto se tiver atribuição manual; caso contrário, placeholder bege
   const ph = (n: number) => {
     if (bookData.photoAssignments[n] !== undefined) return bookData.photoAssignments[n];
-    if (photos.length === 0) return `__empty__:${n}`;
-    // Slot sem foto disponível — placeholder, não repetir fotos
-    if (n < 0 || n >= photos.length) return `__empty__:${n}`;
-    return photos[n];
+    return `__empty__:${n}`;
   };
   const getTextEntry = (slot: 'top' | 'bottom'): PageTextEntry | undefined =>
     bookData.pageTexts[`${pageIdx}-${slot}`];
@@ -470,13 +468,32 @@ function renderBookPage(
   const img = (_n: number, cls: string, sty?: React.CSSProperties) => (
     <div className={cls} style={{ ...sty, background: '#E8E4D9' }} />
   );
-  // Renderiza foto real (object-fit:cover) ou placeholder bege se não disponível
-  const pimg = (slotIdx: number, style?: React.CSSProperties, overrideUrl?: string | null) => {
+  // Renderiza slot de foto: drop target (usuário logado) + foto atribuída ou placeholder bege
+  const pimg = (slotIdx: number, imgStyle?: React.CSSProperties, overrideUrl?: string | null) => {
     const url = overrideUrl ?? ph(slotIdx);
-    if (url && !url.startsWith('__stamp__') && !url.startsWith('__empty__')) {
-      return <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block', ...style }} />;
-    }
-    return <div style={{ width: '100%', height: '100%', background: '#E8E4D9', display: 'block', ...style }} />;
+    const hasPhoto = !!url && !url.startsWith('__empty__');
+    const dropHandlers = (onDropPhoto && slotIdx >= 0) ? {
+      onDragOver: (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.currentTarget.style.outline = '2px dashed #C8A96E';
+        e.currentTarget.style.outlineOffset = '-2px';
+      },
+      onDragLeave: (e: React.DragEvent<HTMLDivElement>) => { e.currentTarget.style.outline = 'none'; },
+      onDrop: (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.currentTarget.style.outline = 'none';
+        const photoUrl = e.dataTransfer.getData('text/plain');
+        if (photoUrl) onDropPhoto(photoUrl, slotIdx);
+      },
+    } : {};
+    return (
+      <div style={{ width: '100%', height: '100%', position: 'relative' }} {...dropHandlers}>
+        {hasPhoto
+          ? <img src={url!} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block', ...imgStyle }} />
+          : <div style={{ width: '100%', height: '100%', background: '#E8E4D9', display: 'block' }} />
+        }
+      </div>
+    );
   };
   // Cor de fundo neutra para células de foto
   const cellBg = '#f0ede6';
@@ -1821,7 +1838,7 @@ FlipPage.displayName = 'FlipPage';
 // ---------------------------------------------------------------------------
 // Livro interativo — 50 páginas
 // ---------------------------------------------------------------------------
-function InteractiveBook({ bookData, selectedModel, isDemo, onPageChange }: { bookData: BookData; selectedModel: ModelId; isDemo: boolean; onPageChange?: (page: number) => void }) {
+function InteractiveBook({ bookData, selectedModel, isDemo, onPageChange, onDropPhoto }: { bookData: BookData; selectedModel: ModelId; isDemo: boolean; onPageChange?: (page: number) => void; onDropPhoto?: (url: string, slotIdx: number) => void }) {
   const { t } = useT();
   const bookRef = useRef<any>(null);
   const [page, setPage] = useState(0);
@@ -1830,11 +1847,8 @@ function InteractiveBook({ bookData, selectedModel, isDemo, onPageChange }: { bo
 
   const model = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
   const pageDefs = React.useMemo(() => generatePageDefs(model.pages), [model.pages]);
-  const photoOrientations = usePhotoOrientations(bookData.allPhotos);
-  const slotMap = React.useMemo(
-    () => buildPhotoSlotMap(pageDefs, photoOrientations.length > 0 ? photoOrientations : undefined),
-    [pageDefs, photoOrientations],
-  );
+  // Mapeamento sequencial estável — sem auto-distribuição por orientação
+  const slotMap = React.useMemo(() => buildPhotoSlotMap(pageDefs), [pageDefs]);
   const TOTAL = pageDefs.length;
 
   const goNext = () => bookRef.current?.pageFlip().flipNext();
@@ -1935,7 +1949,7 @@ function InteractiveBook({ bookData, selectedModel, isDemo, onPageChange }: { bo
             >
               {pageDefs.map((def, idx) => (
                 <FlipPage key={idx}>
-                  {renderBookPage(def, idx, bookData, S, sp, fs, slotMap, t, isDemo)}
+                  {renderBookPage(def, idx, bookData, S, sp, fs, slotMap, t, isDemo, isDemo ? undefined : onDropPhoto)}
                 </FlipPage>
               ))}
             </HTMLFlipBook>
@@ -2434,6 +2448,10 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, noP
   const aPhotos = useCountUp(bookData.photosCount, 1100, statsVisible);
   const editModel = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
 
+  const assignPhotoToSlot = useCallback((url: string, slotIdx: number) => {
+    onChange({ photoAssignments: { ...bookData.photoAssignments, [slotIdx]: url } });
+  }, [bookData.photoAssignments, onChange]);
+
   useEffect(() => {
     const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setStatsVisible(true); }, { threshold: 0.3 });
     if (statsRef.current) obs.observe(statsRef.current);
@@ -2480,7 +2498,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, noP
               transition={{ delay: 0.35, duration: 0.9, type: 'spring', damping: 18 }}
               className="relative z-10 flex justify-center px-4 pb-6"
             >
-              <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} onPageChange={setCurrentBookPage} />
+              <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} onPageChange={setCurrentBookPage} onDropPhoto={user ? assignPhotoToSlot : undefined} />
             </motion.div>
 
             {/* Stats */}
@@ -2582,7 +2600,7 @@ function StepReveal({ bookData, selectedModel, onSelectModel, hasCustomized, noP
           transition={{ delay: 0.45, duration: 1, type: 'spring', damping: 16 }}
           className="relative z-10 flex justify-center px-4 pb-6"
         >
-          <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} />
+          <InteractiveBook bookData={bookData} selectedModel={selectedModel} isDemo={!user} onDropPhoto={user ? assignPhotoToSlot : undefined} />
         </motion.div>
 
         {/* Aviso: utilizador autenticado mas sem fotos */}
@@ -2733,12 +2751,10 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
   const model = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
   const totalAvailable = bookData.allPhotos.length;
   const gap = Math.max(0, model.pages - totalAvailable);
-  const photoOrientations = usePhotoOrientations(bookData.allPhotos);
-
-  // Computa slots de foto e texto para o modelo atual
+  // Mapeamento sequencial estável — sem auto-distribuição por orientação
   const { pageDefs: customPageDefs, slotMap: customSlotMap, photoSlots, pageTextSlots } = useMemo(() => {
     const pageDefs = generatePageDefs(model.pages);
-    const slotMap = buildPhotoSlotMap(pageDefs, photoOrientations.length > 0 ? photoOrientations : undefined);
+    const slotMap = buildPhotoSlotMap(pageDefs);
     const photoSlots: { pageIdx: number; slotIdx: number; slotPos: number }[] = [];
     const pageTextSlots: { pageIdx: number; kind: PageKind; slots: Array<'top' | 'bottom'> }[] = [];
     pageDefs.forEach((def, pageIdx) => {
@@ -2753,12 +2769,18 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
       if (textSlots) pageTextSlots.push({ pageIdx, kind: def.kind, slots: textSlots });
     });
     return { pageDefs, slotMap, photoSlots, pageTextSlots };
-  }, [model.pages, photoOrientations]);
+  }, [model.pages]);
 
+  // Apenas atribuições manuais são consideradas — sem fallback para allPhotos
   const currentPhotoForSlot = useCallback((slotIdx: number): string | null => {
-    if (bookData.photoAssignments[slotIdx] !== undefined) return bookData.photoAssignments[slotIdx];
-    return slotIdx < bookData.allPhotos.length ? bookData.allPhotos[slotIdx] : null;
-  }, [bookData.photoAssignments, bookData.allPhotos]);
+    return bookData.photoAssignments[slotIdx] ?? null;
+  }, [bookData.photoAssignments]);
+
+  // Fotos já usadas em algum slot (para indicador visual na galeria)
+  const usedPhotoUrls = useMemo(
+    () => new Set(Object.values(bookData.photoAssignments)),
+    [bookData.photoAssignments],
+  );
 
   const assignPhoto = useCallback((slotIdx: number, photoUrl: string) => {
     onChange({ photoAssignments: { ...bookData.photoAssignments, [slotIdx]: photoUrl } });
@@ -3102,19 +3124,29 @@ function StepCustomize({ bookData, onChange, selectedModel, onSelectModel, onDon
                   <p className="text-xs text-[#2D3A27]/35 mb-2">Toque em uma foto para selecioná-la, depois toque na página desejada.</p>
                 )}
                 <div className="grid grid-cols-4 md:grid-cols-6 gap-2 max-h-44 overflow-y-auto pr-1">
-                  {bookData.allPhotos.map((photo, i) => (
-                    <button key={i}
-                      onClick={() => setPickedPhoto(pickedPhoto === photo ? null : photo)}
-                      className={`relative aspect-square rounded-xl overflow-hidden ring-2 transition-all duration-150 ${pickedPhoto === photo ? 'ring-[#2D3A27] scale-105 shadow-md' : 'ring-transparent hover:ring-[#2D3A27]/30'}`}
-                    >
-                      <img src={photo} alt="" className="w-full h-full object-cover" />
-                      {pickedPhoto === photo && (
-                        <div className="absolute inset-0 bg-[#2D3A27]/30 flex items-center justify-center">
-                          <Check size={16} className="text-white" />
-                        </div>
-                      )}
-                    </button>
-                  ))}
+                  {bookData.allPhotos.map((photo, i) => {
+                    const isUsed = usedPhotoUrls.has(photo);
+                    const isPicked = pickedPhoto === photo;
+                    return (
+                      <button key={i}
+                        draggable
+                        onDragStart={(e) => { e.dataTransfer.setData('text/plain', photo); e.dataTransfer.effectAllowed = 'copy'; }}
+                        onClick={() => setPickedPhoto(isPicked ? null : photo)}
+                        style={{ opacity: isUsed && !isPicked ? 0.45 : 1 }}
+                        className={`relative aspect-square rounded-xl overflow-hidden ring-2 transition-all duration-150 ${isPicked ? 'ring-[#2D3A27] scale-105 shadow-md' : 'ring-transparent hover:ring-[#2D3A27]/30'}`}
+                      >
+                        <img src={photo} alt="" className="w-full h-full object-cover" />
+                        {isPicked && (
+                          <div className="absolute inset-0 bg-[#2D3A27]/30 flex items-center justify-center">
+                            <Check size={16} className="text-white" />
+                          </div>
+                        )}
+                        {isUsed && !isPicked && (
+                          <div className="absolute top-0.5 right-0.5 w-3 h-3 bg-amber-500 rounded-full" title="Já usada no livro" />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
