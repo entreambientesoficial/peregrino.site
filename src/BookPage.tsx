@@ -565,6 +565,14 @@ function PhotoSlotEditor({
 }
 
 // ---------------------------------------------------------------------------
+// Crop overrides para slots específicos do livro demo (slotIdx → {zoom,x,y})
+// Calculado contando slots sequencialmente a partir dos pageDefs.
+// ---------------------------------------------------------------------------
+const DEMO_CROP_OVERRIDES: Record<number, Partial<{ zoom: number; x: number; y: number }>> = {
+  52: { y: 20 }, // pág.33 "A Catedral Verde" — descer imagem para mostrar cabeça do peregrino
+};
+
+// ---------------------------------------------------------------------------
 // Renderizador de páginas
 // ---------------------------------------------------------------------------
 function renderBookPage(
@@ -614,16 +622,17 @@ function renderBookPage(
   // Renderiza slot de foto: drop target + editor canva-style + foto com crop ou placeholder bege
   const pimg = (slotIdx: number, imgStyle?: React.CSSProperties, overrideUrl?: string | null) => {
     const assignment = slotIdx >= 0 ? toSlotData(bookData.photoAssignments[slotIdx]) : undefined;
-    // Demo: fallback sequencial de DEMO_USER.allPhotos quando slot não tem atribuição manual
-    const demoFallback = isDemo && slotIdx >= 0 && slotIdx < bookData.allPhotos.length
+    // Demo: fallback sequencial de DEMO_USER.allPhotos com crop override por slot
+    const demoCrop = isDemo && slotIdx >= 0 ? DEMO_CROP_OVERRIDES[slotIdx] : undefined;
+    const demoFallbackUrl = isDemo && slotIdx >= 0 && slotIdx < bookData.allPhotos.length
       ? bookData.allPhotos[slotIdx] : undefined;
-    const url = overrideUrl ?? (assignment ? assignment.url : demoFallback ?? `__empty__:${slotIdx}`);
+    const url = overrideUrl ?? (assignment ? assignment.url : demoFallbackUrl ?? `__empty__:${slotIdx}`);
     const hasPhoto = !!url && !url.startsWith('__empty__');
     const isActive = !!cropControls && cropControls.activeSlot === slotIdx && hasPhoto;
 
-    const zoom = isActive ? cropControls!.previewCrop.zoom : (assignment?.zoom ?? 1);
-    const panX = isActive ? cropControls!.previewCrop.x  : (assignment?.x ?? 0);
-    const panY = isActive ? cropControls!.previewCrop.y  : (assignment?.y ?? 0);
+    const zoom = isActive ? cropControls!.previewCrop.zoom : (assignment?.zoom ?? demoCrop?.zoom ?? 1);
+    const panX = isActive ? cropControls!.previewCrop.x  : (assignment?.x ?? demoCrop?.x ?? 0);
+    const panY = isActive ? cropControls!.previewCrop.y  : (assignment?.y ?? demoCrop?.y ?? 0);
     const naturalSize = hasPhoto ? cropControls?.imgNaturalSizes.get(url!) : undefined;
     const showWarning = naturalSize && !isActive && zoom > naturalSize.w / (cropControls!.bookWidth * 0.55);
 
