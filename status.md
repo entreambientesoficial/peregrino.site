@@ -3435,3 +3435,127 @@ O usuário reportou que a implementação ainda não está boa. O conflito com o
 ---
 
 *Última atualização: 04/05/2026 (fim de sessão) — Sessão com Claude Sonnet 4.6*
+
+---
+
+## Sessão 13/05/2026 — Reimplementação do crop + correção do corte automático
+
+### Contexto de partida
+Esta sessão retomou a partir do commit `1860096` (trava de produção na `/book`). O crop editor havia sido revertido por excesso de alterações na sessão anterior. O objetivo desta sessão foi reimplementar o crop de forma cirúrgica, tocando **apenas páginas internas** (não a capa).
+
+---
+
+### ✅ O que foi feito e funcionou
+
+#### 1. Remoção de linhas da página de prefácio
+- Removidas do `case 'preface'` em `renderBookPage`:
+  - Linha superior: `"PEREGRINO · COFFEE TABLE BOOK"`
+  - Linha inferior (frase de abertura em itálico): `"Comecei sem saber o caminho..."`
+- Adicionado espaçador para manter o layout equilibrado.
+- **Status:** funcionando, aprovado pelo usuário.
+
+#### 2. Reimplementação do crop editor (abordagem `position: fixed`)
+
+**Problema central das sessões anteriores:** o `react-pageflip` captura eventos de mouse no nível do container, conflitando com drag e double-click dentro do livro. Não é possível resolver dinamicamente via `useMouseEvents` ou `disableFlipByClick` sem efeitos colaterais.
+
+**Solução adotada:**
+
+| Componente | O que mudou |
+|---|---|
+| `CropControls` interface | Adicionado `onSlotRef: (slotIdx, el) => void` |
+| `pimg()` | `ref` callback registra cada slot em `slotRefs`; `onClick` → `onDoubleClick`; branch `isActive` mostra preview `objectFit:contain` + borda dourada |
+| `InteractiveBook` | Adicionados `slotRect` (estado) e `slotRefs` (ref Map) |
+| `cropControls.onActivate` | Captura `getBoundingClientRect()` do slot e salva em `slotRect` |
+| `cropControls.onCommit` | Limpa `slotRect` após salvar |
+| `HTMLFlipBook` | `showPageCorners={false}` e `disableFlipByClick={true}` **permanentes** (não mais condicionais) |
+| JSX do `InteractiveBook` | Overlay transparente `position:fixed; inset:0; z-index:999` bloqueia eventos para o livro; `PhotoSlotEditor` em `position:fixed` no topo do slot via `slotRect.left/top/width/height` em `z-index:1000` |
+
+**Resultado:** editor flutua fixo exatamente sobre o slot, fora do DOM do react-pageflip. Page-flip completamente desabilitado enquanto edita. Duplo clique ativa o editor (simples clique virava a página).
+
+#### 3. Correção do corte automático de fotos
+
+**Problema reportado pelo usuário:** ao arrastar uma foto da galeria para o slot, a foto preenchia o espaço mas era cortada automaticamente pelo browser (CSS `objectFit: cover` decide o enquadramento, sem controle do usuário).
+
+**O que o usuário quer:** foto preenchendo o slot, mas o usuário decide ONDE cortar — ver a foto inteira e ajustar.
+
+**Primeira tentativa (errada, descartada):**
+- Calculou `containRatio/coverRatio` como zoom inicial, mantendo `objectFit: cover`
+- Problema: `objectFit: cover` com `scale()` abaixo de 1 encolhe o conteúdo mas NÃO mostra a foto completa — continua recortando via CSS
+
+**Segunda tentativa (implementada, pendente de teste):**
+
+Mudança de semântica de zoom em dois sistemas distintos:
+
+| Contexto | objectFit | zoom=1 significa |
+|---|---|---|
+| Editor (`PhotoSlotEditor`) | `contain` | foto inteira visível |
+| Display no livro (`pimg()`) | `cover` | slot preenchido (sem barras) |
+
+Conversão entre sistemas (calculada com `slotRect` e `imgNaturalSizes`):
+```
+coverRatio  = max(slotW/imgW, slotH/imgH)  ← escala CSS cover
+containRatio = min(slotW/imgW, slotH/imgH)  ← escala CSS contain
+
+editorZoom  = displayZoom * (coverRatio / containRatio)
+displayZoom = editorZoom  * (containRatio / coverRatio), forçado >= 1
+```
+
+**Detalhes de implementação:**
+
+- `PhotoSlotEditor`: `objectFit: cover` → `objectFit: contain`; zoom mínimo `0.3` (antes era `1`)
+- `pimg()` isActive: `objectFit: cover` → `objectFit: contain` (sincroniza com editor)
+- `pimg()` display normal (livro, sem edição): mantém `objectFit: cover` com `displayZoom` salvo
+- `CropControls.onActivate`: agora recebe flag `isFresh?: boolean`
+  - `isFresh=true` (foto sem crop salvo): `editorZoom = 1` → foto inteira visível
+  - `isFresh=false` (revisita): converte `displayZoom → editorZoom`
+- `pimg()` `onDoubleClick`: passa `isFresh = (assignment?.zoom === undefined)`
+- `InteractiveBook.onActivate`: aplica conversão usando `slotRect` + `imgNaturalSizes`
+- `InteractiveBook.onCommit`: converte `editorZoom → displayZoom`, aplica `Math.max(1, ...)` para garantir preenchimento do slot no livro
+- Hint no editor: quando `crop.zoom < 1` mostra `"role ↑ para preencher · arraste para posicionar"`, caso contrário `"arraste · scroll = zoom"`
+
+---
+
+### ⚠️ Erros cometidos nesta sessão
+
+#### Erro 1 — Escopo amplo demais (histórico, não repetido hoje)
+Nas sessões anteriores, foram feitas alterações em spread pages (25-26), capa, objectFit, nome da capa e outros itens não solicitados. Isso causou regressões e exigiu revert para `1860096`. Hoje mantivemos escopo restrito.
+
+#### Erro 2 — Primeira tentativa de "foto inteira" estava errada
+A abordagem de usar `containRatio/coverRatio` como zoom com `objectFit: cover` foi incorreta. Com `objectFit: cover`, o browser SEMPRE recorta a foto, independente do `scale()` aplicado. O scale abaixo de 1 apenas encolhe o resultado já recortado. A solução correta exigiu trocar para `objectFit: contain` no editor E criar a camada de conversão de zoom.
+
+---
+
+### 🔴 Pendências — não resolvido nesta sessão
+
+#### Crop editor: precisa de teste real
+A implementação com `objectFit: contain` + conversão de zoom está codificada mas **não foi testada em produção nesta sessão**. Precisa verificar:
+
+1. **Round-trip zoom:** foto recém-arrastada → editor abre com foto inteira → usuário faz zoom para preencher → confirma → livro exibe crop correto. O math da conversão `containRatio/coverRatio` precisa ser validado visualmente para diferentes proporções de foto vs slot.
+
+2. **Pan (`x`, `y`) com `objectFit: contain`:** o CSS `translate(x%, y%)` com `objectFit: contain` move o **elemento inteiro** (incluindo barras) dentro do espaço visível. A sensação tátil de arrasto pode ser diferente de `objectFit: cover`. O handler atual calcula `dx = (clientX - startX) / rect.width * 100 / zoom` — pode precisar de ajuste de fator para `contain`.
+
+3. **Foto recém-arrastada sem naturalSize:** se o usuário abrir o editor antes da imagem carregar completamente (sem entrada em `imgNaturalSizes`), a conversão cai no fallback `setPreviewCrop(initial)` — editor abre com displayZoom sem conversão. Pode parecer errado.
+
+4. **Editor auto-abrir ao arrastar:** atualmente ainda exige double-click mesmo após drag-and-drop. Seria melhor abrir o editor automaticamente ao soltar a foto no slot (pending).
+
+#### Crop na capa
+`coverPhoto` ainda é uma string simples — sem zoom/pan. Fora do escopo desta sessão (usuário pediu para não mexer).
+
+#### Backend
+`STRIPE_SECRET_KEY` no Cloudflare + webhook → pedido Lulu. Não iniciado.
+
+---
+
+### 📁 Estado do código ao fim da sessão
+
+**Arquivo modificado (não commitado):** `src/BookPage.tsx`
+
+**Commits desta sessão:** nenhum (sessão encerrada antes de validar o crop end-to-end)
+
+**Último commit estável:** `1860096` — feat(gate): bloquear /book em produção
+
+**Para retomar:** testar o fluxo completo do crop (arrastar foto → editar → confirmar → verificar no livro), ajustar pan se necessário, e commitar após validação.
+
+---
+
+*Última atualização: 13/05/2026 — Sessão com Claude Sonnet 4.6*

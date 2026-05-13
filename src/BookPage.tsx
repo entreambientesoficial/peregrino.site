@@ -450,10 +450,11 @@ interface CropControls {
   previewCrop: CropState;
   bookWidth: number;
   imgNaturalSizes: Map<string, { w: number; h: number }>;
-  onActivate: (slotIdx: number, initial: CropState) => void;
+  onActivate: (slotIdx: number, initial: CropState, isFresh?: boolean) => void;
   onPreview: React.Dispatch<React.SetStateAction<CropState>>;
   onCommit: () => void;
   onImgLoad: (url: string, nw: number, nh: number) => void;
+  onSlotRef: (slotIdx: number, el: HTMLDivElement | null) => void;
 }
 
 // Canva-style photo editor: drag to pan, scroll to zoom — no sliders
@@ -486,7 +487,7 @@ function PhotoSlotEditor({
       e.preventDefault();
       const c = cropRef.current;
       const delta = e.deltaY < 0 ? 0.1 : -0.1;
-      onCropChangeRef.current({ ...c, zoom: Math.max(1, Math.min(3, c.zoom + delta)) });
+      onCropChangeRef.current({ ...c, zoom: Math.max(0.3, Math.min(3, c.zoom + delta)) });
     };
     el.addEventListener('wheel', handler, { passive: false });
     return () => el.removeEventListener('wheel', handler);
@@ -533,7 +534,7 @@ function PhotoSlotEditor({
         src={url}
         draggable={false}
         style={{
-          width: '100%', height: '100%', objectFit: 'cover',
+          width: '100%', height: '100%', objectFit: 'contain',
           transform: `scale(${crop.zoom}) translate(${crop.x}%, ${crop.y}%)`,
           transformOrigin: 'center center',
           display: 'block',
@@ -550,7 +551,7 @@ function PhotoSlotEditor({
       {/* Instruction hint */}
       <div style={{ position: 'absolute', top: 5, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
         <span style={{ background: 'rgba(0,0,0,0.55)', color: '#E8E4D9', fontSize: 7, padding: '2px 5px', borderRadius: 3, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
-          arraste · scroll = zoom
+          {crop.zoom < 1 ? 'role ↑ para preencher · arraste para posicionar' : 'arraste · scroll = zoom'}
         </span>
       </div>
       {/* Confirm button */}
@@ -640,26 +641,35 @@ function renderBookPage(
 
     return (
       <div
+        ref={(el) => cropControls?.onSlotRef(slotIdx, el)}
         style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', cursor: hasPhoto && cropControls && !isActive ? 'pointer' : 'default' }}
         {...dropHandlers}
-        onClick={(e) => {
+        onDoubleClick={(e) => {
           if (!hasPhoto || !cropControls || isActive) return;
           e.stopPropagation();
-          cropControls.onActivate(slotIdx, { zoom: assignment?.zoom ?? 1, x: assignment?.x ?? 0, y: assignment?.y ?? 0 });
+          const isFresh = assignment?.zoom === undefined;
+          cropControls.onActivate(slotIdx, { zoom: assignment?.zoom ?? 1, x: assignment?.x ?? 0, y: assignment?.y ?? 0 }, isFresh);
         }}
       >
         {!hasPhoto ? (
           <div style={{ width: '100%', height: '100%', background: '#E8E4D9' }} />
         ) : isActive ? (
-          <PhotoSlotEditor
-            url={url!}
-            crop={cropControls!.previewCrop}
-            imgStyle={imgStyle}
-            onCropChange={cropControls!.onPreview}
-            onCommit={cropControls!.onCommit}
-            naturalSize={naturalSize}
-            bookWidth={cropControls!.bookWidth}
-          />
+          // Editor renderizado fora do livro — slot mostra preview com borda dourada
+          <>
+            <img
+              src={url!}
+              draggable={false}
+              style={{
+                width: '100%', height: '100%', objectFit: 'contain',
+                transform: `scale(${cropControls!.previewCrop.zoom}) translate(${cropControls!.previewCrop.x}%, ${cropControls!.previewCrop.y}%)`,
+                transformOrigin: 'center center',
+                display: 'block',
+                pointerEvents: 'none',
+                ...imgStyle,
+              }}
+            />
+            <div style={{ position: 'absolute', inset: 0, outline: '2px solid #C8A96E', outlineOffset: '-2px', pointerEvents: 'none', zIndex: 5 }} />
+          </>
         ) : (
           <>
             <img
@@ -746,7 +756,6 @@ function renderBookPage(
       return (
         <div className="w-full h-full bg-white flex flex-col justify-between" style={{ padding: sp(20) }}>
           <div>
-            <p className="text-[#2D3A27]/25 uppercase tracking-[0.28em]" style={{ fontSize: fs(0.44) }}>Peregrino · Coffee Table Book</p>
             <div style={{ width: sp(22), height: '1px', background: 'rgba(45,58,39,0.15)', margin: `${sp(10)} 0` }} />
             <p className="font-serif italic text-[#2D3A27] leading-tight" style={{ fontSize: fs(1.25) }}>{bookData.title}</p>
           </div>
@@ -767,12 +776,7 @@ function renderBookPage(
               </div>
             ))}
           </div>
-          <div>
-            <div style={{ width: sp(18), height: '1px', background: 'rgba(45,58,39,0.15)', marginBottom: sp(7) }} />
-            <p className="font-serif italic text-[#2D3A27]/40 leading-relaxed" style={{ fontSize: fs(0.6) }}>
-              "{bookData.openingPhrase}"
-            </p>
-          </div>
+          <div style={{ height: sp(10) }} />
         </div>
       );
 
@@ -2094,19 +2098,71 @@ function InteractiveBook({ bookData, selectedModel, isDemo, onPageChange, onDrop
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [previewCrop, setPreviewCrop] = useState<CropState>({ zoom: 1, x: 0, y: 0 });
   const [imgNaturalSizes, setImgNaturalSizes] = useState<Map<string, { w: number; h: number }>>(new Map());
+  const [slotRect, setSlotRect] = useState<DOMRect | null>(null);
+  const slotRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
   const cropControls: CropControls | undefined = isDemo ? undefined : {
     activeSlot,
     previewCrop,
     bookWidth: w,
     imgNaturalSizes,
-    onActivate: (slotIdx, initial) => { setActiveSlot(slotIdx); setPreviewCrop(initial); },
+    onActivate: (slotIdx, initial, isFresh = false) => {
+      setActiveSlot(slotIdx);
+      const el = slotRefs.current.get(slotIdx);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        setSlotRect(rect);
+        if (rect.width > 0 && rect.height > 0) {
+          const assignment = toSlotData(bookData.photoAssignments[slotIdx]);
+          const url = assignment?.url;
+          const natural = url ? imgNaturalSizes.get(url) : undefined;
+          if (natural) {
+            const coverRatio = Math.max(rect.width / natural.w, rect.height / natural.h);
+            const containRatio = Math.min(rect.width / natural.w, rect.height / natural.h);
+            if (isFresh) {
+              // Foto recém-arrastada: mostrar foto inteira (zoom=1 em contain)
+              setPreviewCrop({ zoom: 1, x: 0, y: 0 });
+            } else {
+              // Revisita: converter displayZoom (cover) → editorZoom (contain)
+              const editorZoom = initial.zoom * (coverRatio / containRatio);
+              setPreviewCrop({ ...initial, zoom: editorZoom });
+            }
+          } else {
+            setPreviewCrop(initial);
+          }
+        } else {
+          setPreviewCrop(initial);
+        }
+      } else {
+        setPreviewCrop(initial);
+      }
+    },
     onPreview: setPreviewCrop,
     onCommit: () => {
-      if (activeSlot !== null) onCropChange?.(activeSlot, previewCrop);
+      if (activeSlot !== null) {
+        let cropToSave = previewCrop;
+        if (slotRect && slotRect.width > 0) {
+          const assignment = toSlotData(bookData.photoAssignments[activeSlot]);
+          const url = assignment?.url;
+          const natural = url ? imgNaturalSizes.get(url) : undefined;
+          if (natural) {
+            const coverRatio = Math.max(slotRect.width / natural.w, slotRect.height / natural.h);
+            const containRatio = Math.min(slotRect.width / natural.w, slotRect.height / natural.h);
+            // Converte editorZoom (contain) → displayZoom (cover), força >= 1 para preencher o slot
+            const displayZoom = Math.max(1, previewCrop.zoom * (containRatio / coverRatio));
+            cropToSave = { ...previewCrop, zoom: displayZoom };
+          }
+        }
+        onCropChange?.(activeSlot, cropToSave);
+      }
       setActiveSlot(null);
+      setSlotRect(null);
     },
     onImgLoad: (url, nw, nh) => setImgNaturalSizes(prev => new Map(prev).set(url, { w: nw, h: nh })),
+    onSlotRef: (slotIdx, el) => {
+      if (el) slotRefs.current.set(slotIdx, el);
+      else slotRefs.current.delete(slotIdx);
+    },
   };
 
   const model = BOOK_MODELS.find(m => m.id === selectedModel) ?? BOOK_MODELS[1];
@@ -2207,8 +2263,8 @@ function InteractiveBook({ bookData, selectedModel, isDemo, onPageChange, onDrop
               minWidth={w} maxWidth={w} minHeight={h} maxHeight={h}
               drawShadow={true} flippingTime={700} usePortrait={false}
               startZIndex={10} autoSize={false} clickEventForward={true}
-              useMouseEvents={activeSlot === null} swipeDistance={30} showPageCorners={true}
-              disableFlipByClick={activeSlot !== null} style={{}} className="" startPage={1}
+              useMouseEvents={activeSlot === null} swipeDistance={30} showPageCorners={false}
+              disableFlipByClick={true} style={{}} className="" startPage={1}
               onFlip={(e: any) => { setPage(e.data); onPageChange?.(e.data); }}
             >
               {pageDefs.map((def, idx) => (
@@ -2238,6 +2294,41 @@ function InteractiveBook({ bookData, selectedModel, isDemo, onPageChange, onDrop
         </motion.div>
 
       </div>
+
+      {/* ── Editor fixo sobre o slot — renderizado fora do react-pageflip DOM ── */}
+      {activeSlot !== null && slotRect && (() => {
+        const assignment = toSlotData(bookData.photoAssignments[activeSlot]);
+        const url = assignment?.url;
+        if (!url) return null;
+        return (
+          <>
+            {/* Overlay transparente bloqueia eventos para o livro */}
+            <div
+              style={{ position: 'fixed', inset: 0, zIndex: 999 }}
+              onDoubleClick={(e) => e.stopPropagation()}
+            />
+            {/* Editor posicionado exatamente sobre o slot */}
+            <div style={{
+              position: 'fixed',
+              left: slotRect.left,
+              top: slotRect.top,
+              width: slotRect.width,
+              height: slotRect.height,
+              zIndex: 1000,
+            }}>
+              <PhotoSlotEditor
+                url={url}
+                crop={previewCrop}
+                onCropChange={setPreviewCrop}
+                onCommit={() => cropControls!.onCommit()}
+                naturalSize={imgNaturalSizes.get(url)}
+                bookWidth={w}
+              />
+            </div>
+          </>
+        );
+      })()}
+
     </div>
   );
 }
