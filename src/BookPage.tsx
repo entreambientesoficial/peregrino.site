@@ -614,7 +614,10 @@ function renderBookPage(
   // Renderiza slot de foto: drop target + editor canva-style + foto com crop ou placeholder bege
   const pimg = (slotIdx: number, imgStyle?: React.CSSProperties, overrideUrl?: string | null) => {
     const assignment = slotIdx >= 0 ? toSlotData(bookData.photoAssignments[slotIdx]) : undefined;
-    const url = overrideUrl ?? (assignment ? assignment.url : `__empty__:${slotIdx}`);
+    // Demo: fallback sequencial de DEMO_USER.allPhotos quando slot não tem atribuição manual
+    const demoFallback = isDemo && slotIdx >= 0 && slotIdx < bookData.allPhotos.length
+      ? bookData.allPhotos[slotIdx] : undefined;
+    const url = overrideUrl ?? (assignment ? assignment.url : demoFallback ?? `__empty__:${slotIdx}`);
     const hasPhoto = !!url && !url.startsWith('__empty__');
     const isActive = !!cropControls && cropControls.activeSlot === slotIdx && hasPhoto;
 
