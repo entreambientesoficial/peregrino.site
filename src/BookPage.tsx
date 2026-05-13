@@ -1956,6 +1956,42 @@ export default function BookPage() {
     );
   }
 
+  // Gate: bloqueia /book em produção. Liberado para localhost e para o admin após login.
+  const isLocalhost = window.location.hostname === 'localhost';
+  const isAdmin = user?.email === 'delarco.ada@gmail.com';
+  if (!isLocalhost && !isAdmin) {
+    return (
+      <div className="min-h-screen bg-[#1B2616] flex flex-col items-center justify-center px-6 text-center">
+        <img src="/img-apoio/vieira.png" alt="" className="h-14 object-contain mb-6 opacity-60" />
+        <h1 style={{ fontFamily: "'Playfair Display', serif", color: '#C8A96E' }} className="text-3xl font-bold mb-3">
+          Em breve
+        </h1>
+        <p className="text-[#E8E4D9]/60 max-w-xs mb-10 text-sm leading-relaxed">
+          O Livro de Recordações estará disponível em breve.<br />Obrigado pela paciência.
+        </p>
+        <Link to="/" className="text-[#E8E4D9]/50 text-sm hover:text-[#E8E4D9]/80 transition-colors">
+          ← Voltar ao site
+        </Link>
+        {/* Acesso admin: botão discreto para login — apenas o administrador sabe que existe */}
+        <button
+          onClick={async () => {
+            await supabase.auth.signInWithOAuth({
+              provider: 'google',
+              options: { redirectTo: OAUTH_REDIRECT_URL, skipBrowserRedirect: false },
+            });
+          }}
+          className="fixed bottom-5 right-5 w-6 h-6 opacity-10 hover:opacity-40 transition-opacity"
+          title="Entrar"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-full h-full text-[#E8E4D9]">
+            <rect x="3" y="11" width="18" height="11" rx="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#FDFCF8] font-sans">
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#1B2616]/95 backdrop-blur-sm px-6 py-3 flex items-center justify-between">
